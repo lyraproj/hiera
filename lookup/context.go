@@ -17,14 +17,22 @@ func DoWithParent(parent context.Context, provider LookupKey, consumer func(eval
 }
 
 func Lookup(c eval.Context, names []string, dflt eval.PValue, options eval.KeyedValue) (v eval.PValue, err error) {
-	cv, ok := c.Get(`lookupCache`)
-	if !ok {
-		return eval.UNDEF, fmt.Errorf(`lookup called without lookup.Context`)
-	}
-	pv, _ := c.Get(`lookupProvider`)
+	var cache *ConcurrentMap
+	var provider LookupKey
 
-	cache := cv.(*ConcurrentMap)
-	provider := pv.(LookupKey)
+	cv, ok := c.Get(`lookupCache`)
+	if ok {
+		cache, ok = cv.(*ConcurrentMap)
+	}
+	if !ok {
+		return eval.UNDEF, fmt.Errorf(`lookup called without lookup cache`)
+	}
+	if cv, ok = c.Get(`lookupProvider`); ok {
+		provider, ok = cv.(LookupKey)
+	}
+	if !ok {
+		return eval.UNDEF, fmt.Errorf(`lookup called without lookup provider`)
+	}
 
 	for _, name := range names {
 		v, ok, err = lookupViaCache(c, NewKey(name), options, cache, provider)
@@ -70,5 +78,5 @@ func lookupViaCache(c eval.Context, key Key, options eval.KeyedValue, cache *Con
 	if val == notFoundSingleton {
 		return eval.UNDEF, false, nil
 	}
-	return val.(eval.PValue), true, nil
+	return key.Dig(c, val.(eval.PValue))
 }

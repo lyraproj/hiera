@@ -17,6 +17,12 @@ func ExampleNewKey_dotted() {
 	// Output: a.b.c, 3
 }
 
+func ExampleNewKey_dotted_int() {
+	key := lookup.NewKey(`a.3`)
+	fmt.Printf(`%T`, key.Parts()[1])
+	// Output: int
+}
+
 func ExampleNewKey_quotedDot() {
 	key := lookup.NewKey(`a.'b.c'`)
 	fmt.Printf(`%s, %d, %s`, key, len(key.Parts()), key.Parts()[1])
