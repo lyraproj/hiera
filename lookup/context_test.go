@@ -15,7 +15,7 @@ func ExampleDoWithParent() {
 	sampleData := map[string]eval.PValue {
 		`first`: eval.Wrap(`value of first`),
 		`arr`: eval.Wrap([]string{`one`, `two`, `three`}),
-		`second`: eval.Wrap(`includes %lookup('first')'`),
+		`second`: eval.Wrap(`includes %{lookup('first')}'`),
 	}
 
 	provider := func(c eval.Context, key string, options eval.KeyedValue) (eval.PValue, bool, error) {
@@ -27,6 +27,9 @@ func ExampleDoWithParent() {
 		v := c.Evaluate(c.ParseAndValidate(`sample.pp`, `lookup('first')`, false))
 		fmt.Println(v)
 		v = c.Evaluate(c.ParseAndValidate(`sample.pp`, `lookup('arr.1')`, false))
+		fmt.Println(v)
+
+		v = c.Evaluate(c.ParseAndValidate(`sample.pp`, `lookup('second')`, false))
 		fmt.Println(v)
 		return nil
 	})

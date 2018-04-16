@@ -10,6 +10,9 @@ const(
 	LOOKUP_DIG_MISMATCH = `LOOKUP_DIG_MISMATCH`
 	LOOKUP_NAME_NOT_FOUND = `LOOKUP_NAME_NOT_FOUND`
 	LOOKUP_NOT_ANY_NAME_FOUND = `LOOKUP_NOT_ANY_NAME_FOUND`
+	LOOKUP_INTERPOLATION_ALIAS_NOT_ENTIRE_STRING = `LOOKUP_INTERPOLATION_ALIAS_NOT_ENTIRE_STRING`
+	LOOKUP_INTERPOLATION_METHOD_SYNTAX_NOT_ALLOWED = `LOOKUP_INTERPOLATION_METHOD_SYNTAX_NOT_ALLOWED`
+	LOOKUP_INTERPOLATION_UNKNOWN_INTERPOLATION_METHOD = `LOOKUP_INTERPOLATION_UNKNOWN_INTERPOLATION_METHOD`
 )
 
 func joinNames(v interface{}) string {
@@ -27,4 +30,10 @@ func init() {
 
 	issue.Hard2(LOOKUP_NOT_ANY_NAME_FOUND, `lookup() did not find a value for any of the names [%{name_list}]'`,
 		issue.HF{`name_list`: joinNames})
+
+	issue.Hard(LOOKUP_INTERPOLATION_ALIAS_NOT_ENTIRE_STRING, `'alias' interpolation is only permitted if the expression is equal to the entire string`)
+
+	issue.Hard(LOOKUP_INTERPOLATION_METHOD_SYNTAX_NOT_ALLOWED, `Interpolation using method syntax is not allowed in this context`)
+
+	issue.Hard(LOOKUP_INTERPOLATION_UNKNOWN_INTERPOLATION_METHOD, `Unknown interpolation method '%{name}'`)
 }
