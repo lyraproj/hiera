@@ -6,16 +6,15 @@ import (
 	"github.com/puppetlabs/go-hiera/lookup"
 )
 
-func doLookup(c eval.Context, name eval.PValue, vtype eval.PType, dflt eval.PValue, options eval.KeyedValue) (found eval.PValue, err error) {
-	names := []string{}
+func doLookup(c eval.Context, name eval.PValue, vtype eval.PType, dflt eval.PValue, options eval.KeyedValue) eval.PValue {
 	if nameArr, cok := name.(*types.ArrayValue); cok {
+		names := []string{}
 		nameArr.Each(func(n eval.PValue) {
 			names = append(names, n.String())
 		})
-	} else {
-		names = append(names, name.String())
+		return lookup.Lookup2(c, names, dflt, options)
 	}
-	return lookup.Lookup(c, names, dflt, options)
+	return lookup.Lookup(c, name.String(), dflt, options)
 }
 
 func init() {
@@ -39,11 +38,7 @@ func init() {
 						options = types.SingletonHash2(`merge`, args[2])
 					}
 				}
-				found, err := doLookup(c, args[0], vtype, nil, options)
-				if err != nil {
-					panic(err)
-				}
-				return found
+				return doLookup(c, args[0], vtype, nil, options)
 			})
 		},
 

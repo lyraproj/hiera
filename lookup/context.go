@@ -5,78 +5,150 @@ import (
 	"context"
 	"fmt"
 	"github.com/puppetlabs/go-issues/issue"
+	"github.com/puppetlabs/go-evaluator/types"
 )
 
+// A Context is passed to a configured lookup data provider function. The
+// context is guaranteed to be unique for the given function in the configuration
+// where its declared.
+type Context interface {
+	// Parent context
+	eval.Context
+
+	// NotFound should be called by a function to indicate that a specified key
+	// was not found. This is different from returning an UNDEF since UNDEF is
+	// a valid value for a key.
+	//
+	// This method will panic with an internal value that is recovered by the
+	// Lookup logic. There is no return from this method.
+	NotFound()
+
+	// Explain will add the message returned by the given function to the
+	// lookup explainer. The method will only get called when the explanation
+	// support is enabled
+	Explain(messageProducer func() string)
+
+	// Interpolate resolves interpolation expressions in the given value and returns
+	// the result
+	Interpolate(val eval.PValue) eval.PValue
+
+	// Cache adds the given key - value association to the cache
+	Cache(key string, value eval.PValue) eval.PValue
+
+	// CacheAll adds all key - value associations in the given hash to the cache
+	CacheAll(hash eval.KeyedValue)
+
+	// CachedEntry returns the value for the given key together with
+	// a boolean to indicate if the value was found or not
+	CachedValue(key string) (eval.PValue, bool)
+
+	// CachedEntries calls the consumer with each entry in the cache
+	CachedEntries(consumer eval.BiConsumer)
+}
+
+type lookupCtx struct {
+	eval.Context
+	sharedCache *ConcurrentMap
+	topProvider LookupKey
+	cache map[string]eval.PValue
+}
+
 // DoWithParent is like eval.DoWithParent but enables lookup
-func DoWithParent(parent context.Context, provider LookupKey, consumer func(eval.Context) error) error {
+func DoWithParent(parent context.Context, provider LookupKey, consumer func(Context) error) error {
 	return eval.Puppet.DoWithParent(parent, func(c eval.Context) error {
-		c.Set(`lookupCache`, NewConcurrentMap(37))
-		c.Set(`lookupProvider`, provider)
-		return consumer(c)
+		lc := &lookupCtx{c, NewConcurrentMap(37), provider, map[string]eval.PValue{}}
+		return consumer(lc)
 	})
 }
 
-func Lookup(c eval.Context, names []string, dflt eval.PValue, options eval.KeyedValue) (v eval.PValue, err error) {
-	var cache *ConcurrentMap
-	var provider LookupKey
+func Lookup(c eval.Context, name string, dflt eval.PValue, options eval.KeyedValue) eval.PValue {
+	return Lookup2(c, []string{name}, dflt, options)
+}
 
-	cv, ok := c.Get(`lookupCache`)
-	if ok {
-		cache, ok = cv.(*ConcurrentMap)
-	}
+func Lookup2(c eval.Context, names []string, dflt eval.PValue, options eval.KeyedValue) eval.PValue {
+	lc, ok := c.(*lookupCtx)
 	if !ok {
-		return eval.UNDEF, fmt.Errorf(`lookup called without lookup cache`)
+		panic(fmt.Errorf(`lookup called without lookup.Context`))
 	}
-	if cv, ok = c.Get(`lookupProvider`); ok {
-		provider, ok = cv.(LookupKey)
-	}
-	if !ok {
-		return eval.UNDEF, fmt.Errorf(`lookup called without lookup provider`)
-	}
-
 	for _, name := range names {
-		v, ok, err = lookupViaCache(c, NewKey(name), options, cache, provider)
-		if err != nil || ok {
-			return
+		if v, ok := lc.lookupViaCache(NewKey(c, name), options); ok {
+			return v
 		}
 	}
 	if dflt == nil {
 		// nil (as opposed to UNDEF) means that no default was provided.
 		if len(names) == 1 {
-			err = eval.Error(c, LOOKUP_NAME_NOT_FOUND, issue.H{`name`: names[1]})
-		} else {
-			err = eval.Error(c, LOOKUP_NOT_ANY_NAME_FOUND, issue.H{`name_list`: names})
+			panic(eval.Error(c, LOOKUP_NAME_NOT_FOUND, issue.H{`name`: names[0]}))
 		}
-	} else {
-		v = dflt
+		panic(eval.Error(c, LOOKUP_NOT_ANY_NAME_FOUND, issue.H{`name_list`: names}))
 	}
-	return
+	return dflt
 }
 
 type notFound struct {}
 
 var notFoundSingleton = &notFound{}
 
-func lookupViaCache(c eval.Context, key Key, options eval.KeyedValue, cache *ConcurrentMap, provider LookupKey) (eval.PValue, bool, error) {
+func (lookupCtx) NotFound() {
+	panic(notFoundSingleton)
+}
+
+func (c *lookupCtx) Explain(messageProducer func() string) {
+	// TODO: Add explanation support
+}
+
+func (c *lookupCtx) Interpolate(val eval.PValue) eval.PValue {
+	return Interpolate(c, val, true)
+}
+
+func (c *lookupCtx) Cache(key string, value eval.PValue) eval.PValue {
+	old, ok := c.cache[key]
+	if !ok {
+		old = eval.UNDEF
+	}
+	c.cache[key] = value
+	return old
+}
+
+func (c *lookupCtx) CacheAll(hash eval.KeyedValue) {
+	hash.EachPair(func(k, v eval.PValue) {
+		c.cache[k.String()] = v
+	})
+}
+
+func (c *lookupCtx) CachedValue(key string) (v eval.PValue, ok bool) {
+	v, ok = c.cache[key]
+	return
+}
+
+func (c *lookupCtx) CachedEntries(consumer eval.BiConsumer) {
+	for k, v := range c.cache {
+		consumer(types.WrapString(k), v)
+	}
+}
+
+func (c *lookupCtx) WithScope(scope eval.Scope) eval.Context {
+	return &lookupCtx{c.Context.WithScope(scope), c.sharedCache, c.topProvider, c.cache}
+}
+
+func (c *lookupCtx) lookupViaCache(key Key, options eval.KeyedValue) (eval.PValue, bool) {
 	rootKey := key.Root()
 
-	var err error = nil
-	val := cache.EnsureSet(rootKey, func() interface{} {
-		v, f, e := provider(c, rootKey, options)
-		if e != nil {
-			err = e
-			return notFoundSingleton
-		}
-		if !f {
-			return notFoundSingleton
-		}
-		return v
+	val := c.sharedCache.EnsureSet(rootKey, func() (val interface{}) {
+		defer func() {
+			if r := recover(); r != nil {
+				if r == notFoundSingleton {
+					val = r
+				} else {
+					panic(r)
+				}
+			}
+		}()
+		val = Interpolate(c, c.topProvider(c, rootKey, options), true)
+		return
 	})
-	if err != nil {
-		return eval.UNDEF, false, err
-	}
 	if val == notFoundSingleton {
-		return eval.UNDEF, false, nil
+		return nil, false
 	}
 	return key.Dig(c, val.(eval.PValue))
 }

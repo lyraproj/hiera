@@ -11,7 +11,7 @@ import (
 
 type Key interface {
 	fmt.Stringer
-	Dig(eval.Context, eval.PValue) (eval.PValue, bool, error)
+	Dig(Context, eval.PValue) (eval.PValue, bool)
 	Parts() []interface{}
 	Root() string
 }
@@ -21,12 +21,12 @@ type key struct {
 	parts []interface{}
 }
 
-func NewKey(str string) Key {
+func NewKey(c eval.Context, str string) Key {
 	b := bytes.NewBufferString(``)
-	return &key{str, parseUnquoted(b, str, []interface{}{})}
+	return &key{str, parseUnquoted(c, b, str, str, []interface{}{})}
 }
 
-func (k *key) Dig(c eval.Context, v eval.PValue) (eval.PValue, bool, error) {
+func (k *key) Dig(c Context, v eval.PValue) (eval.PValue, bool) {
 	for i := 1; i < len(k.parts); i++ {
 		p := k.parts[i]
 		if ix, ok := p.(int); ok {
@@ -35,7 +35,7 @@ func (k *key) Dig(c eval.Context, v eval.PValue) (eval.PValue, bool, error) {
 					v = iv.At(ix)
 					continue
 				}
-				return eval.UNDEF, false, nil
+				return nil, false
 			}
 		} else {
 			kx := p.(string)
@@ -43,12 +43,12 @@ func (k *key) Dig(c eval.Context, v eval.PValue) (eval.PValue, bool, error) {
 				if v, ok = kv.Get4(kx); ok {
 					continue
 				}
-				return eval.UNDEF, false, nil
+				return nil, false
 			}
 		}
-		eval.Error(c, LOOKUP_DIG_MISMATCH, issue.H{`type`: v.Type(), `segment`: p, `key`: k.orig})
+		panic(eval.Error(c, LOOKUP_DIG_MISMATCH, issue.H{`type`: eval.GenericValueType(v), `segment`: p, `key`: k.orig}))
 	}
-	return v, true, nil
+	return v, true
 }
 
 func (k *key) Parts() []interface{} {
@@ -63,34 +63,43 @@ func (k *key) Root() string {
 	return k.parts[0].(string)
 }
 
-func parseUnquoted(b *bytes.Buffer, key string, parts []interface{}) []interface{} {
-	mungePart := func(part string) interface{} {
+func parseUnquoted(ctx eval.Context, b *bytes.Buffer, key, part string, parts []interface{}) []interface{} {
+	mungePart := func(ix int, part string) interface{} {
 		if i, err := strconv.ParseInt(part, 10, 32); err == nil {
+			if ix == 0 {
+				panic(eval.Error(ctx, LOOKUP_FIRST_KEY_SEGMENT_INT, issue.H{`key`: key}))
+			}
 			return int(i)
+		}
+		if part == `` {
+			panic(eval.Error(ctx, LOOKUP_EMPTY_KEY_SEGMENT, issue.H{`key`: key}))
 		}
 		return part
 	}
 
-	for i, c := range key {
+	for i, c := range part {
 		switch c {
 		case '\'', '"':
-			return parseQuoted(b, c, key[i+1:], parts)
+			return parseQuoted(ctx, b, c, key, part[i+1:], parts)
 		case '.':
-			parts = append(parts, mungePart(b.String()))
+			parts = append(parts, mungePart(len(parts), b.String()))
 			b.Reset()
 		default:
 			b.WriteRune(c)
 		}
 	}
-	return append(parts, mungePart(b.String()))
+	return append(parts, mungePart(len(parts), b.String()))
 }
 
-func parseQuoted(b *bytes.Buffer, q rune, key string, parts []interface{}) []interface{} {
-	for i, c := range key {
+func parseQuoted(ctx eval.Context, b *bytes.Buffer, q rune, key, part string, parts []interface{}) []interface{} {
+	for i, c := range part {
 		if c == q {
-			return parseUnquoted(b, key[i+1:], parts)
+			if i == len(part) - 1 {
+				return append(parts, b.String())
+			}
+			return parseUnquoted(ctx, b, key, part[i+1:], parts)
 		}
 		b.WriteRune(c)
 	}
-	return parts
+	panic(eval.Error(ctx, LOOKUP_UNTERMINATED_QUOTE, issue.H{`key`: key}))
 }

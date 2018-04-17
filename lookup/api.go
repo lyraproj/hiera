@@ -2,9 +2,8 @@ package lookup
 
 import "github.com/puppetlabs/go-evaluator/eval"
 
-type DataDig func(c eval.Context, key Key, options eval.KeyedValue) (eval.PValue, bool, error)
+type DataDig func(c Context, key Key, options eval.KeyedValue) eval.PValue
 
-type DataHash func(c eval.Context, options eval.KeyedValue) (eval.KeyedValue, error)
+type DataHash func(c Context, options eval.KeyedValue) eval.KeyedValue
 
-type LookupKey func(c eval.Context, key string, options eval.KeyedValue) (eval.PValue, bool, error)
-
+type LookupKey func(c Context, key string, options eval.KeyedValue) eval.PValue
