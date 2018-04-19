@@ -20,9 +20,10 @@ func NewConcurrentMap(capacity int) *ConcurrentMap {
 // map. If it does, the thread will deadlock.
 func (c *ConcurrentMap) AtomicReplace(key string, replacer func(oldValue interface{}) interface{}) interface{} {
 	c.lock.Lock()
+	oldValue, _ := c.valueMutexWait(key)
 	defer c.lock.Unlock()
 
-	newValue := replacer(c.values[key])
+	newValue := replacer(oldValue)
 	c.values[key] = newValue
 	return newValue
 }
@@ -30,8 +31,27 @@ func (c *ConcurrentMap) AtomicReplace(key string, replacer func(oldValue interfa
 // Delete deletes the given key from the map
 func (c *ConcurrentMap) Delete(key string) {
 	c.lock.Lock()
-	delete(c.values, key)
+	if _, ok := c.valueMutexWait(key); ok {
+		delete(c.values, key)
+	}
 	c.lock.Unlock()
+}
+
+func (c *ConcurrentMap) valueMutexWait(key string) (interface{}, bool) {
+	for {
+		oldValue, isSet := c.values[key]
+		if isSet {
+			if l, ok := oldValue.(*sync.RWMutex); ok {
+				// The value is currently a lock. Wait until it's released
+				c.lock.Unlock()
+				l.RLock()
+				l.RUnlock()
+				c.lock.Lock()
+				continue
+			}
+		}
+		return oldValue, isSet
+	}
 }
 
 // EnsureSet checks if the given key is set and returns it if that is the case. Otherwise
@@ -39,50 +59,34 @@ func (c *ConcurrentMap) Delete(key string) {
 //
 // The producer does not execute within a mutex.
 func (c *ConcurrentMap) EnsureSet(key string, producer func() interface{})  interface{} {
-	c.lock.RLock()
-	oldValue, isSet := c.values[key]
-	c.lock.RUnlock()
-	if isSet {
-		if l, ok := oldValue.(sync.RWMutex); ok {
-			// The value is currently a lock. Wait for the real value
-			l.RLock()
-			oldValue, _ = c.values[key]
-			l.RUnlock()
-		}
-		return oldValue
-	}
-
 	// Take the write lock
 	c.lock.Lock()
 
-	// Must check again, another thread might have intervened
-	if oldValue, isSet = c.values[key]; isSet {
+	oldValue, isSet := c.valueMutexWait(key)
+	if isSet {
 		c.lock.Unlock()
-		if l, ok := oldValue.(sync.RWMutex); ok {
-			// The value is currently a lock. Wait for the real value
-			l.RLock()
-			oldValue, _ = c.values[key]
-			l.RUnlock()
-		}
 		return oldValue
 	}
 
 	// Replace the value with a RWMutex that is locked.
 	lock := sync.RWMutex{}
 	lock.Lock()
+
+	var value interface{}
 	defer func() {
-		delete(c.values, key)
+		c.lock.Lock()
+		c.values[key] = value
 		lock.Unlock()
+		c.lock.Unlock()
 	}()
-	c.values[key] = lock
+	c.values[key] = &lock
 
 	// Let go of the write lock
 	c.lock.Unlock()
 
 	// Call the producer. A deadlock will occur if this call results in a new lookup for the same key
 	// but that's OK. The alternative (not using locks) would be an endless recursion
-	value := producer()
-	c.values[key] = value
+	value = producer()
 	return value
 }
 
@@ -92,12 +96,27 @@ func (c *ConcurrentMap) Get(key string) (value interface{}, ok bool) {
 	c.lock.RLock()
 	value, ok = c.values[key]
 	c.lock.RUnlock()
+	if l, ok := value.(*sync.RWMutex); ok {
+		// The value is currently a lock. Wait for the real value
+		l.RLock()
+		l.RUnlock()
+		return c.Get(key)
+	}
 	return
 }
 
 // Set adds or replaces the value for the given key
 func (c *ConcurrentMap) Set(key string, value interface{}) {
 	c.lock.Lock()
+	if oldValue, isSet := c.values[key]; isSet {
+		if l, ok := oldValue.(*sync.RWMutex); ok {
+			// The value is currently a lock. Wait until it's released
+			c.lock.Unlock()
+			l.RLock()
+			l.RUnlock()
+			c.lock.Lock()
+		}
+	}
 	c.values[key] = value
 	c.lock.Unlock()
 }
