@@ -71,7 +71,7 @@ var methodMatch = regexp.MustCompile(`^(\w+)\((?:["]([^"]+)["]|[']([^']+)['])\)$
 func getMethodAndData(c Context, expr string, allowMethods bool) (int, string) {
 	if groups := methodMatch.FindStringSubmatch(expr); groups != nil {
 		if !allowMethods {
-			panic(eval.Error(c, LOOKUP_INTERPOLATION_METHOD_SYNTAX_NOT_ALLOWED, issue.NO_ARGS))
+			panic(eval.Error(c, HIERA_INTERPOLATION_METHOD_SYNTAX_NOT_ALLOWED, issue.NO_ARGS))
 		}
 		data := groups[2]
 		if data == `` {
@@ -87,7 +87,7 @@ func getMethodAndData(c Context, expr string, allowMethods bool) (int, string) {
 		case `scope`:
 			return scopeMethod, data
 		default:
-			panic(eval.Error(c, LOOKUP_INTERPOLATION_UNKNOWN_INTERPOLATION_METHOD, issue.H{`name`: groups[1]}))
+			panic(eval.Error(c, HIERA_INTERPOLATION_UNKNOWN_INTERPOLATION_METHOD, issue.H{`name`: groups[1]}))
 		}
 	}
 	return scopeMethod, expr
@@ -106,7 +106,7 @@ func interpolateString(c Context, str string, allowMethods bool) (result eval.PV
 		var methodKey int
 		methodKey, expr = getMethodAndData(c, expr, allowMethods)
 		if methodKey == aliasMethod && match != str {
-			panic(eval.Error(c, LOOKUP_INTERPOLATION_ALIAS_NOT_ENTIRE_STRING, issue.NO_ARGS))
+			panic(eval.Error(c, HIERA_INTERPOLATION_ALIAS_NOT_ENTIRE_STRING, issue.NO_ARGS))
 		}
 
 		switch methodKey {

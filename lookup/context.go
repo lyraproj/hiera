@@ -78,9 +78,9 @@ func Lookup2(c eval.Context, names []string, dflt eval.PValue, options eval.Keye
 	if dflt == nil {
 		// nil (as opposed to UNDEF) means that no default was provided.
 		if len(names) == 1 {
-			panic(eval.Error(c, LOOKUP_NAME_NOT_FOUND, issue.H{`name`: names[0]}))
+			panic(eval.Error(c, HIERA_NAME_NOT_FOUND, issue.H{`name`: names[0]}))
 		}
-		panic(eval.Error(c, LOOKUP_NOT_ANY_NAME_FOUND, issue.H{`name_list`: names}))
+		panic(eval.Error(c, HIERA_NOT_ANY_NAME_FOUND, issue.H{`name_list`: names}))
 	}
 	return dflt
 }

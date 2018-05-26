@@ -46,7 +46,7 @@ func (k *key) Dig(c Context, v eval.PValue) (eval.PValue, bool) {
 				return nil, false
 			}
 		}
-		panic(eval.Error(c, LOOKUP_DIG_MISMATCH, issue.H{`type`: eval.GenericValueType(v), `segment`: p, `key`: k.orig}))
+		panic(eval.Error(c, HIERA_DIG_MISMATCH, issue.H{`type`: eval.GenericValueType(v), `segment`: p, `key`: k.orig}))
 	}
 	return v, true
 }
@@ -67,12 +67,12 @@ func parseUnquoted(ctx eval.Context, b *bytes.Buffer, key, part string, parts []
 	mungePart := func(ix int, part string) interface{} {
 		if i, err := strconv.ParseInt(part, 10, 32); err == nil {
 			if ix == 0 {
-				panic(eval.Error(ctx, LOOKUP_FIRST_KEY_SEGMENT_INT, issue.H{`key`: key}))
+				panic(eval.Error(ctx, HIERA_FIRST_KEY_SEGMENT_INT, issue.H{`key`: key}))
 			}
 			return int(i)
 		}
 		if part == `` {
-			panic(eval.Error(ctx, LOOKUP_EMPTY_KEY_SEGMENT, issue.H{`key`: key}))
+			panic(eval.Error(ctx, HIERA_EMPTY_KEY_SEGMENT, issue.H{`key`: key}))
 		}
 		return part
 	}
@@ -101,5 +101,5 @@ func parseQuoted(ctx eval.Context, b *bytes.Buffer, q rune, key, part string, pa
 		}
 		b.WriteRune(c)
 	}
-	panic(eval.Error(ctx, LOOKUP_UNTERMINATED_QUOTE, issue.H{`key`: key}))
+	panic(eval.Error(ctx, HIERA_UNTERMINATED_QUOTE, issue.H{`key`: key}))
 }
