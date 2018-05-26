@@ -46,7 +46,7 @@ func (k *key) Dig(c eval.Context, v eval.PValue) (eval.PValue, bool, error) {
 				return eval.UNDEF, false, nil
 			}
 		}
-		eval.Error(c, LOOKUP_DIG_MISMATCH, issue.H{`type`: v.Type(), `segment`: p, `key`: k.orig})
+		eval.Error(c, HIERA_DIG_MISMATCH, issue.H{`type`: v.Type(), `segment`: p, `key`: k.orig})
 	}
 	return v, true, nil
 }

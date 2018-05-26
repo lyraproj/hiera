@@ -43,9 +43,9 @@ func Lookup(c eval.Context, names []string, dflt eval.PValue, options eval.Keyed
 	if dflt == nil {
 		// nil (as opposed to UNDEF) means that no default was provided.
 		if len(names) == 1 {
-			err = eval.Error(c, LOOKUP_NAME_NOT_FOUND, issue.H{`name`: names[1]})
+			err = eval.Error(c, HIERA_NAME_NOT_FOUND, issue.H{`name`: names[1]})
 		} else {
-			err = eval.Error(c, LOOKUP_NOT_ANY_NAME_FOUND, issue.H{`name_list`: names})
+			err = eval.Error(c, HIERA_NOT_ANY_NAME_FOUND, issue.H{`name_list`: names})
 		}
 	} else {
 		v = dflt
