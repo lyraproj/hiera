@@ -75,7 +75,7 @@ func ExampleLookup_interpolate() {
 
 func ExampleLookup_interpolateScope() {
 	eval.Puppet.DoWithParent(context.Background(), func(c eval.Context) error {
-		c = c.WithScope(impl.NewScope2(types.WrapHash4(issue.H{
+		c = c.WithScope(impl.NewScope2(types.WrapHash4(c, issue.H{
 			`world`: `cruel world`,
 		})))
 		lookup.DoWithParent(c, provider, func(c lookup.Context) error {
@@ -236,7 +236,7 @@ func ExampleContextCachedValue() {
 	}
 
 	lookup.DoWithParent(context.Background(), cachingProvider, func(c lookup.Context) error {
-		c = c.WithScope(impl.NewScope2(types.WrapHash4(map[string]interface{}{
+		c = c.WithScope(impl.NewScope2(types.WrapHash4(c, map[string]interface{}{
 			`a`: `scope 'a'`,
 			`b`: `scope 'b'`,
 		}))).(lookup.Context)
@@ -251,8 +251,15 @@ func ExampleContextCachedValue() {
 	// generated value for scope 'a'
 	// Creating and caching value for b
 	// generated value for scope 'b'
-	// Returning cached value for a
 	// generated value for scope 'a'
-	// Returning cached value for b
 	// generated value for scope 'b'
+}
+
+func ExampleLookup_dottedStringInt() {
+	lookup.DoWithParent(context.Background(), provider, func(c lookup.Context) error {
+		v := lookup.Lookup(c, `hash.array.0`, nil, nil)
+		fmt.Println(v)
+		return nil
+	})
+	// Output: two
 }
