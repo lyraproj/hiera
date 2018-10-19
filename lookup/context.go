@@ -135,6 +135,15 @@ func (c *lookupCtx) CachedEntries(consumer eval.BiConsumer) {
 	}
 }
 
+func (c *lookupCtx) Fork() eval.Context {
+	return &lookupCtx{
+		Context: c.Context.Fork(),
+		sharedCache: c.sharedCache,
+		topProvider: c.topProvider,
+		cache: map[string]eval.PValue{},
+	}
+}
+
 func (c *lookupCtx) WithScope(scope eval.Scope) eval.Context {
 	return &lookupCtx{c.Context.WithScope(scope), c.sharedCache, c.topProvider, c.cache}
 }
