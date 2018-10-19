@@ -1,14 +1,14 @@
 package lookup
 
 import (
-	"regexp"
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/types"
-	"strings"
 	"github.com/puppetlabs/go-issues/issue"
+	"regexp"
+	"strings"
 )
 
-var iplPattern = regexp.MustCompile(`%\{[^\}]*\}`)
+var iplPattern = regexp.MustCompile(`%{[^}]*}`)
 var emptyInterpolations = map[string]bool {
 	``: true,
 	`::`: true,
@@ -68,10 +68,10 @@ const literalMethod = 4
 
 var methodMatch = regexp.MustCompile(`^(\w+)\((?:["]([^"]+)["]|[']([^']+)['])\)$`)
 
-func getMethodAndData(c Context, expr string, allowMethods bool) (int, string) {
+func getMethodAndData(expr string, allowMethods bool) (int, string) {
 	if groups := methodMatch.FindStringSubmatch(expr); groups != nil {
 		if !allowMethods {
-			panic(eval.Error(c, HIERA_INTERPOLATION_METHOD_SYNTAX_NOT_ALLOWED, issue.NO_ARGS))
+			panic(eval.Error(HIERA_INTERPOLATION_METHOD_SYNTAX_NOT_ALLOWED, issue.NO_ARGS))
 		}
 		data := groups[2]
 		if data == `` {
@@ -87,7 +87,7 @@ func getMethodAndData(c Context, expr string, allowMethods bool) (int, string) {
 		case `scope`:
 			return scopeMethod, data
 		default:
-			panic(eval.Error(c, HIERA_INTERPOLATION_UNKNOWN_INTERPOLATION_METHOD, issue.H{`name`: groups[1]}))
+			panic(eval.Error(HIERA_INTERPOLATION_UNKNOWN_INTERPOLATION_METHOD, issue.H{`name`: groups[1]}))
 		}
 	}
 	return scopeMethod, expr
@@ -104,19 +104,19 @@ func interpolateString(c Context, str string, allowMethods bool) (result eval.PV
 			return ``
 		}
 		var methodKey int
-		methodKey, expr = getMethodAndData(c, expr, allowMethods)
+		methodKey, expr = getMethodAndData(expr, allowMethods)
 		if methodKey == aliasMethod && match != str {
-			panic(eval.Error(c, HIERA_INTERPOLATION_ALIAS_NOT_ENTIRE_STRING, issue.NO_ARGS))
+			panic(eval.Error(HIERA_INTERPOLATION_ALIAS_NOT_ENTIRE_STRING, issue.NO_ARGS))
 		}
 
 		switch methodKey {
 		case literalMethod:
 			return expr
 		case scopeMethod:
-			key := NewKey(c, expr)
+			key := NewKey(expr)
 			if val, ok := c.Scope().Get(key.Root()); ok {
 				val, _ = doInterpolate(c, val, allowMethods)
-				if val, ok = key.Dig(c, val); ok {
+				if val, ok = key.Dig(val); ok {
 					return val.String()
 				}
 			}

@@ -1,13 +1,13 @@
 package lookup
 
 import (
-	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-evaluator/types"
-	"path/filepath"
-	"github.com/puppetlabs/go-evaluator/functions"
-	"github.com/puppetlabs/go-issues/issue"
 	"fmt"
+	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/functions"
+	"github.com/puppetlabs/go-evaluator/types"
 	"github.com/puppetlabs/go-evaluator/utils"
+	"github.com/puppetlabs/go-issues/issue"
+	"path/filepath"
 )
 
 type LookupKind string
@@ -172,11 +172,12 @@ type provider struct {
 }
 
 func (e *entry) createProvider(c eval.Context, defaults HierarchyEntry) DataProvider {
+	// TODO: Create data provider base on entry
 	return nil
 }
 
 func (e *entry) resolve(c eval.Context) *entry {
-	// Resolve interpolated strings
+	// TODO: Resolve hiearchy entry with all interpolated strings etc.
 	ce := &entry{}
 	if e.function != nil {
 		ce.function = e.function.resolve(c)
@@ -250,11 +251,11 @@ func NewConfig(c eval.Context, configPath string) Config {
 	if b, ok := types.BinaryFromFile2(c, configPath); ok {
 		v, ok := eval.Load(c, eval.NewTypedName(eval.TYPE, `Hiera::Config`))
 		if !ok {
-			panic(eval.Error(c, eval.EVAL_FAILURE, issue.H{`message`: `Unable to load Hiera::Config data type`}))
+			panic(eval.Error(eval.EVAL_FAILURE, issue.H{`message`: `Unable to load Hiera::Config data type`}))
 		}
 		cfgType := v.(eval.PType)
 		yv := functions.UnmarshalYaml(c, b.Bytes())
-		return createConfig(c, configPath, eval.AssertInstance(c, func() string {
+		return createConfig(configPath, eval.AssertInstance(func() string {
 				return fmt.Sprintf(`The Lookup Configuration at '%s'`, configPath)
 			}, cfgType, yv).(*types.HashValue))
 	}
@@ -299,45 +300,45 @@ func (hc *config) createProviders(c eval.Context, hierarchy []HierarchyEntry) []
 	return providers
 }
 
-func createConfig(c eval.Context, path string, hash *types.HashValue) Config {
+func createConfig(path string, hash *types.HashValue) Config {
 	cfg := &config{root: filepath.Dir(path), path: path}
 
 	var dflts HierarchyEntry
 	if dv, ok := hash.Get4(`defaults`); ok {
-		cfg.defaults = createHierarchyEntry(c, `defaults`, dv.(*types.HashValue), nil)
+		cfg.defaults = createHierarchyEntry(`defaults`, dv.(*types.HashValue), nil)
 	} else {
 		cfg.defaults = DEFAULT_CONFIG.Defaults()
 	}
 
 	if hv, ok := hash.Get4(`hierarchy`); ok {
-		cfg.hierarchy = createHierarchy(c, hv.(*types.ArrayValue), dflts)
+		cfg.hierarchy = createHierarchy(hv.(*types.ArrayValue), dflts)
 	} else {
 		cfg.hierarchy = DEFAULT_CONFIG.Hierarchy()
 	}
 
 	if hv, ok := hash.Get4(`default_hierarchy`); ok {
-		cfg.defaultHierarchy = createHierarchy(c, hv.(*types.ArrayValue), dflts)
+		cfg.defaultHierarchy = createHierarchy(hv.(*types.ArrayValue), dflts)
 	}
 
 	return cfg
 }
 
-func createHierarchy(c eval.Context, hier *types.ArrayValue, defaults HierarchyEntry) []HierarchyEntry {
+func createHierarchy(hier *types.ArrayValue, defaults HierarchyEntry) []HierarchyEntry {
 	entries := make([]HierarchyEntry, 0, hier.Len())
 	uniqueNames := make(map[string]bool, hier.Len())
 	hier.Each(func( hv eval.PValue) {
 		hh := hv.(*types.HashValue)
 		name := hh.Get5(`name`, eval.EMPTY_STRING).String()
 		if uniqueNames[name] {
-			panic(eval.Error(c, HIERA_HIERARCHY_NAME_MULTIPLY_DEFINED, issue.H{`name`: name}))
+			panic(eval.Error(HIERA_HIERARCHY_NAME_MULTIPLY_DEFINED, issue.H{`name`: name}))
 		}
 		uniqueNames[name] = true
-		entries = append(entries, createHierarchyEntry(c, name, hh, defaults))
+		entries = append(entries, createHierarchyEntry(name, hh, defaults))
 	})
 	return entries
 }
 
-func createHierarchyEntry(c eval.Context, name string, hierEntry *types.HashValue, defaults HierarchyEntry) HierarchyEntry {
+func createHierarchyEntry(name string, hierEntry *types.HashValue, defaults HierarchyEntry) HierarchyEntry {
 	entry := &entry{name: name}
 	hierEntry.EachPair(func(k, v eval.PValue) {
 		ks := k.String()
@@ -345,17 +346,17 @@ func createHierarchyEntry(c eval.Context, name string, hierEntry *types.HashValu
 			entry.options = v.(*types.HashValue)
 			entry.options.EachKey(func(optKey eval.PValue) {
 				if utils.ContainsString(RESERVED_OPTION_KEYS, optKey.String()) {
-					panic(eval.Error(c, HIERA_OPTION_RESERVED_BY_PUPPET, issue.H{`key`: optKey.String(), `name`: name}))
+					panic(eval.Error(HIERA_OPTION_RESERVED_BY_PUPPET, issue.H{`key`: optKey.String(), `name`: name}))
 				}
 			})
 		} else if utils.ContainsString(FUNCTION_KEYS, ks) {
 			if entry.function != nil {
-				panic(eval.Error(c, HIERA_MULTIPLE_DATA_PROVIDER_FUNCTIONS, issue.H{`keys`: FUNCTION_KEYS, `name`: name}))
+				panic(eval.Error(HIERA_MULTIPLE_DATA_PROVIDER_FUNCTIONS, issue.H{`keys`: FUNCTION_KEYS, `name`: name}))
 			}
 			entry.function = &function{LookupKind(ks), v.String()}
 		} else if utils.ContainsString(LOCATION_KEYS, ks) {
 			if entry.locations != nil {
-				panic(eval.Error(c, HIERA_MULTIPLE_LOCATION_SPECS, issue.H{`keys`: LOCATION_KEYS, `name`: name}))
+				panic(eval.Error(HIERA_MULTIPLE_LOCATION_SPECS, issue.H{`keys`: LOCATION_KEYS, `name`: name}))
 			}
 			switch ks {
 			case `path`:
@@ -384,7 +385,7 @@ func createHierarchyEntry(c eval.Context, name string, hierEntry *types.HashValu
 	})
 
 	if defaults != nil && entry.function == nil && defaults.Function() == nil {
-		panic(eval.Error(c, HIERA_MISSING_DATA_PROVIDER_FUNCTION, issue.H{`keys`: FUNCTION_KEYS, `name`: name}))
+		panic(eval.Error(HIERA_MISSING_DATA_PROVIDER_FUNCTION, issue.H{`keys`: FUNCTION_KEYS, `name`: name}))
 	}
 	return entry
 }

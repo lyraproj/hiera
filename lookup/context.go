@@ -1,11 +1,11 @@
 package lookup
 
 import (
-	"github.com/puppetlabs/go-evaluator/eval"
 	"context"
 	"fmt"
-	"github.com/puppetlabs/go-issues/issue"
+	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/types"
+	"github.com/puppetlabs/go-issues/issue"
 )
 
 // A Context is passed to a configured lookup data provider function. The
@@ -62,27 +62,35 @@ func DoWithParent(parent context.Context, provider LookupKey, consumer func(Cont
 }
 
 func Lookup(c eval.Context, name string, dflt eval.PValue, options eval.KeyedValue) eval.PValue {
-	return Lookup2(c, []string{name}, dflt, options)
+	return Lookup2(c, []string{name}, types.DefaultAnyType(), dflt, eval.EMPTY_MAP, eval.EMPTY_MAP, options, nil)
 }
 
-func Lookup2(c eval.Context, names []string, dflt eval.PValue, options eval.KeyedValue) eval.PValue {
-	lc, ok := c.(*lookupCtx)
+func Lookup2(
+	ctx eval.Context,
+	names []string,
+	valueType eval.PType,
+	defaultValue eval.PValue,
+	override eval.KeyedValue,
+	defaultValuesHash eval.KeyedValue,
+	options eval.KeyedValue,
+	block eval.Lambda) eval.PValue {
+	lc, ok := ctx.(*lookupCtx)
 	if !ok {
 		panic(fmt.Errorf(`lookup called without lookup.Context`))
 	}
 	for _, name := range names {
-		if v, ok := lc.lookupViaCache(NewKey(c, name), options); ok {
+		if v, ok := lc.lookupViaCache(NewKey(name), options); ok {
 			return v
 		}
 	}
-	if dflt == nil {
+	if defaultValue == nil {
 		// nil (as opposed to UNDEF) means that no default was provided.
 		if len(names) == 1 {
-			panic(eval.Error(c, HIERA_NAME_NOT_FOUND, issue.H{`name`: names[0]}))
+			panic(eval.Error(HIERA_NAME_NOT_FOUND, issue.H{`name`: names[0]}))
 		}
-		panic(eval.Error(c, HIERA_NOT_ANY_NAME_FOUND, issue.H{`name_list`: names}))
+		panic(eval.Error(HIERA_NOT_ANY_NAME_FOUND, issue.H{`name_list`: names}))
 	}
-	return dflt
+	return defaultValue
 }
 
 type notFound struct {}
@@ -150,5 +158,5 @@ func (c *lookupCtx) lookupViaCache(key Key, options eval.KeyedValue) (eval.PValu
 	if val == notFoundSingleton {
 		return nil, false
 	}
-	return key.Dig(c, val.(eval.PValue))
+	return key.Dig(val.(eval.PValue))
 }

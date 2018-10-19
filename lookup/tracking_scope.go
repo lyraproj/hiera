@@ -22,6 +22,11 @@ func NewTrackingScope(tracked eval.Scope) TrackingScope {
 	return &trackingScope{tracked, make(map[string]eval.PValue, 13)}
 }
 
+func (t *trackingScope) Fork() eval.Scope {
+	// Multi threaded use of TrackingScope is not permitted
+	panic(`attempt to fork TrackingScope`)
+}
+
 func (t *trackingScope) Get(name string) (eval.PValue, bool) {
 	value, found := t.tracked.Get(name)
 
