@@ -55,7 +55,7 @@ func init() {
 	issue.Hard2(HIERA_MULTIPLE_LOCATION_SPECS, `Only one of %{keys} can be defined in hierarchy '%{name}'`,
 		issue.HF{`keys`: joinNames})
 
-	issue.Hard(HIERA_NAME_NOT_FOUND, `lookup() did not find a value for the name '{name}'`)
+	issue.Hard(HIERA_NAME_NOT_FOUND, `lookup() did not find a value for the name '%{name}'`)
 
 	issue.Hard2(HIERA_NOT_ANY_NAME_FOUND, `lookup() did not find a value for any of the names [%{name_list}]`,
 		issue.HF{`name_list`: joinNames})
