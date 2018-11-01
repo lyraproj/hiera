@@ -14,7 +14,7 @@ import (
 	_ "github.com/puppetlabs/go-hiera/functions"
 )
 
-var sampleData = map[string]eval.PValue {
+var sampleData = map[string]eval.Value{
   `first`: types.WrapString(`value of first`),
   `array`: eval.Wrap(nil, []string{`one`, `two`, `three`}),
 	`hash`: eval.Wrap(nil, map[string]interface{}{`int`: 1, `string`: `one`, `array`: []string{`two`, `%{hiera('first')}`}}),
@@ -33,7 +33,7 @@ var sampleData = map[string]eval.PValue {
 	`empty6`: types.WrapString(`start%{"::"}end`),
 }
 
-func provider(c lookup.Context, key string, _ eval.KeyedValue) eval.PValue {
+func provider(c lookup.Context, key string, _ eval.OrderedMap) eval.Value {
 	if v, ok := sampleData[key]; ok {
 		return v
 	}
@@ -227,7 +227,7 @@ func ExampleLookup2_notFoundDflt() {
 
 func ExampleContextCachedValue() {
 
-	cachingProvider := func(c lookup.Context, key string, options eval.KeyedValue) eval.PValue{
+	cachingProvider := func(c lookup.Context, key string, options eval.OrderedMap) eval.Value {
 		if v, ok := c.CachedValue(key); ok {
 			fmt.Printf("Returning cached value for %s\n", key)
 			return v

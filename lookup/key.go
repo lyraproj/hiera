@@ -11,7 +11,7 @@ import (
 
 type Key interface {
 	fmt.Stringer
-	Dig(eval.PValue) (eval.PValue, bool)
+	Dig(eval.Value) (eval.Value, bool)
 	Parts() []interface{}
 	Root() string
 }
@@ -26,7 +26,7 @@ func NewKey(str string) Key {
 	return &key{str, parseUnquoted(b, str, str, []interface{}{})}
 }
 
-func (k *key) Dig(v eval.PValue) (eval.PValue, bool) {
+func (k *key) Dig(v eval.Value) (eval.Value, bool) {
 	for i := 1; i < len(k.parts); i++ {
 		p := k.parts[i]
 		if ix, ok := p.(int); ok {

@@ -18,17 +18,17 @@ var emptyInterpolations = map[string]bool {
 	"'::'": true,
 }
 
-func Interpolate(c Context, value eval.PValue, allowMethods bool) eval.PValue {
+func Interpolate(c Context, value eval.Value, allowMethods bool) eval.Value {
 	result, _ := doInterpolate(c, value, allowMethods)
 	return result
 }
 
-func doInterpolate(ctx Context, value eval.PValue, allowMethods bool) (eval.PValue, bool) {
+func doInterpolate(ctx Context, value eval.Value, allowMethods bool) (eval.Value, bool) {
 	if s, ok := value.(*types.StringValue); ok {
 		return interpolateString(ctx, s.String(), allowMethods)
 	}
 	if a, ok := value.(*types.ArrayValue); ok {
-		cp := a.AppendTo(make([]eval.PValue, 0, a.Len()))
+		cp := a.AppendTo(make([]eval.Value, 0, a.Len()))
 		changed := false
 		for i, e := range cp {
 			v, c := doInterpolate(ctx, e, allowMethods)
@@ -93,7 +93,7 @@ func getMethodAndData(expr string, allowMethods bool) (int, string) {
 	return scopeMethod, expr
 }
 
-func interpolateString(c Context, str string, allowMethods bool) (result eval.PValue, changed bool) {
+func interpolateString(c Context, str string, allowMethods bool) (result eval.Value, changed bool) {
 	if strings.Index(str, `%{`) < 0 {
 		result = types.WrapString(str)
 		return

@@ -30,17 +30,17 @@ type Context interface {
 
 	// Interpolate resolves interpolation expressions in the given value and returns
 	// the result
-	Interpolate(val eval.PValue) eval.PValue
+	Interpolate(val eval.Value) eval.Value
 
 	// Cache adds the given key - value association to the cache
-	Cache(key string, value eval.PValue) eval.PValue
+	Cache(key string, value eval.Value) eval.Value
 
 	// CacheAll adds all key - value associations in the given hash to the cache
-	CacheAll(hash eval.KeyedValue)
+	CacheAll(hash eval.OrderedMap)
 
 	// CachedEntry returns the value for the given key together with
 	// a boolean to indicate if the value was found or not
-	CachedValue(key string) (eval.PValue, bool)
+	CachedValue(key string) (eval.Value, bool)
 
 	// CachedEntries calls the consumer with each entry in the cache
 	CachedEntries(consumer eval.BiConsumer)
@@ -50,30 +50,30 @@ type lookupCtx struct {
 	eval.Context
 	sharedCache *ConcurrentMap
 	topProvider LookupKey
-	cache map[string]eval.PValue
+	cache map[string]eval.Value
 }
 
 // DoWithParent is like eval.DoWithParent but enables lookup
 func DoWithParent(parent context.Context, provider LookupKey, consumer func(Context) error) error {
 	return eval.Puppet.DoWithParent(parent, func(c eval.Context) error {
-		lc := &lookupCtx{c, NewConcurrentMap(37), provider, map[string]eval.PValue{}}
+		lc := &lookupCtx{c, NewConcurrentMap(37), provider, map[string]eval.Value{}}
 		return consumer(lc)
 	})
 }
 
-func Lookup(c eval.Context, name string, dflt eval.PValue, options eval.KeyedValue) eval.PValue {
+func Lookup(c eval.Context, name string, dflt eval.Value, options eval.OrderedMap) eval.Value {
 	return Lookup2(c, []string{name}, types.DefaultAnyType(), dflt, eval.EMPTY_MAP, eval.EMPTY_MAP, options, nil)
 }
 
 func Lookup2(
 	ctx eval.Context,
 	names []string,
-	valueType eval.PType,
-	defaultValue eval.PValue,
-	override eval.KeyedValue,
-	defaultValuesHash eval.KeyedValue,
-	options eval.KeyedValue,
-	block eval.Lambda) eval.PValue {
+	valueType eval.Type,
+	defaultValue eval.Value,
+	override eval.OrderedMap,
+	defaultValuesHash eval.OrderedMap,
+	options eval.OrderedMap,
+	block eval.Lambda) eval.Value {
 	lc, ok := ctx.(*lookupCtx)
 	if !ok {
 		panic(fmt.Errorf(`lookup called without lookup.Context`))
@@ -105,11 +105,11 @@ func (c *lookupCtx) Explain(messageProducer func() string) {
 	// TODO: Add explanation support
 }
 
-func (c *lookupCtx) Interpolate(val eval.PValue) eval.PValue {
+func (c *lookupCtx) Interpolate(val eval.Value) eval.Value {
 	return Interpolate(c, val, true)
 }
 
-func (c *lookupCtx) Cache(key string, value eval.PValue) eval.PValue {
+func (c *lookupCtx) Cache(key string, value eval.Value) eval.Value {
 	old, ok := c.cache[key]
 	if !ok {
 		old = eval.UNDEF
@@ -118,13 +118,13 @@ func (c *lookupCtx) Cache(key string, value eval.PValue) eval.PValue {
 	return old
 }
 
-func (c *lookupCtx) CacheAll(hash eval.KeyedValue) {
-	hash.EachPair(func(k, v eval.PValue) {
+func (c *lookupCtx) CacheAll(hash eval.OrderedMap) {
+	hash.EachPair(func(k, v eval.Value) {
 		c.cache[k.String()] = v
 	})
 }
 
-func (c *lookupCtx) CachedValue(key string) (v eval.PValue, ok bool) {
+func (c *lookupCtx) CachedValue(key string) (v eval.Value, ok bool) {
 	v, ok = c.cache[key]
 	return
 }
@@ -140,7 +140,7 @@ func (c *lookupCtx) Fork() eval.Context {
 		Context: c.Context.Fork(),
 		sharedCache: c.sharedCache,
 		topProvider: c.topProvider,
-		cache: map[string]eval.PValue{},
+		cache: map[string]eval.Value{},
 	}
 }
 
@@ -148,7 +148,7 @@ func (c *lookupCtx) WithScope(scope eval.Scope) eval.Context {
 	return &lookupCtx{c.Context.WithScope(scope), c.sharedCache, c.topProvider, c.cache}
 }
 
-func (c *lookupCtx) lookupViaCache(key Key, options eval.KeyedValue) (eval.PValue, bool) {
+func (c *lookupCtx) lookupViaCache(key Key, options eval.OrderedMap) (eval.Value, bool) {
 	rootKey := key.Root()
 
 	val := c.sharedCache.EnsureSet(rootKey, func() (val interface{}) {
@@ -167,5 +167,5 @@ func (c *lookupCtx) lookupViaCache(key Key, options eval.KeyedValue) (eval.PValu
 	if val == notFoundSingleton {
 		return nil, false
 	}
-	return key.Dig(val.(eval.PValue))
+	return key.Dig(val.(eval.Value))
 }

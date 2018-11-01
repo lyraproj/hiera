@@ -36,7 +36,7 @@ type Function interface {
 
 type HierarchyEntry interface {
 	Name() string
-	Options() eval.KeyedValue
+	Options() eval.OrderedMap
 	DataDir() string
 	Function() Function
 }
@@ -52,7 +52,7 @@ type DataProvider interface {
 type Config interface {
 	Root() string
 	Path() string
-	LoadedConfig() eval.KeyedValue
+	LoadedConfig() eval.OrderedMap
 	Defaults() HierarchyEntry
 	Hierarchy() []HierarchyEntry
 	DefaultHierarchy() []HierarchyEntry
@@ -155,7 +155,7 @@ func (e *entry) Name() string {
 	return e.name
 }
 
-func (e *entry) Options() eval.KeyedValue {
+func (e *entry) Options() eval.OrderedMap {
 	return e.options
 }
 
@@ -253,7 +253,7 @@ func NewConfig(c eval.Context, configPath string) Config {
 		if !ok {
 			panic(eval.Error(eval.EVAL_FAILURE, issue.H{`message`: `Unable to load Hiera::Config data type`}))
 		}
-		cfgType := v.(eval.PType)
+		cfgType := v.(eval.Type)
 		yv := functions.UnmarshalYaml(c, b.Bytes())
 		return createConfig(configPath, eval.AssertInstance(func() string {
 				return fmt.Sprintf(`The Lookup Configuration at '%s'`, configPath)
@@ -283,7 +283,7 @@ func (hc *config) Path() string {
 	return hc.path
 }
 
-func (hc *config) LoadedConfig() eval.KeyedValue {
+func (hc *config) LoadedConfig() eval.OrderedMap {
 	return hc.loadedHash
 }
 
@@ -326,7 +326,7 @@ func createConfig(path string, hash *types.HashValue) Config {
 func createHierarchy(hier *types.ArrayValue, defaults HierarchyEntry) []HierarchyEntry {
 	entries := make([]HierarchyEntry, 0, hier.Len())
 	uniqueNames := make(map[string]bool, hier.Len())
-	hier.Each(func( hv eval.PValue) {
+	hier.Each(func( hv eval.Value) {
 		hh := hv.(*types.HashValue)
 		name := hh.Get5(`name`, eval.EMPTY_STRING).String()
 		if uniqueNames[name] {
@@ -340,11 +340,11 @@ func createHierarchy(hier *types.ArrayValue, defaults HierarchyEntry) []Hierarch
 
 func createHierarchyEntry(name string, hierEntry *types.HashValue, defaults HierarchyEntry) HierarchyEntry {
 	entry := &entry{name: name}
-	hierEntry.EachPair(func(k, v eval.PValue) {
+	hierEntry.EachPair(func(k, v eval.Value) {
 		ks := k.String()
 		if ks == `options` {
 			entry.options = v.(*types.HashValue)
-			entry.options.EachKey(func(optKey eval.PValue) {
+			entry.options.EachKey(func(optKey eval.Value) {
 				if utils.ContainsString(RESERVED_OPTION_KEYS, optKey.String()) {
 					panic(eval.Error(HIERA_OPTION_RESERVED_BY_PUPPET, issue.H{`key`: optKey.String(), `name`: name}))
 				}
@@ -364,19 +364,19 @@ func createHierarchyEntry(name string, hierEntry *types.HashValue, defaults Hier
 			case `paths`:
 				a := v.(*types.ArrayValue)
 				entry.locations = make([]Location, 0, a.Len())
-				a.Each(func(p eval.PValue) { entry.locations = append(entry.locations, &path{p.String()}) })
+				a.Each(func(p eval.Value) { entry.locations = append(entry.locations, &path{p.String()}) })
 			case `glob`:
 				entry.locations = []Location{&glob{v.String()}}
 			case `globs`:
 				a := v.(*types.ArrayValue)
 				entry.locations = make([]Location, 0, a.Len())
-				a.Each(func(p eval.PValue) { entry.locations = append(entry.locations, &glob{p.String()}) })
+				a.Each(func(p eval.Value) { entry.locations = append(entry.locations, &glob{p.String()}) })
 			case `uri`:
 				entry.locations = []Location{&uri{v.String()}}
 			case `uris`:
 				a := v.(*types.ArrayValue)
 				entry.locations = make([]Location, 0, a.Len())
-				a.Each(func(p eval.PValue) { entry.locations = append(entry.locations, &uri{p.String()}) })
+				a.Each(func(p eval.Value) { entry.locations = append(entry.locations, &uri{p.String()}) })
 			default: // Mapped paths
 				a := v.(*types.ArrayValue)
 				entry.locations = []Location{&mappedPaths{a.At(0).String(), a.At(1).String(), a.At(2).String()}}
@@ -392,7 +392,7 @@ func createHierarchyEntry(name string, hierEntry *types.HashValue, defaults Hier
 
 type resolvedConfig struct {
 	config *config
-	variablesUsed map[string]eval.PValue
+	variablesUsed map[string]eval.Value
 	providers []DataProvider
 	defaultProviders []DataProvider
 }
