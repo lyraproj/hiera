@@ -1,17 +1,17 @@
 package lookup
 
 import (
-	"fmt"
 	"bytes"
+	"fmt"
 	"github.com/puppetlabs/go-evaluator/eval"
-	"strconv"
 	"github.com/puppetlabs/go-evaluator/types"
 	"github.com/puppetlabs/go-issues/issue"
+	"strconv"
 )
 
 type Key interface {
 	fmt.Stringer
-	Dig(Context, eval.PValue) (eval.PValue, bool)
+	Dig(eval.Value) (eval.Value, bool)
 	Parts() []interface{}
 	Root() string
 }
@@ -21,12 +21,12 @@ type key struct {
 	parts []interface{}
 }
 
-func NewKey(c eval.Context, str string) Key {
+func NewKey(str string) Key {
 	b := bytes.NewBufferString(``)
-	return &key{str, parseUnquoted(c, b, str, str, []interface{}{})}
+	return &key{str, parseUnquoted(b, str, str, []interface{}{})}
 }
 
-func (k *key) Dig(c Context, v eval.PValue) (eval.PValue, bool) {
+func (k *key) Dig(v eval.Value) (eval.Value, bool) {
 	for i := 1; i < len(k.parts); i++ {
 		p := k.parts[i]
 		if ix, ok := p.(int); ok {
@@ -46,7 +46,7 @@ func (k *key) Dig(c Context, v eval.PValue) (eval.PValue, bool) {
 				return nil, false
 			}
 		}
-		panic(eval.Error(c, HIERA_DIG_MISMATCH, issue.H{`type`: eval.GenericValueType(v), `segment`: p, `key`: k.orig}))
+		panic(eval.Error(HIERA_DIG_MISMATCH, issue.H{`type`: eval.GenericValueType(v), `segment`: p, `key`: k.orig}))
 	}
 	return v, true
 }
@@ -63,16 +63,16 @@ func (k *key) Root() string {
 	return k.parts[0].(string)
 }
 
-func parseUnquoted(ctx eval.Context, b *bytes.Buffer, key, part string, parts []interface{}) []interface{} {
+func parseUnquoted(b *bytes.Buffer, key, part string, parts []interface{}) []interface{} {
 	mungePart := func(ix int, part string) interface{} {
 		if i, err := strconv.ParseInt(part, 10, 32); err == nil {
 			if ix == 0 {
-				panic(eval.Error(ctx, HIERA_FIRST_KEY_SEGMENT_INT, issue.H{`key`: key}))
+				panic(eval.Error(HIERA_FIRST_KEY_SEGMENT_INT, issue.H{`key`: key}))
 			}
 			return int(i)
 		}
 		if part == `` {
-			panic(eval.Error(ctx, HIERA_EMPTY_KEY_SEGMENT, issue.H{`key`: key}))
+			panic(eval.Error(HIERA_EMPTY_KEY_SEGMENT, issue.H{`key`: key}))
 		}
 		return part
 	}
@@ -80,7 +80,7 @@ func parseUnquoted(ctx eval.Context, b *bytes.Buffer, key, part string, parts []
 	for i, c := range part {
 		switch c {
 		case '\'', '"':
-			return parseQuoted(ctx, b, c, key, part[i+1:], parts)
+			return parseQuoted(b, c, key, part[i+1:], parts)
 		case '.':
 			parts = append(parts, mungePart(len(parts), b.String()))
 			b.Reset()
@@ -91,15 +91,15 @@ func parseUnquoted(ctx eval.Context, b *bytes.Buffer, key, part string, parts []
 	return append(parts, mungePart(len(parts), b.String()))
 }
 
-func parseQuoted(ctx eval.Context, b *bytes.Buffer, q rune, key, part string, parts []interface{}) []interface{} {
+func parseQuoted(b *bytes.Buffer, q rune, key, part string, parts []interface{}) []interface{} {
 	for i, c := range part {
 		if c == q {
 			if i == len(part) - 1 {
 				return append(parts, b.String())
 			}
-			return parseUnquoted(ctx, b, key, part[i+1:], parts)
+			return parseUnquoted(b, key, part[i+1:], parts)
 		}
 		b.WriteRune(c)
 	}
-	panic(eval.Error(ctx, HIERA_UNTERMINATED_QUOTE, issue.H{`key`: key}))
+	panic(eval.Error(HIERA_UNTERMINATED_QUOTE, issue.H{`key`: key}))
 }

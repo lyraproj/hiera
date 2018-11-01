@@ -4,6 +4,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/utils"
 	"github.com/puppetlabs/go-issues/issue"
+	"fmt"
 )
 
 const HieraCacheKey = `Hiera::Cache`
@@ -12,17 +13,17 @@ const HieraConfigsKey = `Hiera::Config::`
 // An Invocation keeps track of one specific lookup invocation implements a guard against
 // endless recursion
 type Invocation interface {
-	Check(key Key, value func() eval.PValue) eval.PValue
-	WithDataProvider(dh DataProvider, value func() eval.PValue) eval.PValue
-	WithLocation(loc Location, value func() eval.PValue) eval.PValue
+	Context
+	Check(key Key, value func() eval.Value) eval.Value
+	WithDataProvider(dh DataProvider, value func() eval.Value) eval.Value
+	WithLocation(loc Location, value func() eval.Value) eval.Value
 	ReportLocationNotFound()
-	ReportFound(key string, value eval.PValue)
+	ReportFound(key string, value eval.Value)
 	ReportNotFound(key string)
-	Context() eval.Context
 }
 
 type invocation struct {
-	context eval.Context
+	lookupCtx
 	sharedCache *ConcurrentMap
 	nameStack []string
 }
@@ -33,11 +34,16 @@ func InitContext(c eval.Context) {
 	c.Set(HieraCacheKey, NewConcurrentMap(37))
 }
 
-func NewInvocation(c eval.Context, configPath string) Invocation {
-	if sh, ok := c.Get(HieraCacheKey); ok {
-		return &invocation{context: c, sharedCache: sh.(*ConcurrentMap), nameStack: []string{}}
+func NewInvocation(c eval.Context) Invocation {
+	lc, ok := c.(*lookupCtx)
+	if !ok {
+		panic(fmt.Errorf(`lookup called without lookup.Context`))
 	}
-	panic(eval.Error(c, HIERA_NOT_INITIALIZED, issue.NO_ARGS))
+
+	if sh, ok := c.Get(HieraCacheKey); ok {
+		return &invocation{lookupCtx: *lc, sharedCache: sh.(*ConcurrentMap), nameStack: []string{}}
+	}
+	panic(eval.Error(HIERA_NOT_INITIALIZED, issue.NO_ARGS))
 }
 
 func (ic *invocation) Config(configPath string) ResolvedConfig {
@@ -47,7 +53,7 @@ func (ic *invocation) Config(configPath string) ResolvedConfig {
 	return val.(ResolvedConfig)
 }
 
-func (ic *invocation) lookupViaCache(key Key, options eval.KeyedValue) (eval.PValue, bool) {
+func (ic *invocation) lookupViaCache(key Key, options eval.OrderedMap) (eval.Value, bool) {
 	rootKey := key.Root()
 
 	val := ic.sharedCache.EnsureSet(rootKey, func() (val interface{}) {
@@ -60,18 +66,18 @@ func (ic *invocation) lookupViaCache(key Key, options eval.KeyedValue) (eval.PVa
 				}
 			}
 		}()
-		val = Interpolate(c, c.topProvider(c, rootKey, options), true)
+		val = Interpolate(ic, ic.topProvider(ic, rootKey, options), true)
 		return
 	})
 	if val == notFoundSingleton {
 		return nil, false
 	}
-	return key.Dig(c, val.(eval.PValue))
+	return key.Dig(val.(eval.Value))
 }
 
-func (ic *invocation) Check(key Key, actor func() eval.PValue) eval.PValue {
+func (ic *invocation) Check(key Key, actor func() eval.Value) eval.Value {
 	if utils.ContainsString(ic.nameStack, key.String()) {
-		panic(eval.Error(ic.context, HIERA_ENDLESS_RECURSION, issue.H{`name_stack`: ic.nameStack}))
+		panic(eval.Error(HIERA_ENDLESS_RECURSION, issue.H{`name_stack`: ic.nameStack}))
 	}
 	ic.nameStack = append(ic.nameStack, key.String())
 	defer func() {
@@ -80,24 +86,19 @@ func (ic *invocation) Check(key Key, actor func() eval.PValue) eval.PValue {
 	return actor()
 }
 
-func (ic *invocation) WithDataProvider(dh DataProvider, actor func() eval.PValue) eval.PValue {
+func (ic *invocation) WithDataProvider(dh DataProvider, actor func() eval.Value) eval.Value {
 	return actor()
 }
 
-func (ic *invocation) WithLocation(loc Location, actor func() eval.PValue) eval.PValue {
+func (ic *invocation) WithLocation(loc Location, actor func() eval.Value) eval.Value {
 	return actor()
 }
 
 func (ic *invocation) ReportLocationNotFound() {
 }
 
-func (ic *invocation) ReportFound(key string, value eval.PValue) {
+func (ic *invocation) ReportFound(key string, value eval.Value) {
 }
 
 func (ic *invocation) ReportNotFound(key string) {
 }
-
-func (ic *invocation) Context() eval.Context {
-	return ic.context
-}
-

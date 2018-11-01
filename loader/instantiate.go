@@ -13,10 +13,10 @@ func InstantiateHieraConfig(c eval.Context, loader loader.ContentProvidingLoader
 	ms := make(yaml.MapSlice, 0)
 	err := yaml.Unmarshal([]byte(loader.GetContent(c, source)), &ms)
 	if err != nil {
-		panic(eval.Error(c, eval.EVAL_PARSE_ERROR, issue.H{`language`: `YAML`, `detail`: err.Error()}))
+		panic(eval.Error(eval.EVAL_PARSE_ERROR, issue.H{`language`: `YAML`, `detail`: err.Error()}))
 	}
 	cfgType := c.ParseType2(`Hiera::Config`)
-	configHash := eval.AssertInstance(c, func() string { return source }, cfgType, eval.Wrap2(c, ms)).(*types.HashValue)
+	configHash := eval.AssertInstance(func() string { return source }, cfgType, eval.Wrap(c, ms)).(*types.HashValue)
 	configHash.Len()
 }
 

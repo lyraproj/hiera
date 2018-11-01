@@ -10,19 +10,24 @@ type TrackingScope interface {
 
 	// GetRead returns a map of all variables that has been read from this scope. The
 	// map contains the last value read.
-	GetRead() map[string]eval.PValue
+	GetRead() map[string]eval.Value
 }
 
 type trackingScope struct {
 	tracked eval.Scope
-	read map[string]eval.PValue
+	read map[string]eval.Value
 }
 
 func NewTrackingScope(tracked eval.Scope) TrackingScope {
-	return &trackingScope{tracked, make(map[string]eval.PValue, 13)}
+	return &trackingScope{tracked, make(map[string]eval.Value, 13)}
 }
 
-func (t *trackingScope) Get(name string) (eval.PValue, bool) {
+func (t *trackingScope) Fork() eval.Scope {
+	// Multi threaded use of TrackingScope is not permitted
+	panic(`attempt to fork TrackingScope`)
+}
+
+func (t *trackingScope) Get(name string) (eval.Value, bool) {
 	value, found := t.tracked.Get(name)
 
 	key := name
@@ -42,11 +47,11 @@ func (t *trackingScope) Get(name string) (eval.PValue, bool) {
 	return value, found
 }
 
-func (t *trackingScope) GetRead() map[string]eval.PValue {
+func (t *trackingScope) GetRead() map[string]eval.Value {
 	return t.read
 }
 
-func (t *trackingScope) RxGet(index int) (eval.PValue, bool) {
+func (t *trackingScope) RxGet(index int) (eval.Value, bool) {
 	return t.tracked.RxGet(index)
 }
 
@@ -54,7 +59,7 @@ func (t *trackingScope) RxSet(variables []string) {
 	t.tracked.RxSet(variables)
 }
 
-func (t *trackingScope) Set(name string, value eval.PValue) bool {
+func (t *trackingScope) Set(name string, value eval.Value) bool {
 	return t.tracked.Set(name, value)
 }
 
@@ -62,6 +67,6 @@ func (t *trackingScope) State(name string) eval.VariableState {
 	return t.tracked.State(name)
 }
 
-func (t *trackingScope) WithLocalScope(producer eval.Producer) eval.PValue {
+func (t *trackingScope) WithLocalScope(producer eval.Producer) eval.Value {
 	return t.tracked.WithLocalScope(producer)
 }

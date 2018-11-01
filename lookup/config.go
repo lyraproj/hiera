@@ -1,13 +1,16 @@
 package lookup
 
 import (
-	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-evaluator/types"
-	"path/filepath"
-	"github.com/puppetlabs/go-evaluator/functions"
-	"github.com/puppetlabs/go-issues/issue"
 	"fmt"
+	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/puppetlabs/go-evaluator/functions"
+	"github.com/puppetlabs/go-evaluator/types"
 	"github.com/puppetlabs/go-evaluator/utils"
+	"github.com/puppetlabs/go-issues/issue"
+	"path/filepath"
+
+	// Ensure that pcore is initialized
+	_ "github.com/puppetlabs/go-evaluator/pcore"
 )
 
 type LookupKind string
@@ -29,7 +32,7 @@ type Function interface {
 }
 
 type Entry interface {
-	Options() eval.KeyedValue
+	Options() eval.OrderedMap
 	DataDir() string
 	Function() Function
 }
@@ -44,7 +47,7 @@ type HierarchyEntry interface {
 type Config interface {
 	Root() string
 	Path() string
-	LoadedConfig() eval.KeyedValue
+	LoadedConfig() eval.OrderedMap
 	Defaults() Entry
 	Hierarchy() []HierarchyEntry
 	DefaultHierarchy() []HierarchyEntry
@@ -92,11 +95,11 @@ func (f *function) resolve(ic Invocation) (Function, bool) {
 
 type entry struct {
 	dataDir   string
-	options   eval.KeyedValue
+	options   eval.OrderedMap
 	function  Function
 }
 
-func (e *entry) Options() eval.KeyedValue {
+func (e *entry) Options() eval.OrderedMap {
 	return e.options
 }
 
@@ -140,7 +143,7 @@ func (e *hierEntry) resolve(ic Invocation, defaults Entry) HierarchyEntry {
 	}
 
 	if e.function == nil {
-		panic(eval.Error(ic.Context(), HIERA_MISSING_DATA_PROVIDER_FUNCTION, issue.H{`keys`: FUNCTION_KEYS, `name`: e.name}))
+		panic(eval.Error(HIERA_MISSING_DATA_PROVIDER_FUNCTION, issue.H{`keys`: FUNCTION_KEYS, `name`: e.name}))
 	}
 
 	if e.dataDir == `` {
@@ -226,7 +229,7 @@ func init() {
 type config struct {
 	root          string
 	path          string
-	loadedHash    eval.KeyedValue
+	loadedHash    eval.OrderedMap
 	defaults      Entry
 	hierarchy     []HierarchyEntry
 	defaultHierarchy []HierarchyEntry
@@ -235,15 +238,14 @@ type config struct {
 func NewConfig(ic Invocation, configPath string) Config {
 
 	// TODO: Cache parsed file content
-	c := ic.Context()
-	if b, ok := types.BinaryFromFile2(c, configPath); ok {
-		v, ok := eval.Load(c, eval.NewTypedName(eval.TYPE, `Hiera::Config`))
+	if b, ok := types.BinaryFromFile2(ic, configPath); ok {
+		v, ok := eval.Load(ic, eval.NewTypedName(eval.TYPE, `Hiera::Config`))
 		if !ok {
-			panic(eval.Error(c, eval.EVAL_FAILURE, issue.H{`message`: `Unable to load Hiera::Config data type`}))
+			panic(eval.Error(eval.EVAL_FAILURE, issue.H{`message`: `Unable to load Hiera::Config data type`}))
 		}
-		cfgType := v.(eval.PType)
-		yv := functions.UnmarshalYaml(c, b.Bytes())
-		return createConfig(ic, configPath, eval.AssertInstance(c, func() string {
+		cfgType := v.(eval.Type)
+		yv := functions.UnmarshalYaml(ic, b.Bytes())
+		return createConfig(ic, configPath, eval.AssertInstance(func() string {
 				return fmt.Sprintf(`The Lookup Configuration at '%s'`, configPath)
 			}, cfgType, yv).(*types.HashValue))
 	}
@@ -271,7 +273,7 @@ func (hc *config) Path() string {
 	return hc.path
 }
 
-func (hc *config) LoadedConfig() eval.KeyedValue {
+func (hc *config) LoadedConfig() eval.OrderedMap {
 	return hc.loadedHash
 }
 
@@ -313,11 +315,11 @@ func createConfig(ic Invocation, path string, hash *types.HashValue) Config {
 func createHierarchy(ic Invocation, hier *types.ArrayValue) []HierarchyEntry {
 	entries := make([]HierarchyEntry, 0, hier.Len())
 	uniqueNames := make(map[string]bool, hier.Len())
-	hier.Each(func( hv eval.PValue) {
+	hier.Each(func( hv eval.Value) {
 		hh := hv.(*types.HashValue)
 		name := hh.Get5(`name`, eval.EMPTY_STRING).String()
 		if uniqueNames[name] {
-			panic(eval.Error(ic.Context(), HIERA_HIERARCHY_NAME_MULTIPLY_DEFINED, issue.H{`name`: name}))
+			panic(eval.Error(HIERA_HIERARCHY_NAME_MULTIPLY_DEFINED, issue.H{`name`: name}))
 		}
 		uniqueNames[name] = true
 		entries = append(entries, createHierarchyEntry(ic, name, hh))
@@ -326,18 +328,18 @@ func createHierarchy(ic Invocation, hier *types.ArrayValue) []HierarchyEntry {
 }
 
 func (entry* entry) initialize(ic Invocation, name string, entryHash *types.HashValue) {
-	entryHash.EachPair(func(k, v eval.PValue) {
+	entryHash.EachPair(func(k, v eval.Value) {
 		ks := k.String()
 		if ks == `options` {
 			entry.options = v.(*types.HashValue)
-			entry.options.EachKey(func(optKey eval.PValue) {
+			entry.options.EachKey(func(optKey eval.Value) {
 				if utils.ContainsString(RESERVED_OPTION_KEYS, optKey.String()) {
-					panic(eval.Error(ic.Context(), HIERA_OPTION_RESERVED_BY_PUPPET, issue.H{`key`: optKey.String(), `name`: name}))
+					panic(eval.Error(HIERA_OPTION_RESERVED_BY_PUPPET, issue.H{`key`: optKey.String(), `name`: name}))
 				}
 			})
 		} else if utils.ContainsString(FUNCTION_KEYS, ks) {
 			if entry.function != nil {
-				panic(eval.Error(ic.Context(), HIERA_MULTIPLE_DATA_PROVIDER_FUNCTIONS, issue.H{`keys`: FUNCTION_KEYS, `name`: name}))
+				panic(eval.Error(HIERA_MULTIPLE_DATA_PROVIDER_FUNCTIONS, issue.H{`keys`: FUNCTION_KEYS, `name`: name}))
 			}
 			entry.function = &function{LookupKind(ks), v.String()}
 		}
@@ -353,11 +355,11 @@ func createDefaultsEntry(ic Invocation, entryHash *types.HashValue) Entry {
 func createHierarchyEntry(ic Invocation, name string, entryHash *types.HashValue) HierarchyEntry {
 	entry := &hierEntry{name: name}
 	entry.initialize(ic, name, entryHash)
-	entryHash.EachPair(func(k, v eval.PValue) {
+	entryHash.EachPair(func(k, v eval.Value) {
 		ks := k.String()
 		if utils.ContainsString(LOCATION_KEYS, ks) {
 			if entry.locations != nil {
-				panic(eval.Error(ic.Context(), HIERA_MULTIPLE_LOCATION_SPECS, issue.H{`keys`: LOCATION_KEYS, `name`: name}))
+				panic(eval.Error(HIERA_MULTIPLE_LOCATION_SPECS, issue.H{`keys`: LOCATION_KEYS, `name`: name}))
 			}
 			switch ks {
 			case `path`:
@@ -365,19 +367,19 @@ func createHierarchyEntry(ic Invocation, name string, entryHash *types.HashValue
 			case `paths`:
 				a := v.(*types.ArrayValue)
 				entry.locations = make([]Location, 0, a.Len())
-				a.Each(func(p eval.PValue) { entry.locations = append(entry.locations, &path{original:p.String()}) })
+				a.Each(func(p eval.Value) { entry.locations = append(entry.locations, &path{original:p.String()}) })
 			case `glob`:
 				entry.locations = []Location{&glob{v.String()}}
 			case `globs`:
 				a := v.(*types.ArrayValue)
 				entry.locations = make([]Location, 0, a.Len())
-				a.Each(func(p eval.PValue) { entry.locations = append(entry.locations, &glob{p.String()}) })
+				a.Each(func(p eval.Value) { entry.locations = append(entry.locations, &glob{p.String()}) })
 			case `uri`:
 				entry.locations = []Location{&uri{original:v.String()}}
 			case `uris`:
 				a := v.(*types.ArrayValue)
 				entry.locations = make([]Location, 0, a.Len())
-				a.Each(func(p eval.PValue) { entry.locations = append(entry.locations, &uri{original:p.String()}) })
+				a.Each(func(p eval.Value) { entry.locations = append(entry.locations, &uri{original:p.String()}) })
 			default: // Mapped paths
 				a := v.(*types.ArrayValue)
 				entry.locations = []Location{&mappedPaths{a.At(0).String(), a.At(1).String(), a.At(2).String()}}
@@ -389,7 +391,7 @@ func createHierarchyEntry(ic Invocation, name string, entryHash *types.HashValue
 
 type resolvedConfig struct {
 	config *config
-	variablesUsed map[string]eval.PValue
+	variablesUsed map[string]eval.Value
 	providers []DataProvider
 	defaultProviders []DataProvider
 }
@@ -401,7 +403,7 @@ func (r *resolvedConfig) ReResolve(ic Invocation) ResolvedConfig {
 	}
 
 	allEqual := true
-	scope := ic.Context().Scope()
+	scope := ic.Scope()
 	for k, v := range r.variablesUsed {
 		if sv, ok := scope.Get(k); ok && v.Equals(sv, nil) {
 			continue
@@ -431,9 +433,8 @@ func (r *resolvedConfig) DefaultHierarchy() []DataProvider {
 }
 
 func (r *resolvedConfig) resolve(ic Invocation) {
-	c := ic.Context()
-	ts := NewTrackingScope(c.Scope())
-	c.DoWithScope(ts, func() {
+	ts := NewTrackingScope(ic.Scope())
+	ic.DoWithScope(ts, func() {
 		r.providers = r.config.createProviders(ic, r.config.Hierarchy())
 		r.defaultProviders = r.config.createProviders(ic, r.config.DefaultHierarchy())
 	})

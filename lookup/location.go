@@ -141,11 +141,10 @@ func (m* mappedPaths) resolve(ic Invocation, dataDir string) []Location {
 
 	// Use a parented scope so that the tracking scope held by the context is shielded from the
 	// interpolations of the key introduced by this mapped path.
-	c := ic.Context()
-	c.DoWithScope(impl.NewParentedScope(c.Scope()), func() {
-		mappedVars.EachWithIndex(func(mv eval.PValue, i int) {
-			scope := c.Scope()
-			scope.WithLocalScope(func() eval.PValue {
+	ic.DoWithScope(impl.NewParentedScope(ic.Scope(), true), func() {
+		mappedVars.EachWithIndex(func(mv eval.Value, i int) {
+			scope := ic.Scope()
+			scope.WithLocalScope(func() eval.Value {
 				scope.Set(m.key, mv)
 				r, _ := interpolateString(ic, m.template, false)
 				rp := filepath.Join(dataDir, r.String())
