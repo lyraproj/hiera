@@ -3,7 +3,6 @@ package lookup
 import (
 	"github.com/puppetlabs/go-evaluator/eval"
 	"context"
-	"fmt"
 	"github.com/puppetlabs/go-issues/issue"
 	"github.com/puppetlabs/go-evaluator/types"
 )
@@ -61,26 +60,23 @@ func DoWithParent(parent context.Context, provider LookupKey, consumer func(Cont
 	})
 }
 
-func Lookup(c eval.Context, name string, dflt eval.PValue, options eval.KeyedValue) eval.PValue {
-	return Lookup2(c, []string{name}, dflt, options)
+func Lookup(ic Invocation, name string, dflt eval.PValue, options eval.KeyedValue) eval.PValue {
+	return Lookup2(ic, []string{name}, dflt, options)
 }
 
-func Lookup2(c eval.Context, names []string, dflt eval.PValue, options eval.KeyedValue) eval.PValue {
-	lc, ok := c.(*lookupCtx)
-	if !ok {
-		panic(fmt.Errorf(`lookup called without lookup.Context`))
-	}
+func Lookup2(ic Invocation, names []string, dflt eval.PValue, options eval.KeyedValue) eval.PValue {
+	lc := ic.Context()
 	for _, name := range names {
-		if v, ok := lc.lookupViaCache(NewKey(c, name), options); ok {
+		if v, ok := lc.(*lookupCtx).lookupViaCache(NewKey(lc, name), options); ok {
 			return v
 		}
 	}
 	if dflt == nil {
 		// nil (as opposed to UNDEF) means that no default was provided.
 		if len(names) == 1 {
-			panic(eval.Error(c, HIERA_NAME_NOT_FOUND, issue.H{`name`: names[0]}))
+			panic(eval.Error(lc, HIERA_NAME_NOT_FOUND, issue.H{`name`: names[0]}))
 		}
-		panic(eval.Error(c, HIERA_NOT_ANY_NAME_FOUND, issue.H{`name_list`: names}))
+		panic(eval.Error(lc, HIERA_NOT_ANY_NAME_FOUND, issue.H{`name_list`: names}))
 	}
 	return dflt
 }
@@ -129,26 +125,4 @@ func (c *lookupCtx) CachedEntries(consumer eval.BiConsumer) {
 
 func (c *lookupCtx) WithScope(scope eval.Scope) eval.Context {
 	return &lookupCtx{c.Context.WithScope(scope), c.sharedCache, c.topProvider, c.cache}
-}
-
-func (c *lookupCtx) lookupViaCache(key Key, options eval.KeyedValue) (eval.PValue, bool) {
-	rootKey := key.Root()
-
-	val := c.sharedCache.EnsureSet(rootKey, func() (val interface{}) {
-		defer func() {
-			if r := recover(); r != nil {
-				if r == notFoundSingleton {
-					val = r
-				} else {
-					panic(r)
-				}
-			}
-		}()
-		val = Interpolate(c, c.topProvider(c, rootKey, options), true)
-		return
-	})
-	if val == notFoundSingleton {
-		return nil, false
-	}
-	return key.Dig(c, val.(eval.PValue))
 }

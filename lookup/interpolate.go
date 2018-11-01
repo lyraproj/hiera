@@ -18,20 +18,20 @@ var emptyInterpolations = map[string]bool {
 	"'::'": true,
 }
 
-func Interpolate(c Context, value eval.PValue, allowMethods bool) eval.PValue {
-	result, _ := doInterpolate(c, value, allowMethods)
+func Interpolate(ic Invocation, value eval.PValue, allowMethods bool) eval.PValue {
+	result, _ := doInterpolate(ic, value, allowMethods)
 	return result
 }
 
-func doInterpolate(ctx Context, value eval.PValue, allowMethods bool) (eval.PValue, bool) {
+func doInterpolate(ic Invocation, value eval.PValue, allowMethods bool) (eval.PValue, bool) {
 	if s, ok := value.(*types.StringValue); ok {
-		return interpolateString(ctx, s.String(), allowMethods)
+		return interpolateString(ic, s.String(), allowMethods)
 	}
 	if a, ok := value.(*types.ArrayValue); ok {
 		cp := a.AppendTo(make([]eval.PValue, 0, a.Len()))
 		changed := false
 		for i, e := range cp {
-			v, c := doInterpolate(ctx, e, allowMethods)
+			v, c := doInterpolate(ic, e, allowMethods)
 			if c {
 				changed = true
 				cp[i] = v
@@ -46,8 +46,8 @@ func doInterpolate(ctx Context, value eval.PValue, allowMethods bool) (eval.PVal
 		cp := h.AppendEntriesTo(make([]*types.HashEntry, 0, h.Len()))
 		changed := false
 		for i, e := range cp {
-			k, kc := doInterpolate(ctx, e.Key(), allowMethods)
-			v, vc := doInterpolate(ctx, e.Value(), allowMethods)
+			k, kc := doInterpolate(ic, e.Key(), allowMethods)
+			v, vc := doInterpolate(ic, e.Value(), allowMethods)
 			if kc || vc {
 				changed = true
 				cp[i] = types.WrapHashEntry(k, v)
@@ -68,10 +68,10 @@ const literalMethod = 4
 
 var methodMatch = regexp.MustCompile(`^(\w+)\((?:["]([^"]+)["]|[']([^']+)['])\)$`)
 
-func getMethodAndData(c Context, expr string, allowMethods bool) (int, string) {
+func getMethodAndData(ic Invocation, expr string, allowMethods bool) (int, string) {
 	if groups := methodMatch.FindStringSubmatch(expr); groups != nil {
 		if !allowMethods {
-			panic(eval.Error(c, HIERA_INTERPOLATION_METHOD_SYNTAX_NOT_ALLOWED, issue.NO_ARGS))
+			panic(eval.Error(ic.Context(), HIERA_INTERPOLATION_METHOD_SYNTAX_NOT_ALLOWED, issue.NO_ARGS))
 		}
 		data := groups[2]
 		if data == `` {
@@ -87,13 +87,14 @@ func getMethodAndData(c Context, expr string, allowMethods bool) (int, string) {
 		case `scope`:
 			return scopeMethod, data
 		default:
-			panic(eval.Error(c, HIERA_INTERPOLATION_UNKNOWN_INTERPOLATION_METHOD, issue.H{`name`: groups[1]}))
+			panic(eval.Error(ic.Context(), HIERA_INTERPOLATION_UNKNOWN_INTERPOLATION_METHOD, issue.H{`name`: groups[1]}))
 		}
 	}
 	return scopeMethod, expr
 }
 
-func interpolateString(c Context, str string, allowMethods bool) (result eval.PValue, changed bool) {
+func interpolateString(ic Invocation, str string, allowMethods bool) (result eval.PValue, changed bool) {
+	changed = false
 	if strings.Index(str, `%{`) < 0 {
 		result = types.WrapString(str)
 		return
@@ -104,25 +105,22 @@ func interpolateString(c Context, str string, allowMethods bool) (result eval.PV
 			return ``
 		}
 		var methodKey int
-		methodKey, expr = getMethodAndData(c, expr, allowMethods)
+		methodKey, expr = getMethodAndData(ic, expr, allowMethods)
 		if methodKey == aliasMethod && match != str {
-			panic(eval.Error(c, HIERA_INTERPOLATION_ALIAS_NOT_ENTIRE_STRING, issue.NO_ARGS))
+			panic(eval.Error(ic.Context(), HIERA_INTERPOLATION_ALIAS_NOT_ENTIRE_STRING, issue.NO_ARGS))
 		}
 
 		switch methodKey {
 		case literalMethod:
 			return expr
 		case scopeMethod:
-			key := NewKey(c, expr)
-			if val, ok := c.Scope().Get(key.Root()); ok {
-				val, _ = doInterpolate(c, val, allowMethods)
-				if val, ok = key.Dig(c, val); ok {
-					return val.String()
-				}
+			val := resolveInScope(ic, expr, allowMethods)
+			if val.Equals(eval.UNDEF, nil) {
+				return ``
 			}
-			return ``
+			return val.String()
 		default:
-			val := Lookup(c, expr, eval.UNDEF, eval.EMPTY_MAP)
+			val := Lookup(ic, expr, eval.UNDEF, eval.EMPTY_MAP)
 			if methodKey == aliasMethod {
 				result = val
 				return ``
@@ -136,4 +134,16 @@ func interpolateString(c Context, str string, allowMethods bool) (result eval.PV
 	}
 	return
 
+}
+
+func resolveInScope(ic Invocation, expr string, allowMethods bool) eval.PValue {
+	c := ic.Context()
+	key := NewKey(c, expr)
+	if val, ok := c.Scope().Get(key.Root()); ok {
+		val, _ = doInterpolate(ic, val, allowMethods)
+		if val, ok = key.Dig(c, val); ok {
+			return val
+		}
+	}
+	return eval.UNDEF
 }
