@@ -38,7 +38,7 @@ func doInterpolate(ic Invocation, value eval.Value, allowMethods bool) (eval.Val
 			}
 		}
 		if changed {
-			a = types.WrapArray(cp)
+			a = types.WrapValues(cp)
 		}
 		return a, changed
 	}

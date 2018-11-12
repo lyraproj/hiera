@@ -77,8 +77,8 @@ func ExampleLookup_interpolate() {
 }
 
 func ExampleLookup_interpolateScope() {
-	eval.Puppet.DoWithParent(context.Background(), func(c eval.Context) error {
-		c = c.WithScope(impl.NewScope2(types.WrapHash4(c, issue.H{
+	eval.Puppet.TryWithParent(context.Background(), func(c eval.Context) error {
+		c = c.WithScope(impl.NewScope2(types.WrapStringToInterfaceMap(c, issue.H{
 			`world`: `cruel world`,
 		}), false))
 		lookup.DoWithParent(c, provider, func(c lookup.Context) error {
@@ -239,7 +239,7 @@ func ExampleContextCachedValue() {
 	}
 
 	lookup.DoWithParent(context.Background(), cachingProvider, func(c lookup.Context) error {
-		c = c.WithScope(impl.NewScope2(types.WrapHash4(c, map[string]interface{}{
+		c = c.WithScope(impl.NewScope2(types.WrapStringToInterfaceMap(c, map[string]interface{}{
 			`a`: `scope 'a'`,
 			`b`: `scope 'b'`,
 		}), false)).(lookup.Context)

@@ -1,0 +1,77 @@
+Examples('the parse_yaml function',
+  Examples('when parsing a string',
+    Example('returns a hash',
+      Given(@(SRC)),
+        parse_yaml(@(YAML))
+          a: the first
+          b: the second
+          |YAML
+        |SRC
+      Evaluates_to({ a => 'the first', b => 'the second' })),
+
+    Example('handles nested hashes',
+      Given(@(SRC)),
+        parse_yaml(@(YAML))
+          a: the first
+          b:
+            ba: b first
+            bb: b second
+          |YAML
+        |SRC
+      Evaluates_to({ a => 'the first', b => { ba => 'b first', bb => 'b second'} })),
+
+    Example('handles top level lists',
+      Given(@(SRC)),
+        parse_yaml(@(YAML))
+          - the first
+          - the second
+          |YAML
+        |SRC
+      Evaluates_to(['the first', 'the second'])),
+
+    Example('handles top level strings',
+      Given(@(SRC)),
+        parse_yaml(@(YAML))
+          the value
+          |YAML
+        |SRC
+      Evaluates_to('the value')),
+
+    Example('handles top level integers',
+      Given(@(SRC)),
+        parse_yaml(@(YAML))
+          23
+          |YAML
+        |SRC
+      Evaluates_to(23)),
+
+    Example('handles top level floats',
+      Given(@(SRC)),
+        parse_yaml(@(YAML))
+          23.4
+          |YAML
+        |SRC
+      Evaluates_to(23.4)),
+
+    Example('handles top level booleans',
+      Given(@(SRC)),
+        parse_yaml(@(YAML))
+          true
+          |YAML
+        |SRC
+      Evaluates_to(true)),
+ ),
+
+  Examples('when parsing a Binary',
+    Example('returns a hash',
+      Given(@(SRC)),
+        $b = Binary(@(YAML), '%s')
+          a: the first
+          b: the second
+          |YAML
+        parse_yaml($b)
+        |SRC
+      Evaluates_to({ a => 'the first', b => 'the second' })),
+
+  ),
+)

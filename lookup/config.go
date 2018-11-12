@@ -3,7 +3,6 @@ package lookup
 import (
 	"fmt"
 	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-evaluator/functions"
 	"github.com/puppetlabs/go-evaluator/types"
 	"github.com/puppetlabs/go-evaluator/utils"
 	"github.com/puppetlabs/go-issues/issue"
@@ -244,7 +243,7 @@ func NewConfig(ic Invocation, configPath string) Config {
 			panic(eval.Error(eval.EVAL_FAILURE, issue.H{`message`: `Unable to load Hiera::Config data type`}))
 		}
 		cfgType := v.(eval.Type)
-		yv := functions.UnmarshalYaml(ic, b.Bytes())
+		yv := UnmarshalYaml(ic, b.Bytes())
 		return createConfig(ic, configPath, eval.AssertInstance(func() string {
 				return fmt.Sprintf(`The Lookup Configuration at '%s'`, configPath)
 			}, cfgType, yv).(*types.HashValue))

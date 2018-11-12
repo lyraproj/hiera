@@ -62,7 +62,7 @@ func ExampleNewKey_doubleQuotedQuote() {
 }
 
 func ExampleNewKey_unterminatedQuoted() {
-	fmt.Println(eval.Puppet.DoWithParent(context.Background(), func(c eval.Context) error {
+	fmt.Println(eval.Puppet.TryWithParent(context.Background(), func(c eval.Context) error {
 		lookup.NewKey(`a.b."c`)
 		return nil
 	}))
@@ -70,7 +70,7 @@ func ExampleNewKey_unterminatedQuoted() {
 }
 
 func ExampleNewKey_empty() {
-	fmt.Println(eval.Puppet.DoWithParent(context.Background(), func(c eval.Context) error {
+	fmt.Println(eval.Puppet.TryWithParent(context.Background(), func(c eval.Context) error {
 		lookup.NewKey(``)
 		return nil
 	}))
@@ -78,7 +78,7 @@ func ExampleNewKey_empty() {
 }
 
 func ExampleNewKey_emptySegment() {
-	fmt.Println(eval.Puppet.DoWithParent(context.Background(), func(c eval.Context) error {
+	fmt.Println(eval.Puppet.TryWithParent(context.Background(), func(c eval.Context) error {
 		lookup.NewKey(`a..b`)
 		return nil
 	}))
@@ -86,7 +86,7 @@ func ExampleNewKey_emptySegment() {
 }
 
 func ExampleNewKey_emptySegmentStart() {
-	fmt.Println(eval.Puppet.DoWithParent(context.Background(), func(c eval.Context) error {
+	fmt.Println(eval.Puppet.TryWithParent(context.Background(), func(c eval.Context) error {
 		lookup.NewKey(`.b`)
 		return nil
 	}))
@@ -94,7 +94,7 @@ func ExampleNewKey_emptySegmentStart() {
 }
 
 func ExampleNewKey_emptySegmentEnd() {
-	fmt.Println(eval.Puppet.DoWithParent(context.Background(), func(c eval.Context) error {
+	fmt.Println(eval.Puppet.TryWithParent(context.Background(), func(c eval.Context) error {
 		lookup.NewKey(`a.`)
 		return nil
 	}))
@@ -102,7 +102,7 @@ func ExampleNewKey_emptySegmentEnd() {
 }
 
 func ExampleNewKey_firstSegmentIndex() {
-	fmt.Println(eval.Puppet.DoWithParent(context.Background(), func(c eval.Context) error {
+	fmt.Println(eval.Puppet.TryWithParent(context.Background(), func(c eval.Context) error {
 		lookup.NewKey(`1.a`)
 		return nil
 	}))

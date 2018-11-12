@@ -50,7 +50,7 @@ type lookupCtx struct {
 
 // DoWithParent is like eval.DoWithParent but enables lookup
 func DoWithParent(parent context.Context, provider LookupKey, consumer func(Context) error) error {
-	return eval.Puppet.DoWithParent(parent, func(c eval.Context) error {
+	return eval.Puppet.TryWithParent(parent, func(c eval.Context) error {
 		lc := &lookupCtx{c, NewConcurrentMap(37), provider, map[string]eval.Value{}}
 		if _, ok := parent.(*lookupCtx); !ok {
 			InitContext(lc)
