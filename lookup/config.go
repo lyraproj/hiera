@@ -238,7 +238,7 @@ func NewConfig(ic Invocation, configPath string) Config {
 
 	// TODO: Cache parsed file content
 	if b, ok := types.BinaryFromFile2(ic, configPath); ok {
-		v, ok := eval.Load(ic, eval.NewTypedName(eval.TYPE, `Hiera::Config`))
+		v, ok := eval.Load(ic, eval.NewTypedName(eval.NsType, `Hiera::Config`))
 		if !ok {
 			panic(eval.Error(eval.EVAL_FAILURE, issue.H{`message`: `Unable to load Hiera::Config data type`}))
 		}
