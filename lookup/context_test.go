@@ -71,12 +71,13 @@ func ExampleLookup_interpolate() {
 
 func ExampleLookup_interpolateScope() {
 	eval.Puppet.DoWithParent(context.Background(), func(c eval.Context) {
-		c = c.WithScope(impl.NewScope2(types.WrapStringToInterfaceMap(c, issue.H{
+		c.DoWithScope(impl.NewScope2(types.WrapStringToInterfaceMap(c, issue.H{
 			`world`: `cruel world`,
-		}), false))
-		lookup.DoWithParent(c, provider, func(c lookup.Context) {
-			fmt.Println(lookup.Lookup(lookup.NewInvocation(c), `ipScope`, nil, eval.EMPTY_MAP))
-			fmt.Println(lookup.Lookup(lookup.NewInvocation(c), `ipScope2`, nil, eval.EMPTY_MAP))
+		}), false), func() {
+			lookup.DoWithParent(c, provider, func(c lookup.Context) {
+				fmt.Println(lookup.Lookup(lookup.NewInvocation(c), `ipScope`, nil, eval.EMPTY_MAP))
+				fmt.Println(lookup.Lookup(lookup.NewInvocation(c), `ipScope2`, nil, eval.EMPTY_MAP))
+			})
 		})
 	})
 	// Output:
@@ -221,15 +222,16 @@ func ExampleContextCachedValue() {
 	}
 
 	lookup.DoWithParent(context.Background(), cachingProvider, func(c lookup.Context) {
-		c = c.WithScope(impl.NewScope2(types.WrapStringToInterfaceMap(c, map[string]interface{}{
+		c.DoWithScope(impl.NewScope2(types.WrapStringToInterfaceMap(c, map[string]interface{}{
 			`a`: `scope 'a'`,
 			`b`: `scope 'b'`,
-		}), false)).(lookup.Context)
-		ic := lookup.NewInvocation(c)
-		fmt.Println(lookup.Lookup(ic, `a`, nil, eval.EMPTY_MAP))
-		fmt.Println(lookup.Lookup(ic, `b`, nil, eval.EMPTY_MAP))
-		fmt.Println(lookup.Lookup(ic, `a`, nil, eval.EMPTY_MAP))
-		fmt.Println(lookup.Lookup(ic, `b`, nil, eval.EMPTY_MAP))
+		}), false), func() {
+			ic := lookup.NewInvocation(c)
+			fmt.Println(lookup.Lookup(ic, `a`, nil, eval.EMPTY_MAP))
+			fmt.Println(lookup.Lookup(ic, `b`, nil, eval.EMPTY_MAP))
+			fmt.Println(lookup.Lookup(ic, `a`, nil, eval.EMPTY_MAP))
+			fmt.Println(lookup.Lookup(ic, `b`, nil, eval.EMPTY_MAP))
+		})
 	})
 	// Output:
 	// Creating and caching value for a

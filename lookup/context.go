@@ -11,7 +11,6 @@ import (
 // context is guaranteed to be unique for the given function in the configuration
 // where its declared.
 type Context interface {
-	// Parent context
 	eval.Context
 
 	// NotFound should be called by a function to indicate that a specified key
@@ -42,6 +41,7 @@ type Context interface {
 }
 
 type lookupCtx struct {
+	// Parent context
 	eval.Context
 	sharedCache *ConcurrentMap
 	topProvider LookupKey
@@ -143,8 +143,4 @@ func (c *lookupCtx) Fork() eval.Context {
 		topProvider: c.topProvider,
 		cache: map[string]eval.Value{},
 	}
-}
-
-func (c *lookupCtx) WithScope(scope eval.Scope) eval.Context {
-	return &lookupCtx{c.Context.WithScope(scope), c.sharedCache, c.topProvider, c.cache}
 }
