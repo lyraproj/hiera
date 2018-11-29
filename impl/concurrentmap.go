@@ -1,4 +1,4 @@
-package lookup
+package impl
 
 import "sync"
 
@@ -58,24 +58,25 @@ func (c *ConcurrentMap) valueMutexWait(key string) (interface{}, bool) {
 // it calls the producer and assigns the returned value. The produced value is then returned.
 //
 // The producer does not execute within a mutex.
-func (c *ConcurrentMap) EnsureSet(key string, producer func() interface{})  interface{} {
+func (c *ConcurrentMap) EnsureSet(key string, producer func() (interface{}, bool))  (value interface{}, ok bool) {
 	// Take the write lock
 	c.lock.Lock()
 
-	oldValue, isSet := c.valueMutexWait(key)
-	if isSet {
+	value, ok = c.valueMutexWait(key)
+	if ok {
 		c.lock.Unlock()
-		return oldValue
+		return value, true
 	}
 
 	// Replace the value with a RWMutex that is locked.
 	lock := sync.RWMutex{}
 	lock.Lock()
 
-	var value interface{}
 	defer func() {
 		c.lock.Lock()
-		c.values[key] = value
+		if ok {
+			c.values[key] = value
+		}
 		lock.Unlock()
 		c.lock.Unlock()
 	}()
@@ -86,8 +87,8 @@ func (c *ConcurrentMap) EnsureSet(key string, producer func() interface{})  inte
 
 	// Call the producer. A deadlock will occur if this call results in a new lookup for the same key
 	// but that's OK. The alternative (not using locks) would be an endless recursion
-	value = producer()
-	return value
+	value, ok = producer()
+	return
 }
 
 // Get returns the value for the given key together with a bool to indicate

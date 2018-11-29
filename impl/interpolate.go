@@ -1,8 +1,9 @@
-package lookup
+package impl
 
 import (
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/types"
+	"github.com/puppetlabs/go-hiera/lookup"
 	"github.com/puppetlabs/go-issues/issue"
 	"regexp"
 	"strings"
@@ -18,12 +19,13 @@ var emptyInterpolations = map[string]bool {
 	"'::'": true,
 }
 
-func Interpolate(ic Invocation, value eval.Value, allowMethods bool) eval.Value {
+// Interpolate resolves interpolations in the given value and returns the result
+func Interpolate(ic lookup.Invocation, value eval.Value, allowMethods bool) eval.Value {
 	result, _ := doInterpolate(ic, value, allowMethods)
 	return result
 }
 
-func doInterpolate(ic Invocation, value eval.Value, allowMethods bool) (eval.Value, bool) {
+func doInterpolate(ic lookup.Invocation, value eval.Value, allowMethods bool) (eval.Value, bool) {
 	if s, ok := value.(*types.StringValue); ok {
 		return interpolateString(ic, s.String(), allowMethods)
 	}
@@ -93,7 +95,7 @@ func getMethodAndData(expr string, allowMethods bool) (int, string) {
 	return scopeMethod, expr
 }
 
-func interpolateString(ic Invocation, str string, allowMethods bool) (result eval.Value, changed bool) {
+func interpolateString(ic lookup.Invocation, str string, allowMethods bool) (result eval.Value, changed bool) {
 	changed = false
 	if strings.Index(str, `%{`) < 0 {
 		result = types.WrapString(str)
@@ -123,7 +125,7 @@ func interpolateString(ic Invocation, str string, allowMethods bool) (result eva
 			}
 			return ``
 		default:
-			val := Lookup(ic, expr, eval.UNDEF, eval.EMPTY_MAP)
+			val := lookup.Lookup(ic, expr, eval.UNDEF, eval.EMPTY_MAP)
 			if methodKey == aliasMethod {
 				result = val
 				return ``
@@ -139,7 +141,7 @@ func interpolateString(ic Invocation, str string, allowMethods bool) (result eva
 
 }
 
-func resolveInScope(ic Invocation, expr string, allowMethods bool) eval.Value {
+func resolveInScope(ic lookup.Invocation, expr string, allowMethods bool) eval.Value {
 	key := NewKey(expr)
 	if val, ok := ic.Scope().Get(key.Root()); ok {
 		val, _ = doInterpolate(ic, val, allowMethods)

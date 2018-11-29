@@ -1,4 +1,4 @@
-package lookup
+package impl
 
 import (
 	"github.com/puppetlabs/go-issues/issue"

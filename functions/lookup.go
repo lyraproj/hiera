@@ -3,6 +3,7 @@ package functions
 import (
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/types"
+	"github.com/puppetlabs/go-hiera/impl"
 	"github.com/puppetlabs/go-hiera/lookup"
 )
 
@@ -68,7 +69,7 @@ func init() {
 						options = mergeType(args[2])
 					}
 				}
-				return lookup.Lookup2(lookup.NewInvocation(c), luNames(args[0]), vtype, nil, eval.EMPTY_MAP, eval.EMPTY_MAP, options, nil)
+				return lookup.Lookup2(impl.NewInvocation(c), luNames(args[0]), vtype, nil, eval.EMPTY_MAP, eval.EMPTY_MAP, options, nil)
 			})
 		},
 
@@ -83,7 +84,7 @@ func init() {
 					vtype = arg.(eval.Type)
 				}
 				options := mergeType(args[2])
-				return lookup.Lookup2(lookup.NewInvocation(c), luNames(args[0]), vtype, args[3], eval.EMPTY_MAP, eval.EMPTY_MAP, options, nil)
+				return lookup.Lookup2(impl.NewInvocation(c), luNames(args[0]), vtype, args[3], eval.EMPTY_MAP, eval.EMPTY_MAP, options, nil)
 			})
 		},
 
@@ -98,7 +99,7 @@ func init() {
 					vtype = arg.(eval.Type)
 				}
 				options := mergeType(args[2])
-				return lookup.Lookup2(lookup.NewInvocation(c), luNames(args[0]), vtype, nil, eval.EMPTY_MAP, eval.EMPTY_MAP, options, block)
+				return lookup.Lookup2(impl.NewInvocation(c), luNames(args[0]), vtype, nil, eval.EMPTY_MAP, eval.EMPTY_MAP, options, block)
 			})
 		},
 
@@ -113,7 +114,7 @@ func init() {
 				override := hash.Get5(`override`, eval.EMPTY_MAP).(eval.OrderedMap)
 				dfltHash := hash.Get5(`default_values_hash`, eval.EMPTY_MAP).(eval.OrderedMap)
 				options := mergeType(hash.Get5(`merge`, eval.UNDEF))
-				return lookup.Lookup2(lookup.NewInvocation(c), names, vtype, dflt, override, dfltHash, options, block)
+				return lookup.Lookup2(impl.NewInvocation(c), names, vtype, dflt, override, dfltHash, options, block)
 			})
 		},
 
@@ -129,7 +130,7 @@ func init() {
 				override := hash.Get5(`override`, eval.EMPTY_MAP).(eval.OrderedMap)
 				dfltHash := hash.Get5(`default_values_hash`, eval.EMPTY_MAP).(eval.OrderedMap)
 				options := mergeType(hash.Get5(`merge`, eval.UNDEF))
-				return lookup.Lookup2(lookup.NewInvocation(c), names, vtype, dflt, override, dfltHash, options, block)
+				return lookup.Lookup2(impl.NewInvocation(c), names, vtype, dflt, override, dfltHash, options, block)
 			})
 		},
 	)

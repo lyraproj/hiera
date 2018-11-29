@@ -1,27 +1,20 @@
-package lookup
+package impl
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/types"
+	"github.com/puppetlabs/go-hiera/lookup"
 	"github.com/puppetlabs/go-issues/issue"
 	"strconv"
 )
-
-type Key interface {
-	fmt.Stringer
-	Dig(eval.Value) (eval.Value, bool)
-	Parts() []interface{}
-	Root() string
-}
 
 type key struct {
 	orig string
 	parts []interface{}
 }
 
-func NewKey(str string) Key {
+func NewKey(str string) lookup.Key {
 	b := bytes.NewBufferString(``)
 	return &key{str, parseUnquoted(b, str, str, []interface{}{})}
 }

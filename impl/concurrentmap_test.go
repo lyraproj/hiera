@@ -1,4 +1,4 @@
-package lookup
+package impl
 
 import (
 	"fmt"
@@ -13,8 +13,8 @@ func TestConcurrentMap_EnsureSet(t *testing.T) {
 		for i := 0; i < 10; i++ {
 			go func(ix, ox int) {
 				time.Sleep(time.Duration(ox) * time.Nanosecond)
-				c.EnsureSet(fmt.Sprintf(`hello%d`, ox), func() interface{} {
-					return ix
+				c.EnsureSet(fmt.Sprintf(`hello%d`, ox), func() (interface{}, bool) {
+					return ix, true
 				})
 				done <- true
 			}(i, o)

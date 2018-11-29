@@ -1,7 +1,9 @@
 package lookup
 
-import "github.com/puppetlabs/go-evaluator/eval"
+import (
+	"github.com/puppetlabs/go-evaluator/eval"
+)
 
 type MergeStrategy interface {
-	Lookup(locations []Location, invocation Invocation, value func(location Location) eval.Value) eval.Value
+	Lookup(locations []Location, invocation Invocation, value func(location Location) (eval.Value, bool)) (eval.Value, bool)
 }
