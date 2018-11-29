@@ -10,6 +10,7 @@ import (
 
 const HieraCacheKey = `Hiera::Cache`
 const HieraTopProviderKey = `Hiera::TopProvider`
+const HieraGlobalOptionsKey = `Hiera::GlobalOptions`
 const HieraTopProviderCacheKey = `Hiera::TopProvider::Cache`
 const HieraConfigsKey = `Hiera::Config::`
 
@@ -20,10 +21,11 @@ type invocation struct {
 
 // InitContext initializes the given context with the Hiera cache. The context initialized
 // with this method determines the life-cycle of that cache.
-func InitContext(c eval.Context, topProvider lookup.LookupKey) {
+func InitContext(c eval.Context, topProvider lookup.LookupKey, options map[string]eval.Value) {
 	c.Set(HieraCacheKey, NewConcurrentMap(37))
 	c.Set(HieraTopProviderKey, topProvider)
 	c.Set(HieraTopProviderCacheKey, make(map[string]eval.Value, 23))
+	c.Set(HieraGlobalOptionsKey, options)
 }
 
 func NewInvocation(c eval.Context) lookup.Invocation {
@@ -50,6 +52,16 @@ func (ic *invocation) topProviderCache() map[string]eval.Value {
 	panic(eval.Error(HIERA_NOT_INITIALIZED, issue.NO_ARGS))
 }
 
+func (ic *invocation) globalOptions() map[string]eval.Value {
+	if v, ok := ic.Get(HieraGlobalOptionsKey); ok {
+		var g map[string]eval.Value
+		if g, ok = v.(map[string]eval.Value); ok {
+			return g
+		}
+	}
+	panic(eval.Error(HIERA_NOT_INITIALIZED, issue.NO_ARGS))
+}
+
 func (ic *invocation) sharedCache() *ConcurrentMap {
 	if v, ok := ic.Get(HieraCacheKey); ok {
 		var sh *ConcurrentMap
@@ -67,10 +79,23 @@ func (ic *invocation) Config(configPath string) config.ResolvedConfig {
 	return val.(config.ResolvedConfig)
 }
 
-func (ic *invocation) lookupViaCache(key lookup.Key, options eval.OrderedMap) (eval.Value, bool) {
+func (ic *invocation) lookupViaCache(key lookup.Key, options map[string]eval.Value) (eval.Value, bool) {
 	rootKey := key.Root()
 
 	val, ok := ic.sharedCache().EnsureSet(rootKey, func() (interface{}, bool) {
+		globalOptions := ic.globalOptions()
+		if len(options) == 0 {
+			options = globalOptions
+		} else if len(globalOptions) > 0 {
+			no := make(map[string]eval.Value, len(options) + len(globalOptions))
+			for k, v := range globalOptions {
+				no[k] = v
+			}
+			for k, v := range options {
+				no[k] = v
+			}
+			options = no
+		}
 		if v, ok := ic.topProvider()(newContext(ic, ic.topProviderCache()), rootKey, options); ok {
 			return Interpolate(ic, v, true), true
 		}

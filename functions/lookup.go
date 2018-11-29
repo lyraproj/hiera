@@ -19,13 +19,14 @@ func luNames(nameOrNames eval.Value) (names []string) {
 	return
 }
 
-func mergeType(nameOrHash eval.Value) (merge eval.OrderedMap) {
+func mergeType(nameOrHash eval.Value) (merge map[string]eval.Value) {
 	if hs, ok := nameOrHash.(*types.HashValue); ok {
-	  merge = hs
+		merge = make(map[string]eval.Value, hs.Len())
+		hs.EachPair(func(k, v eval.Value) { merge[k.String()] = v })
 	} else if nameOrHash == eval.UNDEF {
-		merge = eval.EMPTY_MAP
+		merge = impl.NoOptions
 	} else {
-		merge = types.SingletonHash2(`merge`, nameOrHash)
+		merge = map[string]eval.Value{`merge`: nameOrHash}
 	}
 	return
 }
@@ -61,7 +62,7 @@ func init() {
 			d.OptionalParam(`MergeType`)
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
 				vtype := eval.Type(types.DefaultAnyType())
-				options := eval.EMPTY_MAP
+				var options map[string]eval.Value
 				nargs := len(args)
 				if nargs > 1 {
 					vtype = args[1].(eval.Type)
@@ -69,7 +70,7 @@ func init() {
 						options = mergeType(args[2])
 					}
 				}
-				return lookup.Lookup2(impl.NewInvocation(c), luNames(args[0]), vtype, nil, eval.EMPTY_MAP, eval.EMPTY_MAP, options, nil)
+				return lookup.Lookup2(impl.NewInvocation(c), luNames(args[0]), vtype, nil, nil, nil, options, nil)
 			})
 		},
 
@@ -84,7 +85,7 @@ func init() {
 					vtype = arg.(eval.Type)
 				}
 				options := mergeType(args[2])
-				return lookup.Lookup2(impl.NewInvocation(c), luNames(args[0]), vtype, args[3], eval.EMPTY_MAP, eval.EMPTY_MAP, options, nil)
+				return lookup.Lookup2(impl.NewInvocation(c), luNames(args[0]), vtype, args[3], nil, nil, options, nil)
 			})
 		},
 
@@ -99,7 +100,7 @@ func init() {
 					vtype = arg.(eval.Type)
 				}
 				options := mergeType(args[2])
-				return lookup.Lookup2(impl.NewInvocation(c), luNames(args[0]), vtype, nil, eval.EMPTY_MAP, eval.EMPTY_MAP, options, block)
+				return lookup.Lookup2(impl.NewInvocation(c), luNames(args[0]), vtype, nil, nil, nil, options, block)
 			})
 		},
 

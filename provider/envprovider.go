@@ -12,7 +12,7 @@ import (
 // "env" in which case all current environment variables will be returned as an OrderedMap, or
 // prefixed with "env::" in which case the rest of the key is interpreted as the environment variable
 // to look for.
-func Environment(c lookup.ProviderContext, key string, _ eval.OrderedMap) (eval.Value, bool) {
+func Environment(c lookup.ProviderContext, key string, _ map[string]eval.Value) (eval.Value, bool) {
 	if key == `env` {
 		env := os.Environ()
 		em := make([]*types.HashEntry, len(env))

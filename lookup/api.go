@@ -84,19 +84,19 @@ type Key interface {
 
 type NotFound struct {}
 
-type DataDig func(ic ProviderContext, key Key, options eval.OrderedMap) (eval.Value, bool)
+type DataDig func(ic ProviderContext, key Key, options map[string]eval.Value) (eval.Value, bool)
 
-type DataHash func(ic ProviderContext, options eval.OrderedMap) eval.OrderedMap
+type DataHash func(ic ProviderContext, options map[string]eval.Value) eval.OrderedMap
 
-type LookupKey func(ic ProviderContext, key string, options eval.OrderedMap) (eval.Value, bool)
+type LookupKey func(ic ProviderContext, key string, options map[string]eval.Value) (eval.Value, bool)
 
 // TryWithParent is like eval.TryWithParent but enables lookup
-var TryWithParent func(parent context.Context, tp LookupKey, consumer func(eval.Context) error) error
+var TryWithParent func(parent context.Context, tp LookupKey, options map[string]eval.Value, consumer func(eval.Context) error) error
 
 // DoWithParent is like eval.DoWithParent but enables lookup
-var DoWithParent func(parent context.Context, tp LookupKey, consumer func(eval.Context))
+var DoWithParent func(parent context.Context, tp LookupKey, options map[string]eval.Value, consumer func(eval.Context))
 
-func Lookup(ic Invocation, name string, dflt eval.Value, options eval.OrderedMap) eval.Value {
+func Lookup(ic Invocation, name string, dflt eval.Value, options map[string]eval.Value) eval.Value {
 	return Lookup2(ic, []string{name}, types.DefaultAnyType(), dflt, eval.EMPTY_MAP, eval.EMPTY_MAP, options, nil)
 }
 
@@ -107,5 +107,5 @@ var Lookup2 func(
 		defaultValue eval.Value,
 		override eval.OrderedMap,
 		defaultValuesHash eval.OrderedMap,
-		options eval.OrderedMap,
+		options map[string]eval.Value,
 		block eval.Lambda) eval.Value

@@ -125,7 +125,7 @@ func interpolateString(ic lookup.Invocation, str string, allowMethods bool) (res
 			}
 			return ``
 		default:
-			val := lookup.Lookup(ic, expr, eval.UNDEF, eval.EMPTY_MAP)
+			val := lookup.Lookup(ic, expr, eval.UNDEF, nil)
 			if methodKey == aliasMethod {
 				result = val
 				return ``
