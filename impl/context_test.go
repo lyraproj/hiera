@@ -8,6 +8,7 @@ import (
 	"github.com/puppetlabs/go-evaluator/types"
 	"github.com/puppetlabs/go-hiera/impl"
 	"github.com/puppetlabs/go-hiera/lookup"
+	"github.com/puppetlabs/go-hiera/provider"
 	"github.com/puppetlabs/go-issues/issue"
 
 	// Ensure initialization
@@ -15,54 +16,36 @@ import (
 	_ "github.com/puppetlabs/go-hiera/functions"
 )
 
-var sampleData = map[string]eval.Value{
-  `first`: types.WrapString(`value of first`),
-  `array`: eval.Wrap(nil, []string{`one`, `two`, `three`}),
-	`hash`: eval.Wrap(nil, map[string]interface{}{`int`: 1, `string`: `one`, `array`: []string{`two`, `%{hiera('first')}`}}),
-  `second`: types.WrapString(`includes '%{lookup('first')}'`),
-	`ipAlias`: types.WrapString(`%{alias('array')}`),
-	`ipBadAlias`: types.WrapString(`x %{alias('array')}`),
-	`ipScope`: types.WrapString(`hello %{world}`),
-	`ipScope2`: types.WrapString(`hello %{scope('world')}`),
-	`ipLiteral`: types.WrapString(`some %{literal('literal')} text`),
-	`ipBad`: types.WrapString(`hello %{bad('world')}`),
-	`empty1`: types.WrapString(`start%{}end`),
-	`empty2`: types.WrapString(`start%{''}end`),
-	`empty3`: types.WrapString(`start%{""}end`),
-	`empty4`: types.WrapString(`start%{::}end`),
-	`empty5`: types.WrapString(`start%{'::'}end`),
-	`empty6`: types.WrapString(`start%{"::"}end`),
-}
+var options eval.OrderedMap
 
-func tp(ic lookup.ProviderContext, key string, _ eval.OrderedMap) (eval.Value, bool) {
-	v, ok := sampleData[key]
-	return v, ok
+func init() {
+	options = types.SingletonHash2(`path`, types.WrapString(`./testdata/sample_data.yaml`))
 }
 
 func ExampleLookup_first() {
-	lookup.DoWithParent(context.Background(), tp, func(c eval.Context) {
-		fmt.Println(lookup.Lookup(impl.NewInvocation(c), `first`, nil, eval.EMPTY_MAP))
+	lookup.DoWithParent(context.Background(), provider.Yaml, func(c eval.Context) {
+		fmt.Println(lookup.Lookup(impl.NewInvocation(c), `first`, nil, options))
 	})
 	// Output: value of first
 }
 
 func ExampleLookup_dottedInt() {
-	lookup.DoWithParent(context.Background(), tp, func(c eval.Context) {
-		fmt.Println(lookup.Lookup(impl.NewInvocation(c), `array.1`, nil, eval.EMPTY_MAP))
+	lookup.DoWithParent(context.Background(), provider.Yaml, func(c eval.Context) {
+		fmt.Println(lookup.Lookup(impl.NewInvocation(c), `array.1`, nil, options))
 	})
 	// Output: two
 }
 
 func ExampleLookup_dottedMix() {
-	lookup.DoWithParent(context.Background(), tp, func(c eval.Context) {
-		fmt.Println(lookup.Lookup(impl.NewInvocation(c), `hash.array.1`, nil, eval.EMPTY_MAP))
+	lookup.DoWithParent(context.Background(), provider.Yaml, func(c eval.Context) {
+		fmt.Println(lookup.Lookup(impl.NewInvocation(c), `hash.array.1`, nil, options))
 	})
 	// Output: value of first
 }
 
 func ExampleLookup_interpolate() {
-	lookup.DoWithParent(context.Background(), tp, func(c eval.Context) {
-		fmt.Println(lookup.Lookup(impl.NewInvocation(c), `second`, nil, eval.EMPTY_MAP))
+	lookup.DoWithParent(context.Background(), provider.Yaml, func(c eval.Context) {
+		fmt.Println(lookup.Lookup(impl.NewInvocation(c), `second`, nil, options))
 	})
 	// Output: includes 'value of first'
 }
@@ -72,9 +55,9 @@ func ExampleLookup_interpolateScope() {
 		c.DoWithScope(evalimpl.NewScope2(types.WrapStringToInterfaceMap(c, issue.H{
 			`world`: `cruel world`,
 		}), false), func() {
-			lookup.DoWithParent(c, tp, func(c eval.Context) {
-				fmt.Println(lookup.Lookup(impl.NewInvocation(c), `ipScope`, nil, eval.EMPTY_MAP))
-				fmt.Println(lookup.Lookup(impl.NewInvocation(c), `ipScope2`, nil, eval.EMPTY_MAP))
+			lookup.DoWithParent(c, provider.Yaml, func(c eval.Context) {
+				fmt.Println(lookup.Lookup(impl.NewInvocation(c), `ipScope`, nil, options))
+				fmt.Println(lookup.Lookup(impl.NewInvocation(c), `ipScope2`, nil, options))
 			})
 		})
 	})
@@ -84,13 +67,13 @@ func ExampleLookup_interpolateScope() {
 }
 
 func ExampleLookup_interpolateEmpty() {
-	lookup.DoWithParent(context.Background(), tp, func(c eval.Context) {
-		fmt.Println(lookup.Lookup(impl.NewInvocation(c), `empty1`, nil, eval.EMPTY_MAP))
-		fmt.Println(lookup.Lookup(impl.NewInvocation(c), `empty2`, nil, eval.EMPTY_MAP))
-		fmt.Println(lookup.Lookup(impl.NewInvocation(c), `empty3`, nil, eval.EMPTY_MAP))
-		fmt.Println(lookup.Lookup(impl.NewInvocation(c), `empty4`, nil, eval.EMPTY_MAP))
-		fmt.Println(lookup.Lookup(impl.NewInvocation(c), `empty5`, nil, eval.EMPTY_MAP))
-		fmt.Println(lookup.Lookup(impl.NewInvocation(c), `empty6`, nil, eval.EMPTY_MAP))
+	lookup.DoWithParent(context.Background(), provider.Yaml, func(c eval.Context) {
+		fmt.Println(lookup.Lookup(impl.NewInvocation(c), `empty1`, nil, options))
+		fmt.Println(lookup.Lookup(impl.NewInvocation(c), `empty2`, nil, options))
+		fmt.Println(lookup.Lookup(impl.NewInvocation(c), `empty3`, nil, options))
+		fmt.Println(lookup.Lookup(impl.NewInvocation(c), `empty4`, nil, options))
+		fmt.Println(lookup.Lookup(impl.NewInvocation(c), `empty5`, nil, options))
+		fmt.Println(lookup.Lookup(impl.NewInvocation(c), `empty6`, nil, options))
 	})
 	// Output:
 	// startend
@@ -102,106 +85,106 @@ func ExampleLookup_interpolateEmpty() {
 }
 
 func ExampleLookup_interpolateLiteral() {
-	lookup.DoWithParent(context.Background(), tp, func(c eval.Context) {
-		fmt.Println(lookup.Lookup(impl.NewInvocation(c), `ipLiteral`, nil, eval.EMPTY_MAP))
+	lookup.DoWithParent(context.Background(), provider.Yaml, func(c eval.Context) {
+		fmt.Println(lookup.Lookup(impl.NewInvocation(c), `ipLiteral`, nil, options))
 	})
 	// Output: some literal text
 }
 
 func ExampleLookup_interpolateAlias() {
-	lookup.DoWithParent(context.Background(), tp, func(c eval.Context) {
-		v := lookup.Lookup(impl.NewInvocation(c), `ipAlias`, nil, eval.EMPTY_MAP)
+	lookup.DoWithParent(context.Background(), provider.Yaml, func(c eval.Context) {
+		v := lookup.Lookup(impl.NewInvocation(c), `ipAlias`, nil, options)
 		fmt.Printf(`%s %s`, eval.GenericValueType(v), v)
 	})
 	// Output: Array[Enum] ['one', 'two', 'three']
 }
 
 func ExampleLookup_interpolateBadAlias() {
-	fmt.Println(lookup.TryWithParent(context.Background(), tp, func(c eval.Context) error {
-		lookup.Lookup(impl.NewInvocation(c), `ipBadAlias`, nil, eval.EMPTY_MAP)
+	fmt.Println(lookup.TryWithParent(context.Background(), provider.Yaml, func(c eval.Context) error {
+		lookup.Lookup(impl.NewInvocation(c), `ipBadAlias`, nil, options)
 		return nil
 	}))
 	// Output: 'alias' interpolation is only permitted if the expression is equal to the entire string
 }
 
 func ExampleLookup_interpolateBadFunction() {
-	fmt.Println(lookup.TryWithParent(context.Background(), tp, func(c eval.Context) error {
-		lookup.Lookup(impl.NewInvocation(c), `ipBad`, nil, eval.EMPTY_MAP)
+	fmt.Println(lookup.TryWithParent(context.Background(), provider.Yaml, func(c eval.Context) error {
+		lookup.Lookup(impl.NewInvocation(c), `ipBad`, nil, options)
 		return nil
 	}))
 	// Output: Unknown interpolation method 'bad'
 }
 
 func ExampleLookup_notFoundWithoutDefault() {
-	fmt.Println(lookup.TryWithParent(context.Background(), tp, func(c eval.Context) error {
-		lookup.Lookup(impl.NewInvocation(c), `nonexistent`, nil, eval.EMPTY_MAP)
+	fmt.Println(lookup.TryWithParent(context.Background(), provider.Yaml, func(c eval.Context) error {
+		lookup.Lookup(impl.NewInvocation(c), `nonexistent`, nil, options)
 		return nil
 	}))
 	// Output: lookup() did not find a value for the name 'nonexistent'
 }
 
 func ExampleLookup_notFoundDflt() {
-	lookup.DoWithParent(context.Background(), tp, func(c eval.Context) {
-		fmt.Println(lookup.Lookup(impl.NewInvocation(c), `nonexistent`, types.WrapString(`default value`), eval.EMPTY_MAP))
+	lookup.DoWithParent(context.Background(), provider.Yaml, func(c eval.Context) {
+		fmt.Println(lookup.Lookup(impl.NewInvocation(c), `nonexistent`, types.WrapString(`default value`), options))
 	})
 	// Output: default value
 }
 
 func ExampleLookup_notFoundDottedIdx() {
-	lookup.DoWithParent(context.Background(), tp, func(c eval.Context) {
-		fmt.Println(lookup.Lookup(impl.NewInvocation(c), `array.3`, types.WrapString(`default value`), eval.EMPTY_MAP))
+	lookup.DoWithParent(context.Background(), provider.Yaml, func(c eval.Context) {
+		fmt.Println(lookup.Lookup(impl.NewInvocation(c), `array.3`, types.WrapString(`default value`), options))
 	})
 	// Output: default value
 }
 
 func ExampleLookup_notFoundDottedMix() {
-	lookup.DoWithParent(context.Background(), tp, func(c eval.Context) {
-		fmt.Println(lookup.Lookup(impl.NewInvocation(c), `hash.float`, types.WrapString(`default value`), eval.EMPTY_MAP))
+	lookup.DoWithParent(context.Background(), provider.Yaml, func(c eval.Context) {
+		fmt.Println(lookup.Lookup(impl.NewInvocation(c), `hash.float`, types.WrapString(`default value`), options))
 	})
 	// Output: default value
 }
 
 func ExampleLookup_badStringDig() {
-	fmt.Println(lookup.TryWithParent(context.Background(), tp, func(c eval.Context) error {
-		lookup.Lookup(impl.NewInvocation(c), `hash.int.v`, nil, eval.EMPTY_MAP)
+	fmt.Println(lookup.TryWithParent(context.Background(), provider.Yaml, func(c eval.Context) error {
+		lookup.Lookup(impl.NewInvocation(c), `hash.int.v`, nil, options)
 		return nil
 	}))
 	// Output: lookup() Got Integer when a hash-like object was expected to access value using 'v' from key 'hash.int.v'
 }
 
 func ExampleLookup_badIntDig() {
-	fmt.Println(lookup.TryWithParent(context.Background(), tp, func(c eval.Context) error {
-		lookup.Lookup(impl.NewInvocation(c), `hash.3`, nil, eval.EMPTY_MAP)
+	fmt.Println(lookup.TryWithParent(context.Background(), provider.Yaml, func(c eval.Context) error {
+		lookup.Lookup(impl.NewInvocation(c), `hash.3`, nil, options)
 		return nil
 	}))
 	// Output: lookup() Got Hash[Enum, Data] when a hash-like object was expected to access value using '3' from key 'hash.3'
 }
 
 func ExampleLookup2_findFirst() {
-	lookup.DoWithParent(context.Background(), tp, func(c eval.Context) {
-		fmt.Println(lookup.Lookup2(impl.NewInvocation(c), []string{`first`, `second`}, types.DefaultAnyType(), nil, eval.EMPTY_MAP, eval.EMPTY_MAP, eval.EMPTY_MAP, nil))
+	lookup.DoWithParent(context.Background(), provider.Yaml, func(c eval.Context) {
+		fmt.Println(lookup.Lookup2(impl.NewInvocation(c), []string{`first`, `second`}, types.DefaultAnyType(), nil, eval.EMPTY_MAP, eval.EMPTY_MAP, options, nil))
 	})
 	// Output: value of first
 }
 
 func ExampleLookup2_findSecond() {
-	lookup.DoWithParent(context.Background(), tp, func(c eval.Context) {
-		fmt.Println(lookup.Lookup2(impl.NewInvocation(c), []string{`nonexisting`, `second`}, types.DefaultAnyType(), nil, eval.EMPTY_MAP, eval.EMPTY_MAP, eval.EMPTY_MAP, nil))
+	lookup.DoWithParent(context.Background(), provider.Yaml, func(c eval.Context) {
+		fmt.Println(lookup.Lookup2(impl.NewInvocation(c), []string{`nonexisting`, `second`}, types.DefaultAnyType(), nil, eval.EMPTY_MAP, eval.EMPTY_MAP, options, nil))
 	})
 	// Output: includes 'value of first'
 }
 
 func ExampleLookup2_notFoundWithoutDflt() {
-	fmt.Println(lookup.TryWithParent(context.Background(), tp, func(c eval.Context) error {
-		lookup.Lookup2(impl.NewInvocation(c), []string{`nonexisting`, `notthere`}, types.DefaultAnyType(), nil, eval.EMPTY_MAP, eval.EMPTY_MAP, eval.EMPTY_MAP, nil)
+	fmt.Println(lookup.TryWithParent(context.Background(), provider.Yaml, func(c eval.Context) error {
+		lookup.Lookup2(impl.NewInvocation(c), []string{`nonexisting`, `notthere`}, types.DefaultAnyType(), nil, eval.EMPTY_MAP, eval.EMPTY_MAP, options, nil)
 		return nil
 	}))
 	// Output: lookup() did not find a value for any of the names [nonexisting, notthere]
 }
 
 func ExampleLookup2_notFoundDflt() {
-	lookup.DoWithParent(context.Background(), tp, func(c eval.Context) {
-		fmt.Println(lookup.Lookup2(impl.NewInvocation(c), []string{`nonexisting`, `notthere`}, types.DefaultAnyType(), types.WrapString(`default value`), eval.EMPTY_MAP, eval.EMPTY_MAP, eval.EMPTY_MAP, nil))
+	lookup.DoWithParent(context.Background(), provider.Yaml, func(c eval.Context) {
+		fmt.Println(lookup.Lookup2(impl.NewInvocation(c), []string{`nonexisting`, `notthere`}, types.DefaultAnyType(), types.WrapString(`default value`), eval.EMPTY_MAP, eval.EMPTY_MAP, options, nil))
 	})
 	// Output: default value
 }
@@ -241,8 +224,8 @@ func ExampleContextCachedValue() {
 }
 
 func ExampleLookup_dottedStringInt() {
-	lookup.DoWithParent(context.Background(), tp, func(c eval.Context) {
-		v := lookup.Lookup(impl.NewInvocation(c), `hash.array.0`, nil, nil)
+	lookup.DoWithParent(context.Background(), provider.Yaml, func(c eval.Context) {
+		v := lookup.Lookup(impl.NewInvocation(c), `hash.array.0`, nil, options)
 		fmt.Println(v)
 	})
 	// Output: two

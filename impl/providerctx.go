@@ -139,3 +139,7 @@ func (c *providerCtx) CachedEntries(consumer eval.BiConsumer) {
 		consumer(types.WrapString(k), v)
 	}
 }
+
+func (c *providerCtx) Invocation() lookup.Invocation {
+	return c.invocation
+}

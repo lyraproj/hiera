@@ -1,8 +1,9 @@
-package lookup
+package provider
 
 import (
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/types"
+	"github.com/puppetlabs/go-hiera/lookup"
 	"os"
 	"strings"
 )
@@ -11,7 +12,7 @@ import (
 // "env" in which case all current environment variables will be returned as an OrderedMap, or
 // prefixed with "env::" in which case the rest of the key is interpreted as the environment variable
 // to look for.
-func Environment(c ProviderContext, key string, _ eval.OrderedMap) (eval.Value, bool) {
+func Environment(c lookup.ProviderContext, key string, _ eval.OrderedMap) (eval.Value, bool) {
 	if key == `env` {
 		env := os.Environ()
 		em := make([]*types.HashEntry, len(env))

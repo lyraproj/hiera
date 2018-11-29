@@ -1,8 +1,9 @@
-package lookup
+package provider
 
 import (
 	"github.com/puppetlabs/go-evaluator/eval"
 	"github.com/puppetlabs/go-evaluator/types"
+	"github.com/puppetlabs/go-hiera/lookup"
 )
 
 const LookupProvidersKey = `hiera::lookup::providers`
@@ -13,12 +14,12 @@ const LookupProvidersKey = `hiera::lookup::providers`
 //
 // The intended use for this function is when a very simplistic way of configuring Hiera is desired that
 // requires no configuration files.
-func MuxLookup(c ProviderContext, key string, options eval.OrderedMap) (eval.Value, bool) {
+func MuxLookup(c lookup.ProviderContext, key string, options eval.OrderedMap) (eval.Value, bool) {
 	if pv, ok := options.Get4(LookupProvidersKey); ok {
 		var rpv *types.RuntimeValue
 		if rpv, ok = pv.(*types.RuntimeValue); ok {
-			var pvs []LookupKey
-			if pvs, ok = rpv.Interface().([]LookupKey); ok {
+			var pvs []lookup.LookupKey
+			if pvs, ok = rpv.Interface().([]lookup.LookupKey); ok {
 				for _, lk := range pvs {
 					var result eval.Value
 					if result, ok = lk(c, key, options); ok {

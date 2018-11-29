@@ -40,6 +40,9 @@ type ProviderContext interface {
 
 	// Interpolate resolves interpolations in the given value and returns the result
 	Interpolate(value eval.Value) eval.Value
+
+	// Invocation returns the active invocation.
+	Invocation() Invocation
 }
 
 type Producer func() (eval.Value, bool)

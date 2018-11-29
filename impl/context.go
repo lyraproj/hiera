@@ -32,8 +32,9 @@ func init() {
 			options eval.OrderedMap,
 			block eval.Lambda) eval.Value {
 		for _, name := range names {
-			if v, ok := ic.Check(NewKey(name), func() (eval.Value, bool) {
-				return ic.(*invocation).lookupViaCache(NewKey(name), options)
+			key := NewKey(name)
+			if v, ok := ic.Check(key, func() (eval.Value, bool) {
+				return ic.(*invocation).lookupViaCache(key, options)
 			}); ok {
 				return v
 			}
