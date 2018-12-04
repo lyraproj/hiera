@@ -3,17 +3,17 @@ package impl_test
 import (
 	"context"
 	"fmt"
-	"github.com/puppetlabs/go-evaluator/eval"
-	evalimpl "github.com/puppetlabs/go-evaluator/impl"
-	"github.com/puppetlabs/go-evaluator/types"
-	"github.com/puppetlabs/go-hiera/impl"
-	"github.com/puppetlabs/go-hiera/lookup"
-	"github.com/puppetlabs/go-hiera/provider"
-	"github.com/puppetlabs/go-issues/issue"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	evalimpl "github.com/lyraproj/puppet-evaluator/impl"
+	"github.com/lyraproj/puppet-evaluator/types"
+	"github.com/lyraproj/hiera/impl"
+	"github.com/lyraproj/hiera/lookup"
+	"github.com/lyraproj/hiera/provider"
+	"github.com/lyraproj/issue/issue"
 
 	// Ensure initialization
-	_ "github.com/puppetlabs/go-evaluator/pcore"
-	_ "github.com/puppetlabs/go-hiera/functions"
+	_ "github.com/lyraproj/puppet-evaluator/pcore"
+	_ "github.com/lyraproj/hiera/functions"
 )
 
 var options map[string]eval.Value

@@ -2,11 +2,11 @@ package impl
 
 import (
 	"fmt"
-	"github.com/puppetlabs/go-hiera/config"
-	"github.com/puppetlabs/go-hiera/lookup"
+	"github.com/lyraproj/hiera/config"
+	"github.com/lyraproj/hiera/lookup"
 
-	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-evaluator/types"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/types"
 )
 
 func CheckedLookup(dp lookup.DataProvider, key lookup.Key, invocation lookup.Invocation, merge lookup.MergeStrategy) (eval.Value, bool) {

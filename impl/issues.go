@@ -1,7 +1,7 @@
 package impl
 
 import (
-	"github.com/puppetlabs/go-issues/issue"
+	"github.com/lyraproj/issue/issue"
 	"strings"
 	"fmt"
 )

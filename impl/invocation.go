@@ -1,11 +1,11 @@
 package impl
 
 import (
-	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-evaluator/utils"
-	"github.com/puppetlabs/go-hiera/config"
-	"github.com/puppetlabs/go-hiera/lookup"
-	"github.com/puppetlabs/go-issues/issue"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/utils"
+	"github.com/lyraproj/hiera/config"
+	"github.com/lyraproj/hiera/lookup"
+	"github.com/lyraproj/issue/issue"
 )
 
 const HieraCacheKey = `Hiera::Cache`

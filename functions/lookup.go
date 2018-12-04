@@ -1,10 +1,10 @@
 package functions
 
 import (
-	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-evaluator/types"
-	"github.com/puppetlabs/go-hiera/impl"
-	"github.com/puppetlabs/go-hiera/lookup"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/types"
+	"github.com/lyraproj/hiera/impl"
+	"github.com/lyraproj/hiera/lookup"
 )
 
 func luNames(nameOrNames eval.Value) (names []string) {

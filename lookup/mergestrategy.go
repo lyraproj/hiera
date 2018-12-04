@@ -1,7 +1,7 @@
 package lookup
 
 import (
-	"github.com/puppetlabs/go-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/eval"
 )
 
 type MergeStrategy interface {

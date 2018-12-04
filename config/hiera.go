@@ -1,8 +1,8 @@
 package config
 
 import (
-	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-hiera/lookup"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/hiera/lookup"
 )
 
 type LookupKind string

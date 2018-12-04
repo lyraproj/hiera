@@ -1,11 +1,11 @@
 package loader
 
 import (
-	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-evaluator/loader"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/loader"
 	"gopkg.in/yaml.v2"
-	"github.com/puppetlabs/go-issues/issue"
-	"github.com/puppetlabs/go-evaluator/types"
+	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/puppet-evaluator/types"
 )
 
 func InstantiateHieraConfig(c eval.Context, loader loader.ContentProvidingLoader, tn eval.TypedName, sources []string) {

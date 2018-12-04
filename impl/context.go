@@ -2,9 +2,9 @@ package impl
 
 import (
 	"context"
-	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-hiera/lookup"
-	"github.com/puppetlabs/go-issues/issue"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/hiera/lookup"
+	"github.com/lyraproj/issue/issue"
 )
 
 var NoOptions = map[string]eval.Value{}

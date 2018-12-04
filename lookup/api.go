@@ -3,8 +3,8 @@ package lookup
 import (
 	"context"
 	"fmt"
-	"github.com/puppetlabs/go-evaluator/eval"
-	"github.com/puppetlabs/go-evaluator/types"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/types"
 )
 
 // A Context provides a local cache and utility functions to a provider function

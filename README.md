@@ -15,7 +15,7 @@ cannot handle legacy Hiera 3 backends.
 * [ ] configuration
 * [ ] layerered hierarchy
 * [ ] merge strategies
-* [ ] YAML]∞ configuration
-* [ ] YAML data
+* [ ] YAML configuration
+* [x] YAML data
 * [ ] JSON data
 
