@@ -1,6 +1,6 @@
 # Hiera lookup framework
 
-This module is a Go implementation of the Hiera 5 framework for Puppet. I will currently not accept Hiera 3 and it
+This module is a Go implementation of the Hiera 5 framework for Puppet. It will currently not accept Hiera 3 and it
 cannot handle legacy Hiera 3 backends.
 
 ## Implementation status
