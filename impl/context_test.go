@@ -230,3 +230,23 @@ func ExampleLookup_dottedStringInt() {
 	})
 	// Output: two
 }
+
+func ExampleLookup_mapProvider() {
+	sampleData := map[string]string {
+		`a`: `value of a`,
+		`b`: `value of b`}
+
+	tp := func (ic lookup.ProviderContext, key string, _ map[string]eval.Value) (eval.Value, bool) {
+		v, ok := sampleData[key]
+		return types.WrapString(v), ok
+	}
+
+	lookup.DoWithParent(context.Background(), tp, nil, func(c eval.Context) {
+		fmt.Println(lookup.Lookup(impl.NewInvocation(c), `a`, nil, nil))
+		fmt.Println(lookup.Lookup(impl.NewInvocation(c), `b`, nil, nil))
+	})
+
+	// Output:
+	// value of a
+	// value of b
+}
