@@ -2,9 +2,9 @@ package impl
 
 import (
 	"context"
-	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/hiera/lookup"
 	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/puppet-evaluator/eval"
 )
 
 var NoOptions = map[string]eval.Value{}
@@ -25,14 +25,14 @@ func init() {
 	}
 
 	lookup.Lookup2 = func(
-			ic lookup.Invocation,
-			names []string,
-			valueType eval.Type,
-			defaultValue eval.Value,
-			override eval.OrderedMap,
-			defaultValuesHash eval.OrderedMap,
-			options map[string]eval.Value,
-			block eval.Lambda) eval.Value {
+		ic lookup.Invocation,
+		names []string,
+		valueType eval.Type,
+		defaultValue eval.Value,
+		override eval.OrderedMap,
+		defaultValuesHash eval.OrderedMap,
+		options map[string]eval.Value,
+		block eval.Lambda) eval.Value {
 		if override == nil {
 			override = eval.EMPTY_MAP
 		}

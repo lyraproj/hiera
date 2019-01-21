@@ -3,8 +3,8 @@ package impl_test
 import (
 	"context"
 	"fmt"
-	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/hiera/impl"
+	"github.com/lyraproj/puppet-evaluator/eval"
 )
 
 func ExampleNewKey_simple() {

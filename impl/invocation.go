@@ -1,11 +1,11 @@
 package impl
 
 import (
-	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/puppet-evaluator/utils"
 	"github.com/lyraproj/hiera/config"
 	"github.com/lyraproj/hiera/lookup"
 	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/utils"
 )
 
 const HieraCacheKey = `Hiera::Cache`
@@ -73,7 +73,7 @@ func (ic *invocation) sharedCache() *ConcurrentMap {
 }
 
 func (ic *invocation) Config(configPath string) config.ResolvedConfig {
-	val, _ := ic.sharedCache().EnsureSet(HieraConfigsKey + configPath, func() (interface{}, bool) {
+	val, _ := ic.sharedCache().EnsureSet(HieraConfigsKey+configPath, func() (interface{}, bool) {
 		return NewConfig(ic, configPath), true
 	})
 	return val.(config.ResolvedConfig)
@@ -87,7 +87,7 @@ func (ic *invocation) lookupViaCache(key lookup.Key, options map[string]eval.Val
 		if len(options) == 0 {
 			options = globalOptions
 		} else if len(globalOptions) > 0 {
-			no := make(map[string]eval.Value, len(options) + len(globalOptions))
+			no := make(map[string]eval.Value, len(options)+len(globalOptions))
 			for k, v := range globalOptions {
 				no[k] = v
 			}

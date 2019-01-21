@@ -1,9 +1,9 @@
 package provider
 
 import (
+	"github.com/lyraproj/hiera/lookup"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/types"
-	"github.com/lyraproj/hiera/lookup"
 )
 
 const LookupProvidersKey = `hiera::lookup::providers`

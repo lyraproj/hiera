@@ -15,7 +15,7 @@ type TrackingScope interface {
 
 type trackingScope struct {
 	tracked eval.Scope
-	read map[string]eval.Value
+	read    map[string]eval.Value
 }
 
 func NewTrackingScope(tracked eval.Scope) TrackingScope {

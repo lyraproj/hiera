@@ -1,11 +1,11 @@
 package provider
 
 import (
-	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/puppet-evaluator/types"
 	"github.com/lyraproj/hiera/impl"
 	"github.com/lyraproj/hiera/lookup"
 	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/types"
 )
 
 var YamlDataKey = `yaml::data`
@@ -36,4 +36,3 @@ func Yaml(c lookup.ProviderContext, key string, options map[string]eval.Value) (
 	hash, _ := data.(eval.OrderedMap)
 	return hash.Get4(key)
 }
-

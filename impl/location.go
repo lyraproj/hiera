@@ -1,35 +1,35 @@
 package impl
 
 import (
-"github.com/lyraproj/puppet-evaluator/eval"
-"github.com/lyraproj/puppet-evaluator/types"
+	"fmt"
+	"github.com/bmatcuk/doublestar"
 	"github.com/lyraproj/hiera/lookup"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/impl"
+	"github.com/lyraproj/puppet-evaluator/types"
+	"os"
 	"path/filepath"
-"fmt"
-"os"
-"github.com/bmatcuk/doublestar"
-"github.com/lyraproj/puppet-evaluator/impl"
 )
 
 type path struct {
 	original string
 	resolved string
-	exist bool
+	exist    bool
 }
 
-func (p* path) Exist() bool {
+func (p *path) Exist() bool {
 	return p.exist
 }
 
-func (p* path) Kind() lookup.LocationKind {
+func (p *path) Kind() lookup.LocationKind {
 	return lookup.LC_PATH
 }
 
-func (p* path) String() string {
+func (p *path) String() string {
 	return fmt.Sprintf("path{ original:%s, resolved:%s, exist:%v}", p.original, p.resolved, p.exist)
 }
 
-func (p* path) Resolve(ic lookup.Invocation, dataDir string) []lookup.Location {
+func (p *path) Resolve(ic lookup.Invocation, dataDir string) []lookup.Location {
 	r, _ := interpolateString(ic, p.original, false)
 	rp := filepath.Join(dataDir, r.String())
 	_, err := os.Stat(rp)
@@ -40,19 +40,19 @@ type glob struct {
 	pattern string
 }
 
-func (g* glob) Exist() bool {
+func (g *glob) Exist() bool {
 	return false
 }
 
-func (g* glob) Kind() lookup.LocationKind {
+func (g *glob) Kind() lookup.LocationKind {
 	return lookup.LC_GLOB
 }
 
-func (g* glob) String() string {
+func (g *glob) String() string {
 	return fmt.Sprintf("glob{pattern:%s}", g.pattern)
 }
 
-func (g* glob) Resolve(ic lookup.Invocation, dataDir string) []lookup.Location {
+func (g *glob) Resolve(ic lookup.Invocation, dataDir string) []lookup.Location {
 	r, _ := interpolateString(ic, g.pattern, false)
 	rp := filepath.Join(dataDir, r.String())
 	matches, err := doublestar.Glob(rp)
@@ -71,19 +71,19 @@ type uri struct {
 	resolved string
 }
 
-func (u* uri) Exist() bool {
+func (u *uri) Exist() bool {
 	return true
 }
 
-func (u* uri) Kind() lookup.LocationKind {
+func (u *uri) Kind() lookup.LocationKind {
 	return lookup.LC_URI
 }
 
-func (u* uri) String() string {
+func (u *uri) String() string {
 	return fmt.Sprintf("uri{original:%s, resolved:%s", u.original, u.resolved)
 }
 
-func (u* uri) Resolve(ic lookup.Invocation, dataDir string) []lookup.Location {
+func (u *uri) Resolve(ic lookup.Invocation, dataDir string) []lookup.Location {
 	r, _ := interpolateString(ic, u.original, false)
 	return []lookup.Location{&uri{u.original, r.String()}}
 }
@@ -99,22 +99,22 @@ type mappedPaths struct {
 	template string
 }
 
-func (m* mappedPaths) Exist() bool {
+func (m *mappedPaths) Exist() bool {
 	return false
 }
 
-func (m* mappedPaths) Kind() lookup.LocationKind {
+func (m *mappedPaths) Kind() lookup.LocationKind {
 	return lookup.LC_MAPPED_PATHS
 }
 
-func (m* mappedPaths) String() string {
+func (m *mappedPaths) String() string {
 	return fmt.Sprintf("mapped_paths{sourceVar:%s, key:%s, template:%s}", m.sourceVar, m.key, m.template)
 }
 
-func (m* mappedPaths) Resolve(ic lookup.Invocation, dataDir string) []lookup.Location {
+func (m *mappedPaths) Resolve(ic lookup.Invocation, dataDir string) []lookup.Location {
 	var mappedVars *types.ArrayValue
 	v := resolveInScope(ic, m.sourceVar, false)
-	if sv, ok := v.(*types.StringValue); ok {
+	if sv, ok := v.(eval.StringValue); ok {
 		mappedVars = types.SingletonArray(sv)
 	} else {
 		mva, ok := v.(*types.ArrayValue)

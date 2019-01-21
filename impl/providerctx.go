@@ -1,9 +1,9 @@
 package impl
 
 import (
+	"github.com/lyraproj/hiera/lookup"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/types"
-	"github.com/lyraproj/hiera/lookup"
 	"io"
 )
 
@@ -40,7 +40,7 @@ func init() {
 
 type providerCtx struct {
 	invocation lookup.Invocation
-	cache       map[string]eval.Value
+	cache      map[string]eval.Value
 }
 
 func (c *providerCtx) Interpolate(value eval.Value) eval.Value {
@@ -66,7 +66,7 @@ func (c *providerCtx) Call(ctx eval.Context, method eval.ObjFunc, args []eval.Va
 			result = v
 		}
 	case `cached_entries`:
-		c.CachedEntries(func(k, v eval.Value) { block.Call(ctx, nil, k, v)})
+		c.CachedEntries(func(k, v eval.Value) { block.Call(ctx, nil, k, v) })
 	case `explain`:
 		c.Explain(func() string { return block.Call(ctx, nil).String() })
 	case `not_found`:

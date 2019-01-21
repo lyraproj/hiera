@@ -72,7 +72,6 @@ type Invocation interface {
 	ReportNotFound(key string)
 }
 
-
 // A Key is a parsed version of the possibly dot-separated key to lookup. The
 // parts of a key will be strings or integers
 type Key interface {
@@ -82,7 +81,7 @@ type Key interface {
 	Root() string
 }
 
-type NotFound struct {}
+type NotFound struct{}
 
 type DataDig func(ic ProviderContext, key Key, options map[string]eval.Value) (eval.Value, bool)
 
@@ -101,11 +100,11 @@ func Lookup(ic Invocation, name string, dflt eval.Value, options map[string]eval
 }
 
 var Lookup2 func(
-		ic Invocation,
-		names []string,
-		valueType eval.Type,
-		defaultValue eval.Value,
-		override eval.OrderedMap,
-		defaultValuesHash eval.OrderedMap,
-		options map[string]eval.Value,
-		block eval.Lambda) eval.Value
+	ic Invocation,
+	names []string,
+	valueType eval.Type,
+	defaultValue eval.Value,
+	override eval.OrderedMap,
+	defaultValuesHash eval.OrderedMap,
+	options map[string]eval.Value,
+	block eval.Lambda) eval.Value

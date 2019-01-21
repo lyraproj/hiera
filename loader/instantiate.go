@@ -1,11 +1,11 @@
 package loader
 
 import (
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/loader"
-	"gopkg.in/yaml.v2"
-	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/types"
+	"gopkg.in/yaml.v2"
 )
 
 func InstantiateHieraConfig(c eval.Context, loader loader.ContentProvidingLoader, tn eval.TypedName, sources []string) {
@@ -19,4 +19,3 @@ func InstantiateHieraConfig(c eval.Context, loader loader.ContentProvidingLoader
 	configHash := eval.AssertInstance(func() string { return source }, cfgType, eval.Wrap(c, ms)).(*types.HashValue)
 	configHash.Len()
 }
-

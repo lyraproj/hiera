@@ -2,15 +2,15 @@ package impl
 
 import (
 	"bytes"
-	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/puppet-evaluator/types"
 	"github.com/lyraproj/hiera/lookup"
 	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/types"
 	"strconv"
 )
 
 type key struct {
-	orig string
+	orig  string
 	parts []interface{}
 }
 
@@ -87,7 +87,7 @@ func parseUnquoted(b *bytes.Buffer, key, part string, parts []interface{}) []int
 func parseQuoted(b *bytes.Buffer, q rune, key, part string, parts []interface{}) []interface{} {
 	for i, c := range part {
 		if c == q {
-			if i == len(part) - 1 {
+			if i == len(part)-1 {
 				return append(parts, b.String())
 			}
 			return parseUnquoted(b, key, part[i+1:], parts)

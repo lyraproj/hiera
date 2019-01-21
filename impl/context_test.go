@@ -3,17 +3,17 @@ package impl_test
 import (
 	"context"
 	"fmt"
-	"github.com/lyraproj/puppet-evaluator/eval"
-	evalimpl "github.com/lyraproj/puppet-evaluator/impl"
-	"github.com/lyraproj/puppet-evaluator/types"
 	"github.com/lyraproj/hiera/impl"
 	"github.com/lyraproj/hiera/lookup"
 	"github.com/lyraproj/hiera/provider"
 	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	evalimpl "github.com/lyraproj/puppet-evaluator/impl"
+	"github.com/lyraproj/puppet-evaluator/types"
 
 	// Ensure initialization
-	_ "github.com/lyraproj/puppet-evaluator/pcore"
 	_ "github.com/lyraproj/hiera/functions"
+	_ "github.com/lyraproj/puppet-evaluator/pcore"
 )
 
 var options map[string]eval.Value
@@ -232,11 +232,11 @@ func ExampleLookup_dottedStringInt() {
 }
 
 func ExampleLookup_mapProvider() {
-	sampleData := map[string]string {
+	sampleData := map[string]string{
 		`a`: `value of a`,
 		`b`: `value of b`}
 
-	tp := func (ic lookup.ProviderContext, key string, _ map[string]eval.Value) (eval.Value, bool) {
+	tp := func(ic lookup.ProviderContext, key string, _ map[string]eval.Value) (eval.Value, bool) {
 		v, ok := sampleData[key]
 		return types.WrapString(v), ok
 	}

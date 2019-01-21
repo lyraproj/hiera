@@ -1,8 +1,8 @@
 package config
 
 import (
-	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/hiera/lookup"
+	"github.com/lyraproj/puppet-evaluator/eval"
 )
 
 type LookupKind string
@@ -64,4 +64,3 @@ type ResolvedConfig interface {
 	// receiver was created,
 	ReResolve(ic lookup.Invocation) ResolvedConfig
 }
-
