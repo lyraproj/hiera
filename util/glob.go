@@ -1,9 +1,9 @@
 package util
 
 import (
-	"path/filepath"
-	"os"
 	"github.com/gobwas/glob"
+	"os"
+	"path/filepath"
 )
 
 func Glob(root string, pattern string) (matches []string, e error) {

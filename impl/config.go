@@ -2,12 +2,12 @@ package impl
 
 import (
 	"fmt"
-	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/puppet-evaluator/types"
-	"github.com/lyraproj/puppet-evaluator/utils"
 	"github.com/lyraproj/hiera/config"
 	"github.com/lyraproj/hiera/lookup"
 	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/types"
+	"github.com/lyraproj/puppet-evaluator/utils"
 	"path/filepath"
 
 	// Ensure that pcore is initialized
@@ -35,9 +35,9 @@ func (f *function) Resolve(ic lookup.Invocation) (config.Function, bool) {
 }
 
 type entry struct {
-	dataDir   string
-	options   eval.OrderedMap
-	function  config.Function
+	dataDir  string
+	options  eval.OrderedMap
+	function config.Function
 }
 
 func (e *entry) Options() eval.OrderedMap {
@@ -156,11 +156,11 @@ func init() {
   }`)
 
 	DEFAULT_CONFIG = &hieraCfg{
-		root: ``,
-		path: ``,
-		loadedHash: nil,
-		defaults: &entry{dataDir: `data`, function: &function{kind: config.DATA_HASH, name: `yaml_data`}},
-		hierarchy: []config.HierarchyEntry{&hierEntry{name: `Common`, locations: []lookup.Location{&path{original: `common.yaml`}}}},
+		root:             ``,
+		path:             ``,
+		loadedHash:       nil,
+		defaults:         &entry{dataDir: `data`, function: &function{kind: config.DATA_HASH, name: `yaml_data`}},
+		hierarchy:        []config.HierarchyEntry{&hierEntry{name: `Common`, locations: []lookup.Location{&path{original: `common.yaml`}}}},
 		defaultHierarchy: []config.HierarchyEntry{},
 	}
 
@@ -168,11 +168,11 @@ func init() {
 }
 
 type hieraCfg struct {
-	root          string
-	path          string
-	loadedHash    eval.OrderedMap
-	defaults      config.Entry
-	hierarchy     []config.HierarchyEntry
+	root             string
+	path             string
+	loadedHash       eval.OrderedMap
+	defaults         config.Entry
+	hierarchy        []config.HierarchyEntry
 	defaultHierarchy []config.HierarchyEntry
 }
 
@@ -187,8 +187,8 @@ func NewConfig(ic lookup.Invocation, configPath string) config.Config {
 		cfgType := v.(eval.Type)
 		yv := UnmarshalYaml(ic, b.Bytes())
 		return createConfig(ic, configPath, eval.AssertInstance(func() string {
-				return fmt.Sprintf(`The Lookup Configuration at '%s'`, configPath)
-			}, cfgType, yv).(*types.HashValue))
+			return fmt.Sprintf(`The Lookup Configuration at '%s'`, configPath)
+		}, cfgType, yv).(*types.HashValue))
 	}
 	return DEFAULT_CONFIG
 }
@@ -256,7 +256,7 @@ func createConfig(ic lookup.Invocation, path string, hash *types.HashValue) conf
 func createHierarchy(ic lookup.Invocation, hier *types.ArrayValue) []config.HierarchyEntry {
 	entries := make([]config.HierarchyEntry, 0, hier.Len())
 	uniqueNames := make(map[string]bool, hier.Len())
-	hier.Each(func( hv eval.Value) {
+	hier.Each(func(hv eval.Value) {
 		hh := hv.(*types.HashValue)
 		name := hh.Get5(`name`, eval.EMPTY_STRING).String()
 		if uniqueNames[name] {
@@ -268,7 +268,7 @@ func createHierarchy(ic lookup.Invocation, hier *types.ArrayValue) []config.Hier
 	return entries
 }
 
-func (entry* entry) initialize(ic lookup.Invocation, name string, entryHash *types.HashValue) {
+func (entry *entry) initialize(ic lookup.Invocation, name string, entryHash *types.HashValue) {
 	entryHash.EachPair(func(k, v eval.Value) {
 		ks := k.String()
 		if ks == `options` {
@@ -308,7 +308,7 @@ func createHierarchyEntry(ic lookup.Invocation, name string, entryHash *types.Ha
 			case `paths`:
 				a := v.(*types.ArrayValue)
 				entry.locations = make([]lookup.Location, 0, a.Len())
-				a.Each(func(p eval.Value) { entry.locations = append(entry.locations, &path{original:p.String()}) })
+				a.Each(func(p eval.Value) { entry.locations = append(entry.locations, &path{original: p.String()}) })
 			case `glob`:
 				entry.locations = []lookup.Location{&glob{v.String()}}
 			case `globs`:
@@ -320,7 +320,7 @@ func createHierarchyEntry(ic lookup.Invocation, name string, entryHash *types.Ha
 			case `uris`:
 				a := v.(*types.ArrayValue)
 				entry.locations = make([]lookup.Location, 0, a.Len())
-				a.Each(func(p eval.Value) { entry.locations = append(entry.locations, &uri{original:p.String()}) })
+				a.Each(func(p eval.Value) { entry.locations = append(entry.locations, &uri{original: p.String()}) })
 			default: // Mapped paths
 				a := v.(*types.ArrayValue)
 				entry.locations = []lookup.Location{&mappedPaths{a.At(0).String(), a.At(1).String(), a.At(2).String()}}
@@ -331,9 +331,9 @@ func createHierarchyEntry(ic lookup.Invocation, name string, entryHash *types.Ha
 }
 
 type resolvedConfig struct {
-	config *hieraCfg
-	variablesUsed map[string]eval.Value
-	providers []lookup.DataProvider
+	config           *hieraCfg
+	variablesUsed    map[string]eval.Value
+	providers        []lookup.DataProvider
 	defaultProviders []lookup.DataProvider
 }
 

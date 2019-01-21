@@ -15,4 +15,3 @@ type Location interface {
 	Exist() bool
 	Resolve(ic Invocation, dataDir string) []Location
 }
-

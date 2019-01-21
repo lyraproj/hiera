@@ -1,20 +1,20 @@
 package impl
 
 import (
-	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/puppet-evaluator/types"
 	"github.com/lyraproj/hiera/lookup"
 	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/puppet-evaluator/types"
 	"regexp"
 	"strings"
 )
 
 var iplPattern = regexp.MustCompile(`%{[^}]*}`)
-var emptyInterpolations = map[string]bool {
-	``: true,
-	`::`: true,
-	`""`: true,
-	"''": true,
+var emptyInterpolations = map[string]bool{
+	``:     true,
+	`::`:   true,
+	`""`:   true,
+	"''":   true,
 	`"::"`: true,
 	"'::'": true,
 }
@@ -26,7 +26,7 @@ func Interpolate(ic lookup.Invocation, value eval.Value, allowMethods bool) eval
 }
 
 func doInterpolate(ic lookup.Invocation, value eval.Value, allowMethods bool) (eval.Value, bool) {
-	if s, ok := value.(*types.StringValue); ok {
+	if s, ok := value.(eval.StringValue); ok {
 		return interpolateString(ic, s.String(), allowMethods)
 	}
 	if a, ok := value.(*types.ArrayValue); ok {
@@ -101,8 +101,8 @@ func interpolateString(ic lookup.Invocation, str string, allowMethods bool) (res
 		result = types.WrapString(str)
 		return
 	}
-	str = iplPattern.ReplaceAllStringFunc(str, func (match string) string {
-		expr := strings.TrimSpace(match[2:len(match)-1])
+	str = iplPattern.ReplaceAllStringFunc(str, func(match string) string {
+		expr := strings.TrimSpace(match[2 : len(match)-1])
 		if emptyInterpolations[expr] {
 			return ``
 		}

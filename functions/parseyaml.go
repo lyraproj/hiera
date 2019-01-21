@@ -1,9 +1,9 @@
 package functions
 
 import (
+	"github.com/lyraproj/hiera/impl"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/types"
-	"github.com/lyraproj/hiera/impl"
 )
 
 func init() {
@@ -11,7 +11,7 @@ func init() {
 		func(d eval.Dispatch) {
 			d.Param(`String`)
 			d.Function(func(c eval.Context, args []eval.Value) eval.Value {
-				return impl.UnmarshalYaml(c, []byte(args[0].(*types.StringValue).String()))
+				return impl.UnmarshalYaml(c, []byte(args[0].String()))
 			})
 		},
 

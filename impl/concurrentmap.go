@@ -58,7 +58,7 @@ func (c *ConcurrentMap) valueMutexWait(key string) (interface{}, bool) {
 // it calls the producer and assigns the returned value. The produced value is then returned.
 //
 // The producer does not execute within a mutex.
-func (c *ConcurrentMap) EnsureSet(key string, producer func() (interface{}, bool))  (value interface{}, ok bool) {
+func (c *ConcurrentMap) EnsureSet(key string, producer func() (interface{}, bool)) (value interface{}, ok bool) {
 	// Take the write lock
 	c.lock.Lock()
 
@@ -121,4 +121,3 @@ func (c *ConcurrentMap) Set(key string, value interface{}) {
 	c.values[key] = value
 	c.lock.Unlock()
 }
-
