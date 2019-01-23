@@ -8,6 +8,7 @@ import (
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/types"
 	"github.com/lyraproj/puppet-evaluator/utils"
+	"github.com/lyraproj/puppet-evaluator/yaml"
 	"path/filepath"
 
 	// Ensure that pcore is initialized
@@ -185,7 +186,7 @@ func NewConfig(ic lookup.Invocation, configPath string) config.Config {
 			panic(eval.Error(eval.EVAL_FAILURE, issue.H{`message`: `Unable to load Hiera::Config data type`}))
 		}
 		cfgType := v.(eval.Type)
-		yv := UnmarshalYaml(ic, b.Bytes())
+		yv := yaml.Unmarshal(ic, b.Bytes())
 		return createConfig(ic, configPath, eval.AssertInstance(func() string {
 			return fmt.Sprintf(`The Lookup Configuration at '%s'`, configPath)
 		}, cfgType, yv).(*types.HashValue))

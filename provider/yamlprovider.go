@@ -6,6 +6,7 @@ import (
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/puppet-evaluator/eval"
 	"github.com/lyraproj/puppet-evaluator/types"
+	"github.com/lyraproj/puppet-evaluator/yaml"
 )
 
 var YamlDataKey = `yaml::data`
@@ -20,7 +21,7 @@ func Yaml(c lookup.ProviderContext, key string, options map[string]eval.Value) (
 		if v, ok := options[`path`]; ok {
 			path := v.String()
 			if bin, ok := types.BinaryFromFile2(c.Invocation(), path); ok {
-				data = impl.UnmarshalYaml(c.Invocation(), bin.Bytes())
+				data = yaml.Unmarshal(c.Invocation(), bin.Bytes())
 				if _, ok := data.(eval.OrderedMap); !ok {
 					panic(eval.Error(impl.HIERA_YAML_NOT_HASH, issue.H{`path`: path}))
 				}
