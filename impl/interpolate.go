@@ -3,8 +3,8 @@ package impl
 import (
 	"github.com/lyraproj/hiera/lookup"
 	"github.com/lyraproj/issue/issue"
-	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/puppet-evaluator/types"
+	"github.com/lyraproj/pcore/px"
+	"github.com/lyraproj/pcore/types"
 	"regexp"
 	"strings"
 )
@@ -20,17 +20,17 @@ var emptyInterpolations = map[string]bool{
 }
 
 // Interpolate resolves interpolations in the given value and returns the result
-func Interpolate(ic lookup.Invocation, value eval.Value, allowMethods bool) eval.Value {
+func Interpolate(ic lookup.Invocation, value px.Value, allowMethods bool) px.Value {
 	result, _ := doInterpolate(ic, value, allowMethods)
 	return result
 }
 
-func doInterpolate(ic lookup.Invocation, value eval.Value, allowMethods bool) (eval.Value, bool) {
-	if s, ok := value.(eval.StringValue); ok {
+func doInterpolate(ic lookup.Invocation, value px.Value, allowMethods bool) (px.Value, bool) {
+	if s, ok := value.(px.StringValue); ok {
 		return interpolateString(ic, s.String(), allowMethods)
 	}
-	if a, ok := value.(*types.ArrayValue); ok {
-		cp := a.AppendTo(make([]eval.Value, 0, a.Len()))
+	if a, ok := value.(*types.Array); ok {
+		cp := a.AppendTo(make([]px.Value, 0, a.Len()))
 		changed := false
 		for i, e := range cp {
 			v, c := doInterpolate(ic, e, allowMethods)
@@ -44,7 +44,7 @@ func doInterpolate(ic lookup.Invocation, value eval.Value, allowMethods bool) (e
 		}
 		return a, changed
 	}
-	if h, ok := value.(*types.HashValue); ok {
+	if h, ok := value.(*types.Hash); ok {
 		cp := h.AppendEntriesTo(make([]*types.HashEntry, 0, h.Len()))
 		changed := false
 		for i, e := range cp {
@@ -73,7 +73,7 @@ var methodMatch = regexp.MustCompile(`^(\w+)\((?:["]([^"]+)["]|[']([^']+)['])\)$
 func getMethodAndData(expr string, allowMethods bool) (int, string) {
 	if groups := methodMatch.FindStringSubmatch(expr); groups != nil {
 		if !allowMethods {
-			panic(eval.Error(HIERA_INTERPOLATION_METHOD_SYNTAX_NOT_ALLOWED, issue.NO_ARGS))
+			panic(px.Error(HIERA_INTERPOLATION_METHOD_SYNTAX_NOT_ALLOWED, issue.NO_ARGS))
 		}
 		data := groups[2]
 		if data == `` {
@@ -89,13 +89,13 @@ func getMethodAndData(expr string, allowMethods bool) (int, string) {
 		case `scope`:
 			return scopeMethod, data
 		default:
-			panic(eval.Error(HIERA_INTERPOLATION_UNKNOWN_INTERPOLATION_METHOD, issue.H{`name`: groups[1]}))
+			panic(px.Error(HIERA_INTERPOLATION_UNKNOWN_INTERPOLATION_METHOD, issue.H{`name`: groups[1]}))
 		}
 	}
 	return scopeMethod, expr
 }
 
-func interpolateString(ic lookup.Invocation, str string, allowMethods bool) (result eval.Value, changed bool) {
+func interpolateString(ic lookup.Invocation, str string, allowMethods bool) (result px.Value, changed bool) {
 	changed = false
 	if strings.Index(str, `%{`) < 0 {
 		result = types.WrapString(str)
@@ -109,7 +109,7 @@ func interpolateString(ic lookup.Invocation, str string, allowMethods bool) (res
 		var methodKey int
 		methodKey, expr = getMethodAndData(expr, allowMethods)
 		if methodKey == aliasMethod && match != str {
-			panic(eval.Error(HIERA_INTERPOLATION_ALIAS_NOT_ENTIRE_STRING, issue.NO_ARGS))
+			panic(px.Error(HIERA_INTERPOLATION_ALIAS_NOT_ENTIRE_STRING, issue.NO_ARGS))
 		}
 
 		switch methodKey {
@@ -117,7 +117,7 @@ func interpolateString(ic lookup.Invocation, str string, allowMethods bool) (res
 			return expr
 		case scopeMethod:
 			key := NewKey(expr)
-			if val, ok := ic.Scope().Get(key.Root()); ok {
+			if val, ok := ic.Scope().Get(types.WrapString(key.Root())); ok {
 				val, _ = doInterpolate(ic, val, allowMethods)
 				if val, ok = key.Dig(val); ok {
 					return val.String()
@@ -125,7 +125,7 @@ func interpolateString(ic lookup.Invocation, str string, allowMethods bool) (res
 			}
 			return ``
 		default:
-			val := lookup.Lookup(ic, expr, eval.UNDEF, nil)
+			val := lookup.Lookup(ic, expr, px.Undef, nil)
 			if methodKey == aliasMethod {
 				result = val
 				return ``
@@ -141,13 +141,13 @@ func interpolateString(ic lookup.Invocation, str string, allowMethods bool) (res
 
 }
 
-func resolveInScope(ic lookup.Invocation, expr string, allowMethods bool) eval.Value {
+func resolveInScope(ic lookup.Invocation, expr string, allowMethods bool) px.Value {
 	key := NewKey(expr)
-	if val, ok := ic.Scope().Get(key.Root()); ok {
+	if val, ok := ic.Scope().Get(types.WrapString(key.Root())); ok {
 		val, _ = doInterpolate(ic, val, allowMethods)
 		if val, ok = key.Dig(val); ok {
 			return val
 		}
 	}
-	return eval.UNDEF
+	return px.Undef
 }

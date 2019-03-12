@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"github.com/lyraproj/hiera/lookup"
 	"github.com/lyraproj/issue/issue"
-	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/puppet-evaluator/types"
+	"github.com/lyraproj/pcore/px"
+	"github.com/lyraproj/pcore/types"
 	"strconv"
 )
 
@@ -19,11 +19,11 @@ func NewKey(str string) lookup.Key {
 	return &key{str, parseUnquoted(b, str, str, []interface{}{})}
 }
 
-func (k *key) Dig(v eval.Value) (eval.Value, bool) {
+func (k *key) Dig(v px.Value) (px.Value, bool) {
 	for i := 1; i < len(k.parts); i++ {
 		p := k.parts[i]
 		if ix, ok := p.(int); ok {
-			if iv, ok := v.(*types.ArrayValue); ok {
+			if iv, ok := v.(*types.Array); ok {
 				if ix >= 0 && ix < iv.Len() {
 					v = iv.At(ix)
 					continue
@@ -32,14 +32,14 @@ func (k *key) Dig(v eval.Value) (eval.Value, bool) {
 			}
 		} else {
 			kx := p.(string)
-			if kv, ok := v.(*types.HashValue); ok {
+			if kv, ok := v.(*types.Hash); ok {
 				if v, ok = kv.Get4(kx); ok {
 					continue
 				}
 				return nil, false
 			}
 		}
-		panic(eval.Error(HIERA_DIG_MISMATCH, issue.H{`type`: eval.GenericValueType(v), `segment`: p, `key`: k.orig}))
+		panic(px.Error(HIERA_DIG_MISMATCH, issue.H{`type`: px.GenericValueType(v), `segment`: p, `key`: k.orig}))
 	}
 	return v, true
 }
@@ -60,12 +60,12 @@ func parseUnquoted(b *bytes.Buffer, key, part string, parts []interface{}) []int
 	mungePart := func(ix int, part string) interface{} {
 		if i, err := strconv.ParseInt(part, 10, 32); err == nil {
 			if ix == 0 {
-				panic(eval.Error(HIERA_FIRST_KEY_SEGMENT_INT, issue.H{`key`: key}))
+				panic(px.Error(HIERA_FIRST_KEY_SEGMENT_INT, issue.H{`key`: key}))
 			}
 			return int(i)
 		}
 		if part == `` {
-			panic(eval.Error(HIERA_EMPTY_KEY_SEGMENT, issue.H{`key`: key}))
+			panic(px.Error(HIERA_EMPTY_KEY_SEGMENT, issue.H{`key`: key}))
 		}
 		return part
 	}
@@ -94,5 +94,5 @@ func parseQuoted(b *bytes.Buffer, q rune, key, part string, parts []interface{})
 		}
 		b.WriteRune(c)
 	}
-	panic(eval.Error(HIERA_UNTERMINATED_QUOTE, issue.H{`key`: key}))
+	panic(px.Error(HIERA_UNTERMINATED_QUOTE, issue.H{`key`: key}))
 }

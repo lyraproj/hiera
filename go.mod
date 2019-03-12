@@ -3,7 +3,7 @@ module github.com/lyraproj/hiera
 require (
 	github.com/bmatcuk/doublestar v1.1.1
 	github.com/gobwas/glob v0.2.3
-	github.com/lyraproj/issue v0.0.0-20190122215520-5efbea1d1edb
-	github.com/lyraproj/puppet-evaluator v0.0.0-20190123101558-8fe6588e638e
+	github.com/lyraproj/issue v0.0.0-20190213110846-64f0e861a560
+	github.com/lyraproj/pcore v0.0.0-20190312090417-c3ed62d0aa05
 	gopkg.in/yaml.v2 v2.2.2
 )

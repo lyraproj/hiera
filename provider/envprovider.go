@@ -2,8 +2,8 @@ package provider
 
 import (
 	"github.com/lyraproj/hiera/lookup"
-	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/puppet-evaluator/types"
+	"github.com/lyraproj/pcore/px"
+	"github.com/lyraproj/pcore/types"
 	"os"
 	"strings"
 )
@@ -12,7 +12,7 @@ import (
 // "env" in which case all current environment variables will be returned as an OrderedMap, or
 // prefixed with "env::" in which case the rest of the key is interpreted as the environment variable
 // to look for.
-func Environment(c lookup.ProviderContext, key string, _ map[string]eval.Value) (eval.Value, bool) {
+func Environment(c lookup.ProviderContext, key string, _ map[string]px.Value) (px.Value, bool) {
 	if key == `env` {
 		env := os.Environ()
 		em := make([]*types.HashEntry, len(env))

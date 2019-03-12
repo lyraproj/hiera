@@ -1,8 +1,8 @@
 package lookup
 
-import "github.com/lyraproj/puppet-evaluator/eval"
+import "github.com/lyraproj/pcore/px"
 
 type DataProvider interface {
-	UncheckedLookup(key Key, invocation Invocation, merge MergeStrategy) (eval.Value, bool)
+	UncheckedLookup(key Key, invocation Invocation, merge MergeStrategy) (px.Value, bool)
 	FullName() string
 }
