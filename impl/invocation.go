@@ -4,8 +4,8 @@ import (
 	"github.com/lyraproj/hiera/config"
 	"github.com/lyraproj/hiera/lookup"
 	"github.com/lyraproj/issue/issue"
-	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/puppet-evaluator/utils"
+	"github.com/lyraproj/pcore/px"
+	"github.com/lyraproj/pcore/utils"
 )
 
 const HieraCacheKey = `Hiera::Cache`
@@ -15,21 +15,22 @@ const HieraTopProviderCacheKey = `Hiera::TopProvider::Cache`
 const HieraConfigsKey = `Hiera::Config::`
 
 type invocation struct {
-	eval.Context
+	px.Context
 	nameStack []string
+	scope px.Keyed
 }
 
 // InitContext initializes the given context with the Hiera cache. The context initialized
 // with this method determines the life-cycle of that cache.
-func InitContext(c eval.Context, topProvider lookup.LookupKey, options map[string]eval.Value) {
+func InitContext(c px.Context, topProvider lookup.LookupKey, options map[string]px.Value) {
 	c.Set(HieraCacheKey, NewConcurrentMap(37))
 	c.Set(HieraTopProviderKey, topProvider)
-	c.Set(HieraTopProviderCacheKey, make(map[string]eval.Value, 23))
+	c.Set(HieraTopProviderCacheKey, make(map[string]px.Value, 23))
 	c.Set(HieraGlobalOptionsKey, options)
 }
 
-func NewInvocation(c eval.Context) lookup.Invocation {
-	return &invocation{Context: c, nameStack: []string{}}
+func NewInvocation(c px.Context, scope px.Keyed) lookup.Invocation {
+	return &invocation{Context: c, nameStack: []string{}, scope: scope}
 }
 
 func (ic *invocation) topProvider() lookup.LookupKey {
@@ -39,27 +40,27 @@ func (ic *invocation) topProvider() lookup.LookupKey {
 			return tp
 		}
 	}
-	panic(eval.Error(HIERA_NOT_INITIALIZED, issue.NO_ARGS))
+	panic(px.Error(HIERA_NOT_INITIALIZED, issue.NO_ARGS))
 }
 
-func (ic *invocation) topProviderCache() map[string]eval.Value {
+func (ic *invocation) topProviderCache() map[string]px.Value {
 	if v, ok := ic.Get(HieraTopProviderCacheKey); ok {
-		var tc map[string]eval.Value
-		if tc, ok = v.(map[string]eval.Value); ok {
+		var tc map[string]px.Value
+		if tc, ok = v.(map[string]px.Value); ok {
 			return tc
 		}
 	}
-	panic(eval.Error(HIERA_NOT_INITIALIZED, issue.NO_ARGS))
+	panic(px.Error(HIERA_NOT_INITIALIZED, issue.NO_ARGS))
 }
 
-func (ic *invocation) globalOptions() map[string]eval.Value {
+func (ic *invocation) globalOptions() map[string]px.Value {
 	if v, ok := ic.Get(HieraGlobalOptionsKey); ok {
-		var g map[string]eval.Value
-		if g, ok = v.(map[string]eval.Value); ok {
+		var g map[string]px.Value
+		if g, ok = v.(map[string]px.Value); ok {
 			return g
 		}
 	}
-	panic(eval.Error(HIERA_NOT_INITIALIZED, issue.NO_ARGS))
+	panic(px.Error(HIERA_NOT_INITIALIZED, issue.NO_ARGS))
 }
 
 func (ic *invocation) sharedCache() *ConcurrentMap {
@@ -69,7 +70,7 @@ func (ic *invocation) sharedCache() *ConcurrentMap {
 			return sh
 		}
 	}
-	panic(eval.Error(HIERA_NOT_INITIALIZED, issue.NO_ARGS))
+	panic(px.Error(HIERA_NOT_INITIALIZED, issue.NO_ARGS))
 }
 
 func (ic *invocation) Config(configPath string) config.ResolvedConfig {
@@ -79,7 +80,7 @@ func (ic *invocation) Config(configPath string) config.ResolvedConfig {
 	return val.(config.ResolvedConfig)
 }
 
-func (ic *invocation) lookupViaCache(key lookup.Key, options map[string]eval.Value) (eval.Value, bool) {
+func (ic *invocation) lookupViaCache(key lookup.Key, options map[string]px.Value) (px.Value, bool) {
 	rootKey := key.Root()
 
 	val, ok := ic.sharedCache().EnsureSet(rootKey, func() (interface{}, bool) {
@@ -87,7 +88,7 @@ func (ic *invocation) lookupViaCache(key lookup.Key, options map[string]eval.Val
 		if len(options) == 0 {
 			options = globalOptions
 		} else if len(globalOptions) > 0 {
-			no := make(map[string]eval.Value, len(options)+len(globalOptions))
+			no := make(map[string]px.Value, len(options)+len(globalOptions))
 			for k, v := range globalOptions {
 				no[k] = v
 			}
@@ -102,14 +103,14 @@ func (ic *invocation) lookupViaCache(key lookup.Key, options map[string]eval.Val
 		return nil, false
 	})
 	if ok {
-		return key.Dig(val.(eval.Value))
+		return key.Dig(val.(px.Value))
 	}
 	return nil, false
 }
 
-func (ic *invocation) Check(key lookup.Key, actor lookup.Producer) (eval.Value, bool) {
+func (ic *invocation) Check(key lookup.Key, actor lookup.Producer) (px.Value, bool) {
 	if utils.ContainsString(ic.nameStack, key.String()) {
-		panic(eval.Error(HIERA_ENDLESS_RECURSION, issue.H{`name_stack`: ic.nameStack}))
+		panic(px.Error(HIERA_ENDLESS_RECURSION, issue.H{`name_stack`: ic.nameStack}))
 	}
 	ic.nameStack = append(ic.nameStack, key.String())
 	defer func() {
@@ -118,18 +119,29 @@ func (ic *invocation) Check(key lookup.Key, actor lookup.Producer) (eval.Value, 
 	return actor()
 }
 
-func (ic *invocation) WithDataProvider(dh lookup.DataProvider, actor lookup.Producer) (eval.Value, bool) {
+func (ic *invocation) DoWithScope(scope px.Keyed, doer px.Doer) {
+	sc := ic.scope
+	ic.scope = scope
+	doer()
+	ic.scope = sc
+}
+
+func (ic *invocation) Scope() px.Keyed {
+	return ic.scope
+}
+
+func (ic *invocation) WithDataProvider(dh lookup.DataProvider, actor lookup.Producer) (px.Value, bool) {
 	return actor()
 }
 
-func (ic *invocation) WithLocation(loc lookup.Location, actor lookup.Producer) (eval.Value, bool) {
+func (ic *invocation) WithLocation(loc lookup.Location, actor lookup.Producer) (px.Value, bool) {
 	return actor()
 }
 
 func (ic *invocation) ReportLocationNotFound() {
 }
 
-func (ic *invocation) ReportFound(key string, value eval.Value) {
+func (ic *invocation) ReportFound(key string, value px.Value) {
 }
 
 func (ic *invocation) ReportNotFound(key string) {

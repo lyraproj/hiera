@@ -3,14 +3,14 @@ package lookup
 import (
 	"context"
 	"fmt"
-	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/puppet-evaluator/types"
+	"github.com/lyraproj/pcore/px"
+	"github.com/lyraproj/pcore/types"
 )
 
 // A Context provides a local cache and utility functions to a provider function
 type ProviderContext interface {
-	eval.PuppetObject
-	eval.CallableObject
+	px.PuppetObject
+	px.CallableObject
 
 	// NotFound should be called by a function to indicate that a specified key
 	// was not found. This is different from returning an UNDEF since UNDEF is
@@ -26,31 +26,34 @@ type ProviderContext interface {
 	Explain(messageProducer func() string)
 
 	// Cache adds the given key - value association to the cache
-	Cache(key string, value eval.Value) eval.Value
+	Cache(key string, value px.Value) px.Value
 
 	// CacheAll adds all key - value associations in the given hash to the cache
-	CacheAll(hash eval.OrderedMap)
+	CacheAll(hash px.OrderedMap)
 
 	// CachedEntry returns the value for the given key together with
 	// a boolean to indicate if the value was found or not
-	CachedValue(key string) (eval.Value, bool)
+	CachedValue(key string) (px.Value, bool)
 
 	// CachedEntries calls the consumer with each entry in the cache
-	CachedEntries(consumer eval.BiConsumer)
+	CachedEntries(consumer px.BiConsumer)
 
 	// Interpolate resolves interpolations in the given value and returns the result
-	Interpolate(value eval.Value) eval.Value
+	Interpolate(value px.Value) px.Value
 
 	// Invocation returns the active invocation.
 	Invocation() Invocation
 }
 
-type Producer func() (eval.Value, bool)
+type Producer func() (px.Value, bool)
 
 // An Invocation keeps track of one specific lookup invocation implements a guard against
 // endless recursion
 type Invocation interface {
-	eval.Context
+	px.Context
+
+	DoWithScope(scope px.Keyed, doer px.Doer)
+
 	// NotFound should be called by a function to indicate that a specified key
 	// was not found. This is different from returning an UNDEF since UNDEF is
 	// a valid value for a key.
@@ -64,11 +67,11 @@ type Invocation interface {
 	// support is enabled
 	Explain(messageProducer func() string)
 
-	Check(key Key, value Producer) (eval.Value, bool)
-	WithDataProvider(dh DataProvider, value Producer) (eval.Value, bool)
-	WithLocation(loc Location, value Producer) (eval.Value, bool)
+	Check(key Key, value Producer) (px.Value, bool)
+	WithDataProvider(dh DataProvider, value Producer) (px.Value, bool)
+	WithLocation(loc Location, value Producer) (px.Value, bool)
 	ReportLocationNotFound()
-	ReportFound(key string, value eval.Value)
+	ReportFound(key string, value px.Value)
 	ReportNotFound(key string)
 }
 
@@ -76,35 +79,35 @@ type Invocation interface {
 // parts of a key will be strings or integers
 type Key interface {
 	fmt.Stringer
-	Dig(eval.Value) (eval.Value, bool)
+	Dig(px.Value) (px.Value, bool)
 	Parts() []interface{}
 	Root() string
 }
 
 type NotFound struct{}
 
-type DataDig func(ic ProviderContext, key Key, options map[string]eval.Value) (eval.Value, bool)
+type DataDig func(ic ProviderContext, key Key, options map[string]px.Value) (px.Value, bool)
 
-type DataHash func(ic ProviderContext, options map[string]eval.Value) eval.OrderedMap
+type DataHash func(ic ProviderContext, options map[string]px.Value) px.OrderedMap
 
-type LookupKey func(ic ProviderContext, key string, options map[string]eval.Value) (eval.Value, bool)
+type LookupKey func(ic ProviderContext, key string, options map[string]px.Value) (px.Value, bool)
 
-// TryWithParent is like eval.TryWithParent but enables lookup
-var TryWithParent func(parent context.Context, tp LookupKey, options map[string]eval.Value, consumer func(eval.Context) error) error
+// TryWithParent is like px.TryWithParent but enables lookup
+var TryWithParent func(parent context.Context, tp LookupKey, options map[string]px.Value, consumer func(px.Context) error) error
 
-// DoWithParent is like eval.DoWithParent but enables lookup
-var DoWithParent func(parent context.Context, tp LookupKey, options map[string]eval.Value, consumer func(eval.Context))
+// DoWithParent is like px.DoWithParent but enables lookup
+var DoWithParent func(parent context.Context, tp LookupKey, options map[string]px.Value, consumer func(px.Context))
 
-func Lookup(ic Invocation, name string, dflt eval.Value, options map[string]eval.Value) eval.Value {
-	return Lookup2(ic, []string{name}, types.DefaultAnyType(), dflt, eval.EMPTY_MAP, eval.EMPTY_MAP, options, nil)
+func Lookup(ic Invocation, name string, dflt px.Value, options map[string]px.Value) px.Value {
+	return Lookup2(ic, []string{name}, types.DefaultAnyType(), dflt, px.EmptyMap, px.EmptyMap, options, nil)
 }
 
 var Lookup2 func(
 	ic Invocation,
 	names []string,
-	valueType eval.Type,
-	defaultValue eval.Value,
-	override eval.OrderedMap,
-	defaultValuesHash eval.OrderedMap,
-	options map[string]eval.Value,
-	block eval.Lambda) eval.Value
+	valueType px.Type,
+	defaultValue px.Value,
+	override px.OrderedMap,
+	defaultValuesHash px.OrderedMap,
+	options map[string]px.Value,
+	block px.Lambda) px.Value

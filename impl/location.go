@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"github.com/bmatcuk/doublestar"
 	"github.com/lyraproj/hiera/lookup"
-	"github.com/lyraproj/puppet-evaluator/eval"
-	"github.com/lyraproj/puppet-evaluator/impl"
-	"github.com/lyraproj/puppet-evaluator/types"
+	"github.com/lyraproj/pcore/px"
+	"github.com/lyraproj/pcore/types"
 	"os"
 	"path/filepath"
 )
@@ -112,12 +111,12 @@ func (m *mappedPaths) String() string {
 }
 
 func (m *mappedPaths) Resolve(ic lookup.Invocation, dataDir string) []lookup.Location {
-	var mappedVars *types.ArrayValue
+	var mappedVars *types.Array
 	v := resolveInScope(ic, m.sourceVar, false)
-	if sv, ok := v.(eval.StringValue); ok {
+	if sv, ok := v.(px.StringValue); ok {
 		mappedVars = types.SingletonArray(sv)
 	} else {
-		mva, ok := v.(*types.ArrayValue)
+		mva, ok := v.(*types.Array)
 		if !ok || mva.Len() == 0 {
 			return []lookup.Location{}
 		}
@@ -128,10 +127,11 @@ func (m *mappedPaths) Resolve(ic lookup.Invocation, dataDir string) []lookup.Loc
 
 	// Use a parented scope so that the tracking scope held by the context is shielded from the
 	// interpolations of the key introduced by this mapped path.
+	/*
 	ic.DoWithScope(impl.NewParentedScope(ic.Scope(), true), func() {
-		mappedVars.EachWithIndex(func(mv eval.Value, i int) {
+		mappedVars.EachWithIndex(func(mv px.Value, i int) {
 			scope := ic.Scope()
-			scope.WithLocalScope(func() eval.Value {
+			scope.WithLocalScope(func() px.Value {
 				scope.Set(m.key, mv)
 				r, _ := interpolateString(ic, m.template, false)
 				rp := filepath.Join(dataDir, r.String())
@@ -141,5 +141,6 @@ func (m *mappedPaths) Resolve(ic lookup.Invocation, dataDir string) []lookup.Loc
 			})
 		})
 	})
+	 */
 	return paths
 }

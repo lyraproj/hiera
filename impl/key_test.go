@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/lyraproj/hiera/impl"
-	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/pcore/pcore"
+	"github.com/lyraproj/pcore/px"
 )
 
 func ExampleNewKey_simple() {
@@ -62,7 +63,7 @@ func ExampleNewKey_doubleQuotedQuote() {
 }
 
 func ExampleNewKey_unterminatedQuoted() {
-	fmt.Println(eval.Puppet.TryWithParent(context.Background(), func(c eval.Context) error {
+	fmt.Println(pcore.TryWithParent(context.Background(), func(c px.Context) error {
 		impl.NewKey(`a.b."c`)
 		return nil
 	}))
@@ -70,7 +71,7 @@ func ExampleNewKey_unterminatedQuoted() {
 }
 
 func ExampleNewKey_empty() {
-	fmt.Println(eval.Puppet.TryWithParent(context.Background(), func(c eval.Context) error {
+	fmt.Println(pcore.TryWithParent(context.Background(), func(c px.Context) error {
 		impl.NewKey(``)
 		return nil
 	}))
@@ -78,7 +79,7 @@ func ExampleNewKey_empty() {
 }
 
 func ExampleNewKey_emptySegment() {
-	fmt.Println(eval.Puppet.TryWithParent(context.Background(), func(c eval.Context) error {
+	fmt.Println(pcore.TryWithParent(context.Background(), func(c px.Context) error {
 		impl.NewKey(`a..b`)
 		return nil
 	}))
@@ -86,7 +87,7 @@ func ExampleNewKey_emptySegment() {
 }
 
 func ExampleNewKey_emptySegmentStart() {
-	fmt.Println(eval.Puppet.TryWithParent(context.Background(), func(c eval.Context) error {
+	fmt.Println(pcore.TryWithParent(context.Background(), func(c px.Context) error {
 		impl.NewKey(`.b`)
 		return nil
 	}))
@@ -94,7 +95,7 @@ func ExampleNewKey_emptySegmentStart() {
 }
 
 func ExampleNewKey_emptySegmentEnd() {
-	fmt.Println(eval.Puppet.TryWithParent(context.Background(), func(c eval.Context) error {
+	fmt.Println(pcore.TryWithParent(context.Background(), func(c px.Context) error {
 		impl.NewKey(`a.`)
 		return nil
 	}))
@@ -102,7 +103,7 @@ func ExampleNewKey_emptySegmentEnd() {
 }
 
 func ExampleNewKey_firstSegmentIndex() {
-	fmt.Println(eval.Puppet.TryWithParent(context.Background(), func(c eval.Context) error {
+	fmt.Println(pcore.TryWithParent(context.Background(), func(c px.Context) error {
 		impl.NewKey(`1.a`)
 		return nil
 	}))

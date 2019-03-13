@@ -2,7 +2,7 @@ package config
 
 import (
 	"github.com/lyraproj/hiera/lookup"
-	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/pcore/px"
 )
 
 type LookupKind string
@@ -24,7 +24,7 @@ type Function interface {
 }
 
 type Entry interface {
-	Options() eval.OrderedMap
+	Options() px.OrderedMap
 	DataDir() string
 	Function() Function
 }
@@ -39,7 +39,7 @@ type HierarchyEntry interface {
 type Config interface {
 	Root() string
 	Path() string
-	LoadedConfig() eval.OrderedMap
+	LoadedConfig() px.OrderedMap
 	Defaults() Entry
 	Hierarchy() []HierarchyEntry
 	DefaultHierarchy() []HierarchyEntry
@@ -58,8 +58,8 @@ type ResolvedConfig interface {
 	// The slice will be empty if no such hierarchy has been defined.
 	DefaultHierarchy() []lookup.DataProvider
 
-	// ReResolve resolves the already resolved receiver using the eval.Scope currently
-	// held by the given eval.Context. The receiver will return itself when all variables
+	// ReResolve resolves the already resolved receiver using the px.Scope currently
+	// held by the given px.Context. The receiver will return itself when all variables
 	// in the given scope still contains the exact same values as the scope used when the
 	// receiver was created,
 	ReResolve(ic lookup.Invocation) ResolvedConfig

@@ -1,9 +1,9 @@
 package lookup
 
 import (
-	"github.com/lyraproj/puppet-evaluator/eval"
+	"github.com/lyraproj/pcore/px"
 )
 
 type MergeStrategy interface {
-	Lookup(locations []Location, invocation Invocation, value func(location Location) (eval.Value, bool)) (eval.Value, bool)
+	Lookup(locations []Location, invocation Invocation, value func(location Location) (px.Value, bool)) (px.Value, bool)
 }

@@ -68,7 +68,7 @@ func init() {
 	issue.Hard2(HIERA_NOT_ANY_NAME_FOUND, `lookup() did not find a value for any of the names [%{name_list}]`,
 		issue.HF{`name_list`: joinNames})
 
-	issue.Hard(HIERA_NOT_INITIALIZED, `Given eval.Context is not initialized with Hiera`)
+	issue.Hard(HIERA_NOT_INITIALIZED, `Given px.Context is not initialized with Hiera`)
 
 	issue.Hard(HIERA_OPTION_RESERVED_BY_PUPPET, `Option key '%{key}' used in hierarchy '%{name}' is reserved by Puppet`)
 
