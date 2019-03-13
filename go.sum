@@ -19,6 +19,8 @@ github.com/lyraproj/pcore v0.0.0-20190311223131-12c9f555a75d h1:fP2qWRLUlZQHHf6+
 github.com/lyraproj/pcore v0.0.0-20190311223131-12c9f555a75d/go.mod h1:hKQkpsnpeamSKHIhhrKdhNAAViuZNfKYC3x0Drmra2w=
 github.com/lyraproj/pcore v0.0.0-20190312090417-c3ed62d0aa05 h1:JNIo0lVg4D0H9A4F2dqHs7AfoRkBXqupEsCYeSp1kuQ=
 github.com/lyraproj/pcore v0.0.0-20190312090417-c3ed62d0aa05/go.mod h1:hKQkpsnpeamSKHIhhrKdhNAAViuZNfKYC3x0Drmra2w=
+github.com/lyraproj/pcore v0.0.0-20190313112821-30e7bb7af627 h1:BcQpv7SBmbdFgQUhESoRE+fTv5ZQ9MHaWSBIbdxuqXU=
+github.com/lyraproj/pcore v0.0.0-20190313112821-30e7bb7af627/go.mod h1:hKQkpsnpeamSKHIhhrKdhNAAViuZNfKYC3x0Drmra2w=
 github.com/lyraproj/puppet-parser v0.0.0-20181212205830-31c3104fe78d h1:iDn6XlJAiA+BuwG6L8xsCapPpc7jz24SGj9z7NQA1sg=
 github.com/lyraproj/puppet-parser v0.0.0-20181212205830-31c3104fe78d/go.mod h1:8va5g/XEw+jP9jnwEXPmanUy/hD9+6iggnaioihPLP0=
 github.com/lyraproj/semver v0.0.0-20181213164306-02ecea2cd6a2 h1:vb4PbiMtIXdhsOUinkkcqZiASDIZzXRhSG4yvNfE0tg=
