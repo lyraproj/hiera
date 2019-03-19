@@ -7,15 +7,15 @@ import (
 
 type LookupKind string
 
-const DATA_DIG = LookupKind(`data_dig`)
-const DATA_HASH = LookupKind(`data_hash`)
-const LOOKUP_KEY = LookupKind(`lookup_key`)
+const DataDig = LookupKind(`data_dig`)
+const DataHash = LookupKind(`data_hash`)
+const LookupKey = LookupKind(`lookup_key`)
 
-var FUNCTION_KEYS = []string{string(DATA_DIG), string(DATA_HASH), string(LOOKUP_KEY)}
+var FunctionKeys = []string{string(DataDig), string(DataHash), string(LookupKey)}
 
-var LOCATION_KEYS = []string{string(lookup.LC_PATH), `paths`, string(lookup.LC_GLOB), `globs`, string(lookup.LC_URI), `uris`, string(lookup.LC_MAPPED_PATHS)}
+var LocationKeys = []string{string(lookup.LcPath), `paths`, string(lookup.LcGlob), `globs`, string(lookup.LcUri), `uris`, string(lookup.LcMappedPaths)}
 
-var RESERVED_OPTION_KEYS = []string{string(lookup.LC_PATH), string(lookup.LC_URI)}
+var ReservedOptionKeys = []string{string(lookup.LcPath), string(lookup.LcUri)}
 
 type Function interface {
 	Kind() LookupKind

@@ -1,12 +1,13 @@
 package impl
 
 import (
+	"regexp"
+	"strings"
+
 	"github.com/lyraproj/hiera/lookup"
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
-	"regexp"
-	"strings"
 )
 
 var iplPattern = regexp.MustCompile(`%{[^}]*}`)
@@ -73,7 +74,7 @@ var methodMatch = regexp.MustCompile(`^(\w+)\((?:["]([^"]+)["]|[']([^']+)['])\)$
 func getMethodAndData(expr string, allowMethods bool) (int, string) {
 	if groups := methodMatch.FindStringSubmatch(expr); groups != nil {
 		if !allowMethods {
-			panic(px.Error(HIERA_INTERPOLATION_METHOD_SYNTAX_NOT_ALLOWED, issue.NoArgs))
+			panic(px.Error(HieraInterpolationMethodSyntaxNotAllowed, issue.NoArgs))
 		}
 		data := groups[2]
 		if data == `` {
@@ -89,7 +90,7 @@ func getMethodAndData(expr string, allowMethods bool) (int, string) {
 		case `scope`:
 			return scopeMethod, data
 		default:
-			panic(px.Error(HIERA_INTERPOLATION_UNKNOWN_INTERPOLATION_METHOD, issue.H{`name`: groups[1]}))
+			panic(px.Error(HieraInterpolationUnknownInterpolationMethod, issue.H{`name`: groups[1]}))
 		}
 	}
 	return scopeMethod, expr
@@ -97,7 +98,7 @@ func getMethodAndData(expr string, allowMethods bool) (int, string) {
 
 func interpolateString(ic lookup.Invocation, str string, allowMethods bool) (result px.Value, changed bool) {
 	changed = false
-	if strings.Index(str, `%{`) < 0 {
+	if !strings.Contains(str, `%{`) {
 		result = types.WrapString(str)
 		return
 	}
@@ -109,7 +110,7 @@ func interpolateString(ic lookup.Invocation, str string, allowMethods bool) (res
 		var methodKey int
 		methodKey, expr = getMethodAndData(expr, allowMethods)
 		if methodKey == aliasMethod && match != str {
-			panic(px.Error(HIERA_INTERPOLATION_ALIAS_NOT_ENTIRE_STRING, issue.NoArgs))
+			panic(px.Error(HieraInterpolationAliasNotEntireString, issue.NoArgs))
 		}
 
 		switch methodKey {

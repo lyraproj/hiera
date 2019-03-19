@@ -13,7 +13,7 @@ cannot handle legacy Hiera 3 backends.
 * [x] interpolation using alias function
 * [x] interpolation using literal function
 * [ ] configuration
-* [ ] layerered hierarchy
+* [ ] layered hierarchy
 * [ ] merge strategies
 * [ ] YAML configuration
 * [x] YAML data

@@ -2,11 +2,12 @@ package impl
 
 import (
 	"bytes"
+	"strconv"
+
 	"github.com/lyraproj/hiera/lookup"
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
-	"strconv"
 )
 
 type key struct {
@@ -39,7 +40,7 @@ func (k *key) Dig(v px.Value) (px.Value, bool) {
 				return nil, false
 			}
 		}
-		panic(px.Error(HIERA_DIG_MISMATCH, issue.H{`type`: px.GenericValueType(v), `segment`: p, `key`: k.orig}))
+		panic(px.Error(HieraDigMismatch, issue.H{`type`: px.GenericValueType(v), `segment`: p, `key`: k.orig}))
 	}
 	return v, true
 }
@@ -60,12 +61,12 @@ func parseUnquoted(b *bytes.Buffer, key, part string, parts []interface{}) []int
 	mungePart := func(ix int, part string) interface{} {
 		if i, err := strconv.ParseInt(part, 10, 32); err == nil {
 			if ix == 0 {
-				panic(px.Error(HIERA_FIRST_KEY_SEGMENT_INT, issue.H{`key`: key}))
+				panic(px.Error(HieraFirstKeySegmentInt, issue.H{`key`: key}))
 			}
 			return int(i)
 		}
 		if part == `` {
-			panic(px.Error(HIERA_EMPTY_KEY_SEGMENT, issue.H{`key`: key}))
+			panic(px.Error(HieraEmptyKeySegment, issue.H{`key`: key}))
 		}
 		return part
 	}
@@ -94,5 +95,5 @@ func parseQuoted(b *bytes.Buffer, q rune, key, part string, parts []interface{})
 		}
 		b.WriteRune(c)
 	}
-	panic(px.Error(HIERA_UNTERMINATED_QUOTE, issue.H{`key`: key}))
+	panic(px.Error(HieraUnterminatedQuote, issue.H{`key`: key}))
 }
