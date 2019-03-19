@@ -40,7 +40,7 @@ func (ic *invocation) topProvider() lookup.LookupKey {
 			return tp
 		}
 	}
-	panic(px.Error(HIERA_NOT_INITIALIZED, issue.NO_ARGS))
+	panic(px.Error(HIERA_NOT_INITIALIZED, issue.NoArgs))
 }
 
 func (ic *invocation) topProviderCache() map[string]px.Value {
@@ -50,7 +50,7 @@ func (ic *invocation) topProviderCache() map[string]px.Value {
 			return tc
 		}
 	}
-	panic(px.Error(HIERA_NOT_INITIALIZED, issue.NO_ARGS))
+	panic(px.Error(HIERA_NOT_INITIALIZED, issue.NoArgs))
 }
 
 func (ic *invocation) globalOptions() map[string]px.Value {
@@ -60,7 +60,7 @@ func (ic *invocation) globalOptions() map[string]px.Value {
 			return g
 		}
 	}
-	panic(px.Error(HIERA_NOT_INITIALIZED, issue.NO_ARGS))
+	panic(px.Error(HIERA_NOT_INITIALIZED, issue.NoArgs))
 }
 
 func (ic *invocation) sharedCache() *ConcurrentMap {
@@ -70,7 +70,7 @@ func (ic *invocation) sharedCache() *ConcurrentMap {
 			return sh
 		}
 	}
-	panic(px.Error(HIERA_NOT_INITIALIZED, issue.NO_ARGS))
+	panic(px.Error(HIERA_NOT_INITIALIZED, issue.NoArgs))
 }
 
 func (ic *invocation) Config(configPath string) config.ResolvedConfig {

@@ -73,7 +73,7 @@ var methodMatch = regexp.MustCompile(`^(\w+)\((?:["]([^"]+)["]|[']([^']+)['])\)$
 func getMethodAndData(expr string, allowMethods bool) (int, string) {
 	if groups := methodMatch.FindStringSubmatch(expr); groups != nil {
 		if !allowMethods {
-			panic(px.Error(HIERA_INTERPOLATION_METHOD_SYNTAX_NOT_ALLOWED, issue.NO_ARGS))
+			panic(px.Error(HIERA_INTERPOLATION_METHOD_SYNTAX_NOT_ALLOWED, issue.NoArgs))
 		}
 		data := groups[2]
 		if data == `` {
@@ -109,7 +109,7 @@ func interpolateString(ic lookup.Invocation, str string, allowMethods bool) (res
 		var methodKey int
 		methodKey, expr = getMethodAndData(expr, allowMethods)
 		if methodKey == aliasMethod && match != str {
-			panic(px.Error(HIERA_INTERPOLATION_ALIAS_NOT_ENTIRE_STRING, issue.NO_ARGS))
+			panic(px.Error(HIERA_INTERPOLATION_ALIAS_NOT_ENTIRE_STRING, issue.NoArgs))
 		}
 
 		switch methodKey {
