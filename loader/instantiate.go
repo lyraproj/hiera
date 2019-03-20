@@ -2,8 +2,8 @@ package loader
 
 import (
 	"github.com/lyraproj/issue/issue"
-	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/loader"
+	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
 	"gopkg.in/yaml.v2"
 )

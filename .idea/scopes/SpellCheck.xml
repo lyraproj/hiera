@@ -1,0 +1,3 @@
+<component name="DependencyValidationManager">
+  <scope name="SpellCheck" pattern="!file:go.mod&amp;&amp;!file:go.sum" />
+</component>

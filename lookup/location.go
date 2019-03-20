@@ -4,10 +4,10 @@ import "fmt"
 
 type LocationKind string
 
-const LC_PATH = LocationKind(`path`)
-const LC_URI = LocationKind(`uri`)
-const LC_GLOB = LocationKind(`glob`)
-const LC_MAPPED_PATHS = LocationKind(`mapped_paths`)
+const LcPath = LocationKind(`path`)
+const LcUri = LocationKind(`uri`)
+const LcGlob = LocationKind(`glob`)
+const LcMappedPaths = LocationKind(`mapped_paths`)
 
 type Location interface {
 	fmt.Stringer

@@ -2,6 +2,8 @@ package impl
 
 import (
 	"fmt"
+	"path/filepath"
+
 	"github.com/lyraproj/hiera/config"
 	"github.com/lyraproj/hiera/lookup"
 	"github.com/lyraproj/issue/issue"
@@ -10,7 +12,6 @@ import (
 	"github.com/lyraproj/pcore/types"
 	"github.com/lyraproj/pcore/utils"
 	"github.com/lyraproj/pcore/yaml"
-	"path/filepath"
 
 	// Ensure that pcore is initialized
 	_ "github.com/lyraproj/pcore/pcore"
@@ -66,9 +67,9 @@ func (e *hierEntry) Name() string {
 
 func (e *hierEntry) CreateProvider(ic lookup.Invocation) lookup.DataProvider {
 	switch e.function.Kind() {
-	case config.DATA_HASH:
+	case config.DataHash:
 		return newDataHashProvider(ic, e)
-	case config.DATA_DIG:
+	case config.DataDig:
 		return newDataDigProvider(ic, e)
 	default:
 		return newLookupKeyProvider(ic, e)
@@ -86,7 +87,7 @@ func (e *hierEntry) Resolve(ic lookup.Invocation, defaults config.Entry) config.
 	}
 
 	if e.function == nil {
-		panic(px.Error(HIERA_MISSING_DATA_PROVIDER_FUNCTION, issue.H{`keys`: config.FUNCTION_KEYS, `name`: e.name}))
+		panic(px.Error(HieraMissingDataProviderFunction, issue.H{`keys`: config.FunctionKeys, `name`: e.name}))
 	}
 
 	if e.dataDir == `` {
@@ -107,10 +108,10 @@ func (e *hierEntry) Resolve(ic lookup.Invocation, defaults config.Entry) config.
 
 	if e.locations != nil {
 		ne := make([]lookup.Location, 0, len(e.locations))
-		ce.locations = ne
 		for _, l := range e.locations {
 			ne = append(ne, l.Resolve(ic, ce.dataDir)...)
 		}
+		ce.locations = ne
 	}
 
 	return &ce
@@ -118,7 +119,7 @@ func (e *hierEntry) Resolve(ic lookup.Invocation, defaults config.Entry) config.
 
 var hieraTypeSet px.Type
 
-var DEFAULT_CONFIG config.Config
+var DefaultConfig config.Config
 
 func init() {
 	hieraTypeSet = px.NewNamedType(`Hiera`, `TypeSet{
@@ -157,11 +158,11 @@ func init() {
 		}
   }`)
 
-	DEFAULT_CONFIG = &hieraCfg{
+	DefaultConfig = &hieraCfg{
 		root:             ``,
 		path:             ``,
 		loadedHash:       nil,
-		defaults:         &entry{dataDir: `data`, function: &function{kind: config.DATA_HASH, name: `yaml_data`}},
+		defaults:         &entry{dataDir: `data`, function: &function{kind: config.DataHash, name: `yaml_data`}},
 		hierarchy:        []config.HierarchyEntry{&hierEntry{name: `Common`, locations: []lookup.Location{&path{original: `common.yaml`}}}},
 		defaultHierarchy: []config.HierarchyEntry{},
 	}
@@ -192,7 +193,7 @@ func NewConfig(ic lookup.Invocation, configPath string) config.Config {
 			return fmt.Sprintf(`The Lookup Configuration at '%s'`, configPath)
 		}, cfgType, yv).(*types.Hash))
 	}
-	return DEFAULT_CONFIG
+	return DefaultConfig
 }
 
 func (hc *hieraCfg) Resolve(ic lookup.Invocation) config.ResolvedConfig {
@@ -239,13 +240,13 @@ func createConfig(ic lookup.Invocation, path string, hash *types.Hash) config.Co
 	if dv, ok := hash.Get4(`defaults`); ok {
 		cfg.defaults = createDefaultsEntry(ic, dv.(*types.Hash))
 	} else {
-		cfg.defaults = DEFAULT_CONFIG.Defaults()
+		cfg.defaults = DefaultConfig.Defaults()
 	}
 
 	if hv, ok := hash.Get4(`hierarchy`); ok {
 		cfg.hierarchy = createHierarchy(ic, hv.(*types.Array))
 	} else {
-		cfg.hierarchy = DEFAULT_CONFIG.Hierarchy()
+		cfg.hierarchy = DefaultConfig.Hierarchy()
 	}
 
 	if hv, ok := hash.Get4(`default_hierarchy`); ok {
@@ -262,7 +263,7 @@ func createHierarchy(ic lookup.Invocation, hier *types.Array) []config.Hierarchy
 		hh := hv.(*types.Hash)
 		name := hh.Get5(`name`, px.EmptyString).String()
 		if uniqueNames[name] {
-			panic(px.Error(HIERA_HIERARCHY_NAME_MULTIPLY_DEFINED, issue.H{`name`: name}))
+			panic(px.Error(HieraHierarchyNameMultiplyDefined, issue.H{`name`: name}))
 		}
 		uniqueNames[name] = true
 		entries = append(entries, createHierarchyEntry(ic, name, hh))
@@ -270,21 +271,21 @@ func createHierarchy(ic lookup.Invocation, hier *types.Array) []config.Hierarchy
 	return entries
 }
 
-func (entry *entry) initialize(ic lookup.Invocation, name string, entryHash *types.Hash) {
+func (e *entry) initialize(ic lookup.Invocation, name string, entryHash *types.Hash) {
 	entryHash.EachPair(func(k, v px.Value) {
 		ks := k.String()
 		if ks == `options` {
-			entry.options = v.(*types.Hash)
-			entry.options.EachKey(func(optKey px.Value) {
-				if utils.ContainsString(config.RESERVED_OPTION_KEYS, optKey.String()) {
-					panic(px.Error(HIERA_OPTION_RESERVED_BY_PUPPET, issue.H{`key`: optKey.String(), `name`: name}))
+			e.options = v.(*types.Hash)
+			e.options.EachKey(func(optKey px.Value) {
+				if utils.ContainsString(config.ReservedOptionKeys, optKey.String()) {
+					panic(px.Error(HieraOptionReservedByPuppet, issue.H{`key`: optKey.String(), `name`: name}))
 				}
 			})
-		} else if utils.ContainsString(config.FUNCTION_KEYS, ks) {
-			if entry.function != nil {
-				panic(px.Error(HIERA_MULTIPLE_DATA_PROVIDER_FUNCTIONS, issue.H{`keys`: config.FUNCTION_KEYS, `name`: name}))
+		} else if utils.ContainsString(config.FunctionKeys, ks) {
+			if e.function != nil {
+				panic(px.Error(HieraMultipleDataProviderFunctions, issue.H{`keys`: config.FunctionKeys, `name`: name}))
 			}
-			entry.function = &function{config.LookupKind(ks), v.String()}
+			e.function = &function{config.LookupKind(ks), v.String()}
 		}
 	})
 }
@@ -300,9 +301,9 @@ func createHierarchyEntry(ic lookup.Invocation, name string, entryHash *types.Ha
 	entry.initialize(ic, name, entryHash)
 	entryHash.EachPair(func(k, v px.Value) {
 		ks := k.String()
-		if utils.ContainsString(config.LOCATION_KEYS, ks) {
+		if utils.ContainsString(config.LocationKeys, ks) {
 			if entry.locations != nil {
-				panic(px.Error(HIERA_MULTIPLE_LOCATION_SPECS, issue.H{`keys`: config.LOCATION_KEYS, `name`: name}))
+				panic(px.Error(HieraMultipleLocationSpecs, issue.H{`keys`: config.LocationKeys, `name`: name}))
 			}
 			switch ks {
 			case `path`:

@@ -2,29 +2,30 @@ package impl
 
 import (
 	"fmt"
-	"github.com/lyraproj/issue/issue"
 	"strings"
+
+	"github.com/lyraproj/issue/issue"
 )
 
 const (
-	HIERA_DIG_MISMATCH                               = `HIERA_DIG_MISMATCH`
-	HIERA_EMPTY_KEY_SEGMENT                          = `HIERA_EMPTY_KEY_SEGMENT`
-	HIERA_ENDLESS_RECURSION                          = `HIERA_ENDLESS_RECURSION`
-	HIERA_FIRST_KEY_SEGMENT_INT                      = `HIERA_FIRST_KEY_SEGMENT_INT`
-	HIERA_HIERARCHY_NAME_MULTIPLY_DEFINED            = `HIERA_HIERARCHY_NAME_MULTIPLY_DEFINED`
-	HIERA_INTERPOLATION_ALIAS_NOT_ENTIRE_STRING      = `HIERA_INTERPOLATION_ALIAS_NOT_ENTIRE_STRING`
-	HIERA_INTERPOLATION_METHOD_SYNTAX_NOT_ALLOWED    = `HIERA_INTERPOLATION_METHOD_SYNTAX_NOT_ALLOWED`
-	HIERA_INTERPOLATION_UNKNOWN_INTERPOLATION_METHOD = `HIERA_INTERPOLATION_UNKNOWN_INTERPOLATION_METHOD`
-	HIERA_MISSING_DATA_PROVIDER_FUNCTION             = `HIERA_MISSING_DATA_PROVIDER_FUNCTION`
-	HIERA_MISSING_REQUIRED_OPTION                    = `HIERA_MISSING_REQUIRED_OPTION`
-	HIERA_MULTIPLE_DATA_PROVIDER_FUNCTIONS           = `HIERA_MULTIPLE_DATA_PROVIDER_FUNCTIONS`
-	HIERA_MULTIPLE_LOCATION_SPECS                    = `HIERA_MULTIPLE_LOCATION_SPECS`
-	HIERA_NAME_NOT_FOUND                             = `HIERA_NAME_NOT_FOUND`
-	HIERA_NOT_ANY_NAME_FOUND                         = `HIERA_NOT_ANY_NAME_FOUND`
-	HIERA_NOT_INITIALIZED                            = `HIERA_NOT_INITIALIZED`
-	HIERA_OPTION_RESERVED_BY_PUPPET                  = `HIERA_OPTION_RESERVED_BY_PUPPET`
-	HIERA_UNTERMINATED_QUOTE                         = `HIERA_UNTERMINATED_QUOTE`
-	HIERA_YAML_NOT_HASH                              = `HIERA_YAML_NOT_HASH`
+	HieraDigMismatch                             = `HIERA_DIG_MISMATCH`
+	HieraEmptyKeySegment                         = `HIERA_EMPTY_KEY_SEGMENT`
+	HieraEndlessRecursion                        = `HIERA_ENDLESS_RECURSION`
+	HieraFirstKeySegmentInt                      = `HIERA_FIRST_KEY_SEGMENT_INT`
+	HieraHierarchyNameMultiplyDefined            = `HIERA_HIERARCHY_NAME_MULTIPLY_DEFINED`
+	HieraInterpolationAliasNotEntireString       = `HIERA_INTERPOLATION_ALIAS_NOT_ENTIRE_STRING`
+	HieraInterpolationMethodSyntaxNotAllowed     = `HIERA_INTERPOLATION_METHOD_SYNTAX_NOT_ALLOWED`
+	HieraInterpolationUnknownInterpolationMethod = `HIERA_INTERPOLATION_UNKNOWN_INTERPOLATION_METHOD`
+	HieraMissingDataProviderFunction             = `HIERA_MISSING_DATA_PROVIDER_FUNCTION`
+	HieraMissingRequiredOption                   = `HIERA_MISSING_REQUIRED_OPTION`
+	HieraMultipleDataProviderFunctions           = `HIERA_MULTIPLE_DATA_PROVIDER_FUNCTIONS`
+	HieraMultipleLocationSpecs                   = `HIERA_MULTIPLE_LOCATION_SPECS`
+	HieraNameNotFound                            = `HIERA_NAME_NOT_FOUND`
+	HieraNotAnyNameFound                         = `HIERA_NOT_ANY_NAME_FOUND`
+	HieraNotInitialized                          = `HIERA_NOT_INITIALIZED`
+	HieraOptionReservedByPuppet                  = `HIERA_OPTION_RESERVED_BY_PUPPET`
+	HieraUnterminatedQuote                       = `HIERA_UNTERMINATED_QUOTE`
+	HieraYamlNotHash                             = `HIERA_YAML_NOT_HASH`
 )
 
 func joinNames(v interface{}) string {
@@ -35,44 +36,44 @@ func joinNames(v interface{}) string {
 }
 
 func init() {
-	issue.Hard(HIERA_DIG_MISMATCH,
+	issue.Hard(HieraDigMismatch,
 		`lookup() Got %{type} when a hash-like object was expected to access value using '%{segment}' from key '%{key}'`)
 
-	issue.Hard(HIERA_EMPTY_KEY_SEGMENT, `lookup() key '%{key}' contains an empty segment`)
+	issue.Hard(HieraEmptyKeySegment, `lookup() key '%{key}' contains an empty segment`)
 
-	issue.Hard2(HIERA_ENDLESS_RECURSION, `Recursive lookup detected in [%{name_stack}]`, issue.HF{`name_stack`: joinNames})
+	issue.Hard2(HieraEndlessRecursion, `Recursive lookup detected in [%{name_stack}]`, issue.HF{`name_stack`: joinNames})
 
-	issue.Hard(HIERA_FIRST_KEY_SEGMENT_INT, `lookup() key '%{key}' first segment cannot be an index`)
+	issue.Hard(HieraFirstKeySegmentInt, `lookup() key '%{key}' first segment cannot be an index`)
 
-	issue.Hard(HIERA_HIERARCHY_NAME_MULTIPLY_DEFINED, `Hierarchy name '%{name}' defined more than once`)
+	issue.Hard(HieraHierarchyNameMultiplyDefined, `Hierarchy name '%{name}' defined more than once`)
 
-	issue.Hard(HIERA_INTERPOLATION_ALIAS_NOT_ENTIRE_STRING, `'alias' interpolation is only permitted if the expression is equal to the entire string`)
+	issue.Hard(HieraInterpolationAliasNotEntireString, `'alias' interpolation is only permitted if the expression is equal to the entire string`)
 
-	issue.Hard(HIERA_INTERPOLATION_METHOD_SYNTAX_NOT_ALLOWED, `Interpolation using method syntax is not allowed in this context`)
+	issue.Hard(HieraInterpolationMethodSyntaxNotAllowed, `Interpolation using method syntax is not allowed in this context`)
 
-	issue.Hard(HIERA_INTERPOLATION_UNKNOWN_INTERPOLATION_METHOD, `Unknown interpolation method '%{name}'`)
+	issue.Hard(HieraInterpolationUnknownInterpolationMethod, `Unknown interpolation method '%{name}'`)
 
-	issue.Hard2(HIERA_MISSING_DATA_PROVIDER_FUNCTION, `One of %{keys} must be defined in hierarchy '%{name}'`,
+	issue.Hard2(HieraMissingDataProviderFunction, `One of %{keys} must be defined in hierarchy '%{name}'`,
 		issue.HF{`keys`: joinNames})
 
-	issue.Hard(HIERA_MISSING_REQUIRED_OPTION, `Missing required provider option '%{option}'`)
+	issue.Hard(HieraMissingRequiredOption, `Missing required provider option '%{option}'`)
 
-	issue.Hard2(HIERA_MULTIPLE_DATA_PROVIDER_FUNCTIONS, `Only one of %{keys} can be defined in hierarchy '%{name}'`,
+	issue.Hard2(HieraMultipleDataProviderFunctions, `Only one of %{keys} can be defined in hierarchy '%{name}'`,
 		issue.HF{`keys`: joinNames})
 
-	issue.Hard2(HIERA_MULTIPLE_LOCATION_SPECS, `Only one of %{keys} can be defined in hierarchy '%{name}'`,
+	issue.Hard2(HieraMultipleLocationSpecs, `Only one of %{keys} can be defined in hierarchy '%{name}'`,
 		issue.HF{`keys`: joinNames})
 
-	issue.Hard(HIERA_NAME_NOT_FOUND, `lookup() did not find a value for the name '%{name}'`)
+	issue.Hard(HieraNameNotFound, `lookup() did not find a value for the name '%{name}'`)
 
-	issue.Hard2(HIERA_NOT_ANY_NAME_FOUND, `lookup() did not find a value for any of the names [%{name_list}]`,
+	issue.Hard2(HieraNotAnyNameFound, `lookup() did not find a value for any of the names [%{name_list}]`,
 		issue.HF{`name_list`: joinNames})
 
-	issue.Hard(HIERA_NOT_INITIALIZED, `Given px.Context is not initialized with Hiera`)
+	issue.Hard(HieraNotInitialized, `Given px.Context is not initialized with Hiera`)
 
-	issue.Hard(HIERA_OPTION_RESERVED_BY_PUPPET, `Option key '%{key}' used in hierarchy '%{name}' is reserved by Puppet`)
+	issue.Hard(HieraOptionReservedByPuppet, `Option key '%{key}' used in hierarchy '%{name}' is reserved by Puppet`)
 
-	issue.Hard(HIERA_UNTERMINATED_QUOTE, `Unterminated quote in key '%{key}'`)
+	issue.Hard(HieraUnterminatedQuote, `Unterminated quote in key '%{key}'`)
 
-	issue.Hard(HIERA_YAML_NOT_HASH, `File '%{path}' does not contain a YAML hash`)
+	issue.Hard(HieraYamlNotHash, `File '%{path}' does not contain a YAML hash`)
 }

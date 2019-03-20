@@ -1,4 +1,4 @@
-package impl_test
+package lookup_test
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"github.com/lyraproj/pcore/pcore"
 	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
+	"strings"
 
 	// Ensure initialization
 	_ "github.com/lyraproj/hiera/functions"
@@ -83,6 +84,14 @@ func ExampleLookup_interpolateEmpty() {
 	// startend
 }
 
+func printErr(e error) {
+	s := e.Error()
+	if ix := strings.Index(s, ` (file: `); ix > 0 {
+		s = s[0:ix]
+	}
+	fmt.Println(s)
+}
+
 func ExampleLookup_interpolateLiteral() {
 	lookup.DoWithParent(context.Background(), provider.Yaml, options, func(c px.Context) {
 		fmt.Println(lookup.Lookup(impl.NewInvocation(c, px.EmptyMap), `ipLiteral`, nil, options))
@@ -99,7 +108,7 @@ func ExampleLookup_interpolateAlias() {
 }
 
 func ExampleLookup_interpolateBadAlias() {
-	fmt.Println(lookup.TryWithParent(context.Background(), provider.Yaml, options, func(c px.Context) error {
+	printErr(lookup.TryWithParent(context.Background(), provider.Yaml, options, func(c px.Context) error {
 		lookup.Lookup(impl.NewInvocation(c, px.EmptyMap), `ipBadAlias`, nil, options)
 		return nil
 	}))
@@ -107,7 +116,7 @@ func ExampleLookup_interpolateBadAlias() {
 }
 
 func ExampleLookup_interpolateBadFunction() {
-	fmt.Println(lookup.TryWithParent(context.Background(), provider.Yaml, options, func(c px.Context) error {
+	printErr(lookup.TryWithParent(context.Background(), provider.Yaml, options, func(c px.Context) error {
 		lookup.Lookup(impl.NewInvocation(c, px.EmptyMap), `ipBad`, nil, options)
 		return nil
 	}))
@@ -115,7 +124,7 @@ func ExampleLookup_interpolateBadFunction() {
 }
 
 func ExampleLookup_notFoundWithoutDefault() {
-	fmt.Println(lookup.TryWithParent(context.Background(), provider.Yaml, options, func(c px.Context) error {
+	printErr(lookup.TryWithParent(context.Background(), provider.Yaml, options, func(c px.Context) error {
 		lookup.Lookup(impl.NewInvocation(c, px.EmptyMap), `nonexistent`, nil, options)
 		return nil
 	}))
@@ -144,7 +153,7 @@ func ExampleLookup_notFoundDottedMix() {
 }
 
 func ExampleLookup_badStringDig() {
-	fmt.Println(lookup.TryWithParent(context.Background(), provider.Yaml, options, func(c px.Context) error {
+	printErr(lookup.TryWithParent(context.Background(), provider.Yaml, options, func(c px.Context) error {
 		lookup.Lookup(impl.NewInvocation(c, px.EmptyMap), `hash.int.v`, nil, options)
 		return nil
 	}))
@@ -152,7 +161,7 @@ func ExampleLookup_badStringDig() {
 }
 
 func ExampleLookup_badIntDig() {
-	fmt.Println(lookup.TryWithParent(context.Background(), provider.Yaml, options, func(c px.Context) error {
+	printErr(lookup.TryWithParent(context.Background(), provider.Yaml, options, func(c px.Context) error {
 		lookup.Lookup(impl.NewInvocation(c, px.EmptyMap), `hash.3`, nil, options)
 		return nil
 	}))
@@ -174,7 +183,7 @@ func ExampleLookup2_findSecond() {
 }
 
 func ExampleLookup2_notFoundWithoutDflt() {
-	fmt.Println(lookup.TryWithParent(context.Background(), provider.Yaml, options, func(c px.Context) error {
+	printErr(lookup.TryWithParent(context.Background(), provider.Yaml, options, func(c px.Context) error {
 		lookup.Lookup2(impl.NewInvocation(c, px.EmptyMap), []string{`nonexisting`, `notthere`}, types.DefaultAnyType(), nil, nil, nil, options, nil)
 		return nil
 	}))
@@ -188,7 +197,7 @@ func ExampleLookup2_notFoundDflt() {
 	// Output: default value
 }
 
-func ExampleContextCachedValue() {
+func ExampleProviderContext_CachedValue() {
 
 	cachingProvider := func(ic lookup.ProviderContext, key string, options map[string]px.Value) (px.Value, bool) {
 		if v, ok := ic.CachedValue(key); ok {

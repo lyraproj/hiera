@@ -17,7 +17,7 @@ const HieraConfigsKey = `Hiera::Config::`
 type invocation struct {
 	px.Context
 	nameStack []string
-	scope px.Keyed
+	scope     px.Keyed
 }
 
 // InitContext initializes the given context with the Hiera cache. The context initialized
@@ -40,7 +40,7 @@ func (ic *invocation) topProvider() lookup.LookupKey {
 			return tp
 		}
 	}
-	panic(px.Error(HIERA_NOT_INITIALIZED, issue.NO_ARGS))
+	panic(px.Error(HieraNotInitialized, issue.NoArgs))
 }
 
 func (ic *invocation) topProviderCache() map[string]px.Value {
@@ -50,7 +50,7 @@ func (ic *invocation) topProviderCache() map[string]px.Value {
 			return tc
 		}
 	}
-	panic(px.Error(HIERA_NOT_INITIALIZED, issue.NO_ARGS))
+	panic(px.Error(HieraNotInitialized, issue.NoArgs))
 }
 
 func (ic *invocation) globalOptions() map[string]px.Value {
@@ -60,7 +60,7 @@ func (ic *invocation) globalOptions() map[string]px.Value {
 			return g
 		}
 	}
-	panic(px.Error(HIERA_NOT_INITIALIZED, issue.NO_ARGS))
+	panic(px.Error(HieraNotInitialized, issue.NoArgs))
 }
 
 func (ic *invocation) sharedCache() *ConcurrentMap {
@@ -70,7 +70,7 @@ func (ic *invocation) sharedCache() *ConcurrentMap {
 			return sh
 		}
 	}
-	panic(px.Error(HIERA_NOT_INITIALIZED, issue.NO_ARGS))
+	panic(px.Error(HieraNotInitialized, issue.NoArgs))
 }
 
 func (ic *invocation) Config(configPath string) config.ResolvedConfig {
@@ -110,7 +110,7 @@ func (ic *invocation) lookupViaCache(key lookup.Key, options map[string]px.Value
 
 func (ic *invocation) Check(key lookup.Key, actor lookup.Producer) (px.Value, bool) {
 	if utils.ContainsString(ic.nameStack, key.String()) {
-		panic(px.Error(HIERA_ENDLESS_RECURSION, issue.H{`name_stack`: ic.nameStack}))
+		panic(px.Error(HieraEndlessRecursion, issue.H{`name_stack`: ic.nameStack}))
 	}
 	ic.nameStack = append(ic.nameStack, key.String())
 	defer func() {

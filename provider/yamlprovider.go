@@ -23,7 +23,7 @@ func Yaml(c lookup.ProviderContext, key string, options map[string]px.Value) (px
 			if bin, ok := types.BinaryFromFile2(path); ok {
 				data = yaml.Unmarshal(c.Invocation(), bin.Bytes())
 				if _, ok := data.(px.OrderedMap); !ok {
-					panic(px.Error(impl.HIERA_YAML_NOT_HASH, issue.H{`path`: path}))
+					panic(px.Error(impl.HieraYamlNotHash, issue.H{`path`: path}))
 				}
 			} else {
 				// File not found. This is OK but yields an empty map
@@ -31,7 +31,7 @@ func Yaml(c lookup.ProviderContext, key string, options map[string]px.Value) (px
 			}
 			c.Cache(YamlDataKey, data)
 		} else {
-			panic(px.Error(impl.HIERA_MISSING_REQUIRED_OPTION, issue.H{`option`: `path`}))
+			panic(px.Error(impl.HieraMissingRequiredOption, issue.H{`option`: `path`}))
 		}
 	}
 	hash, _ := data.(px.OrderedMap)

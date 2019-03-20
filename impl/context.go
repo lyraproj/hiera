@@ -2,6 +2,7 @@ package impl
 
 import (
 	"context"
+
 	"github.com/lyraproj/hiera/lookup"
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/pcore/pcore"
@@ -68,9 +69,9 @@ func init() {
 		if defaultValue == nil {
 			// nil (as opposed to UNDEF) means that no default was provided.
 			if len(names) == 1 {
-				panic(px.Error(HIERA_NAME_NOT_FOUND, issue.H{`name`: names[0]}))
+				panic(px.Error(HieraNameNotFound, issue.H{`name`: names[0]}))
 			}
-			panic(px.Error(HIERA_NOT_ANY_NAME_FOUND, issue.H{`name_list`: names}))
+			panic(px.Error(HieraNotAnyNameFound, issue.H{`name_list`: names}))
 		}
 		return defaultValue
 	}

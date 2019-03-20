@@ -20,8 +20,8 @@ func NewConcurrentMap(capacity int) *ConcurrentMap {
 // map. If it does, the thread will deadlock.
 func (c *ConcurrentMap) AtomicReplace(key string, replacer func(oldValue interface{}) interface{}) interface{} {
 	c.lock.Lock()
-	oldValue, _ := c.valueMutexWait(key)
 	defer c.lock.Unlock()
+	oldValue, _ := c.valueMutexWait(key)
 
 	newValue := replacer(oldValue)
 	c.values[key] = newValue
@@ -45,8 +45,8 @@ func (c *ConcurrentMap) valueMutexWait(key string) (interface{}, bool) {
 				// The value is currently a lock. Wait until it's released
 				c.lock.Unlock()
 				l.RLock()
-				l.RUnlock()
 				c.lock.Lock()
+				l.RUnlock()
 				continue
 			}
 		}
@@ -97,11 +97,13 @@ func (c *ConcurrentMap) Get(key string) (value interface{}, ok bool) {
 	c.lock.RLock()
 	value, ok = c.values[key]
 	c.lock.RUnlock()
-	if l, ok := value.(*sync.RWMutex); ok {
-		// The value is currently a lock. Wait for the real value
-		l.RLock()
-		l.RUnlock()
-		return c.Get(key)
+	if ok {
+		if l, isMutex := value.(*sync.RWMutex); isMutex {
+			// The value is currently a lock. Wait for the real value
+			l.RLock()
+			value, ok = c.values[key]
+			l.RUnlock()
+		}
 	}
 	return
 }
@@ -114,8 +116,8 @@ func (c *ConcurrentMap) Set(key string, value interface{}) {
 			// The value is currently a lock. Wait until it's released
 			c.lock.Unlock()
 			l.RLock()
-			l.RUnlock()
 			c.lock.Lock()
+			l.RUnlock()
 		}
 	}
 	c.values[key] = value

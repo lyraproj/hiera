@@ -2,12 +2,13 @@ package impl
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/bmatcuk/doublestar"
 	"github.com/lyraproj/hiera/lookup"
 	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
-	"os"
-	"path/filepath"
 )
 
 type path struct {
@@ -21,7 +22,7 @@ func (p *path) Exist() bool {
 }
 
 func (p *path) Kind() lookup.LocationKind {
-	return lookup.LC_PATH
+	return lookup.LcPath
 }
 
 func (p *path) String() string {
@@ -44,7 +45,7 @@ func (g *glob) Exist() bool {
 }
 
 func (g *glob) Kind() lookup.LocationKind {
-	return lookup.LC_GLOB
+	return lookup.LcGlob
 }
 
 func (g *glob) String() string {
@@ -54,10 +55,7 @@ func (g *glob) String() string {
 func (g *glob) Resolve(ic lookup.Invocation, dataDir string) []lookup.Location {
 	r, _ := interpolateString(ic, g.pattern, false)
 	rp := filepath.Join(dataDir, r.String())
-	matches, err := doublestar.Glob(rp)
-	if err != nil {
-
-	}
+	matches, _ := doublestar.Glob(rp)
 	locs := make([]lookup.Location, len(matches))
 	for i, m := range matches {
 		locs[i] = &path{g.pattern, m, true}
@@ -75,7 +73,7 @@ func (u *uri) Exist() bool {
 }
 
 func (u *uri) Kind() lookup.LocationKind {
-	return lookup.LC_URI
+	return lookup.LcUri
 }
 
 func (u *uri) String() string {
@@ -103,7 +101,7 @@ func (m *mappedPaths) Exist() bool {
 }
 
 func (m *mappedPaths) Kind() lookup.LocationKind {
-	return lookup.LC_MAPPED_PATHS
+	return lookup.LcMappedPaths
 }
 
 func (m *mappedPaths) String() string {
@@ -128,19 +126,19 @@ func (m *mappedPaths) Resolve(ic lookup.Invocation, dataDir string) []lookup.Loc
 	// Use a parented scope so that the tracking scope held by the context is shielded from the
 	// interpolations of the key introduced by this mapped path.
 	/*
-	ic.DoWithScope(impl.NewParentedScope(ic.Scope(), true), func() {
-		mappedVars.EachWithIndex(func(mv px.Value, i int) {
-			scope := ic.Scope()
-			scope.WithLocalScope(func() px.Value {
-				scope.Set(m.key, mv)
-				r, _ := interpolateString(ic, m.template, false)
-				rp := filepath.Join(dataDir, r.String())
-				_, err := os.Stat(rp)
-				paths[i] = &path{m.template, rp, err == nil}
-				return nil
+		ic.DoWithScope(impl.NewParentedScope(ic.Scope(), true), func() {
+			mappedVars.EachWithIndex(func(mv px.Value, i int) {
+				scope := ic.Scope()
+				scope.WithLocalScope(func() px.Value {
+					scope.Set(m.key, mv)
+					r, _ := interpolateString(ic, m.template, false)
+					rp := filepath.Join(dataDir, r.String())
+					_, err := os.Stat(rp)
+					paths[i] = &path{m.template, rp, err == nil}
+					return nil
+				})
 			})
 		})
-	})
-	 */
+	*/
 	return paths
 }

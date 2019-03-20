@@ -6,6 +6,7 @@ import (
 	"github.com/lyraproj/hiera/impl"
 	"github.com/lyraproj/pcore/pcore"
 	"github.com/lyraproj/pcore/px"
+	"strings"
 )
 
 func ExampleNewKey_simple() {
@@ -62,8 +63,16 @@ func ExampleNewKey_doubleQuotedQuote() {
 	// Output: a.b."c'd'e", 3, c'd'e
 }
 
+func printErr(e error) {
+	s := e.Error()
+	if ix := strings.Index(s, ` (file: `); ix > 0 {
+		s = s[0:ix]
+	}
+	fmt.Println(s)
+}
+
 func ExampleNewKey_unterminatedQuoted() {
-	fmt.Println(pcore.TryWithParent(context.Background(), func(c px.Context) error {
+	printErr(pcore.TryWithParent(context.Background(), func(c px.Context) error {
 		impl.NewKey(`a.b."c`)
 		return nil
 	}))
@@ -71,7 +80,7 @@ func ExampleNewKey_unterminatedQuoted() {
 }
 
 func ExampleNewKey_empty() {
-	fmt.Println(pcore.TryWithParent(context.Background(), func(c px.Context) error {
+	printErr(pcore.TryWithParent(context.Background(), func(c px.Context) error {
 		impl.NewKey(``)
 		return nil
 	}))
@@ -79,7 +88,7 @@ func ExampleNewKey_empty() {
 }
 
 func ExampleNewKey_emptySegment() {
-	fmt.Println(pcore.TryWithParent(context.Background(), func(c px.Context) error {
+	printErr(pcore.TryWithParent(context.Background(), func(c px.Context) error {
 		impl.NewKey(`a..b`)
 		return nil
 	}))
@@ -87,7 +96,7 @@ func ExampleNewKey_emptySegment() {
 }
 
 func ExampleNewKey_emptySegmentStart() {
-	fmt.Println(pcore.TryWithParent(context.Background(), func(c px.Context) error {
+	printErr(pcore.TryWithParent(context.Background(), func(c px.Context) error {
 		impl.NewKey(`.b`)
 		return nil
 	}))
@@ -95,7 +104,7 @@ func ExampleNewKey_emptySegmentStart() {
 }
 
 func ExampleNewKey_emptySegmentEnd() {
-	fmt.Println(pcore.TryWithParent(context.Background(), func(c px.Context) error {
+	printErr(pcore.TryWithParent(context.Background(), func(c px.Context) error {
 		impl.NewKey(`a.`)
 		return nil
 	}))
@@ -103,7 +112,7 @@ func ExampleNewKey_emptySegmentEnd() {
 }
 
 func ExampleNewKey_firstSegmentIndex() {
-	fmt.Println(pcore.TryWithParent(context.Background(), func(c px.Context) error {
+	printErr(pcore.TryWithParent(context.Background(), func(c px.Context) error {
 		impl.NewKey(`1.a`)
 		return nil
 	}))
