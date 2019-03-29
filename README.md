@@ -1,7 +1,14 @@
 # Hiera lookup framework
 
-This module is a Go implementation of the Hiera 5 framework for Puppet. It will currently not accept Hiera 3 and it
-cannot handle legacy Hiera 3 backends.
+## Introduction
+
+Hiera is a flexible, powerful tool for resolving values for variable lookups, which was first popularised by its use in [Puppet](https://puppet.com/docs/puppet/5.5/hiera.html).
+
+This module is a "clean-room" Go implementation of the Hiera framework, suitable for use as a library from other tools.
+
+## Details
+
+Hiera uses the concept of "managing by exception": you design a *hierarchy* of data sources, with the most specific source at the top and  least-specific defaults at the bottom. Hiera searches for keys starting at the top, allowing more-specific sources to override defaults. Sources are usually YAML files stored on the filesystem, and layers usually use variable interpolation to find the right file, allowing the context of the lookup to pick the right file.
 
 ## Implementation status
 
