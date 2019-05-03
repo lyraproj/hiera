@@ -74,7 +74,7 @@ var methodMatch = regexp.MustCompile(`^(\w+)\((?:["]([^"]+)["]|[']([^']+)['])\)$
 func getMethodAndData(expr string, allowMethods bool) (int, string) {
 	if groups := methodMatch.FindStringSubmatch(expr); groups != nil {
 		if !allowMethods {
-			panic(px.Error(HieraInterpolationMethodSyntaxNotAllowed, issue.NoArgs))
+			panic(px.Error(InterpolationMethodSyntaxNotAllowed, issue.NoArgs))
 		}
 		data := groups[2]
 		if data == `` {
@@ -90,7 +90,7 @@ func getMethodAndData(expr string, allowMethods bool) (int, string) {
 		case `scope`:
 			return scopeMethod, data
 		default:
-			panic(px.Error(HieraInterpolationUnknownInterpolationMethod, issue.H{`name`: groups[1]}))
+			panic(px.Error(UnknownInterpolationMethod, issue.H{`name`: groups[1]}))
 		}
 	}
 	return scopeMethod, expr
@@ -110,7 +110,7 @@ func interpolateString(ic lookup.Invocation, str string, allowMethods bool) (res
 		var methodKey int
 		methodKey, expr = getMethodAndData(expr, allowMethods)
 		if methodKey == aliasMethod && match != str {
-			panic(px.Error(HieraInterpolationAliasNotEntireString, issue.NoArgs))
+			panic(px.Error(InterpolationAliasNotEntireString, issue.NoArgs))
 		}
 
 		switch methodKey {

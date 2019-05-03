@@ -3,6 +3,8 @@ package lookup_test
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/lyraproj/hiera/impl"
 	"github.com/lyraproj/hiera/lookup"
 	"github.com/lyraproj/hiera/provider"
@@ -10,10 +12,6 @@ import (
 	"github.com/lyraproj/pcore/pcore"
 	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
-	"strings"
-
-	// Ensure initialization
-	_ "github.com/lyraproj/hiera/functions"
 )
 
 var options map[string]px.Value
@@ -210,7 +208,7 @@ func ExampleProviderContext_CachedValue() {
 		return v, true
 	}
 
-	lookup.DoWithParent(context.Background(), cachingProvider, nil, func(c px.Context) {
+	lookup.DoWithParent(context.Background(), cachingProvider, map[string]px.Value{}, func(c px.Context) {
 		s := types.WrapStringToInterfaceMap(c, map[string]interface{}{
 			`a`: `scope 'a'`,
 			`b`: `scope 'b'`,
@@ -248,7 +246,7 @@ func ExampleLookup_mapProvider() {
 		return types.WrapString(v), ok
 	}
 
-	lookup.DoWithParent(context.Background(), tp, nil, func(c px.Context) {
+	lookup.DoWithParent(context.Background(), tp, map[string]px.Value{}, func(c px.Context) {
 		fmt.Println(lookup.Lookup(impl.NewInvocation(c, px.EmptyMap), `a`, nil, nil))
 		fmt.Println(lookup.Lookup(impl.NewInvocation(c, px.EmptyMap), `b`, nil, nil))
 	})

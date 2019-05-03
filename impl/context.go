@@ -51,9 +51,12 @@ func init() {
 				return ov
 			}
 			key := NewKey(name)
-			if v, ok := ic.Check(key, func() (px.Value, bool) {
-				return ic.(*invocation).lookupViaCache(key, options)
-			}); ok {
+			if v := ic.Check(key, func() px.Value {
+				if v, ok := ic.(*invocation).lookupViaCache(key, options); ok {
+					return v
+				}
+				return nil
+			}); v != nil {
 				return v
 			}
 		}
@@ -69,9 +72,9 @@ func init() {
 		if defaultValue == nil {
 			// nil (as opposed to UNDEF) means that no default was provided.
 			if len(names) == 1 {
-				panic(px.Error(HieraNameNotFound, issue.H{`name`: names[0]}))
+				panic(px.Error(NameNotFound, issue.H{`name`: names[0]}))
 			}
-			panic(px.Error(HieraNotAnyNameFound, issue.H{`name_list`: names}))
+			panic(px.Error(NotAnyNameFound, issue.H{`name_list`: names}))
 		}
 		return defaultValue
 	}

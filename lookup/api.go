@@ -3,9 +3,67 @@ package lookup
 import (
 	"context"
 	"fmt"
+
+	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
 )
+
+type LookupKind string
+
+const KindDataDig = LookupKind(`data_dig`)
+const KindDataHash = LookupKind(`data_hash`)
+const KindLookupKey = LookupKind(`lookup_key`)
+
+var FunctionKeys = []string{string(KindDataDig), string(KindDataHash), string(KindLookupKey)}
+
+var LocationKeys = []string{string(LcPath), `paths`, string(LcGlob), `globs`, string(LcUri), `uris`, string(LcMappedPaths)}
+
+var ReservedOptionKeys = []string{string(LcPath), string(LcUri)}
+
+type Function interface {
+	Kind() LookupKind
+	Name() string
+	Resolve(ic Invocation) (Function, bool)
+}
+
+type Entry interface {
+	Copy(Config) Entry
+	Options() px.OrderedMap
+	DataDir() string
+	Function() Function
+}
+
+type HierarchyEntry interface {
+	Entry
+	Name() string
+	Resolve(ic Invocation, defaults Entry) HierarchyEntry
+	CreateProvider() DataProvider
+	Locations() []Location
+}
+
+type Config interface {
+	Root() string
+	Path() string
+	LoadedConfig() px.OrderedMap
+	Defaults() Entry
+	Hierarchy() []HierarchyEntry
+	DefaultHierarchy() []HierarchyEntry
+
+	Resolve(ic Invocation) ResolvedConfig
+}
+
+type ResolvedConfig interface {
+	// Config returns the original Config that the receiver was created from
+	Config() Config
+
+	// Hierarchy returns the DataProvider slice
+	Hierarchy() []DataProvider
+
+	// DefaultHierarchy returns the DataProvider slice for the configured default_hierarchy.
+	// The slice will be empty if no such hierarchy has been defined.
+	DefaultHierarchy() []DataProvider
+}
 
 // A Context provides a local cache and utility functions to a provider function
 type ProviderContext interface {
@@ -45,12 +103,12 @@ type ProviderContext interface {
 	Invocation() Invocation
 }
 
-type Producer func() (px.Value, bool)
-
 // An Invocation keeps track of one specific lookup invocation implements a guard against
 // endless recursion
 type Invocation interface {
 	px.Context
+
+	Config() ResolvedConfig
 
 	DoWithScope(scope px.Keyed, doer px.Doer)
 
@@ -62,16 +120,19 @@ type Invocation interface {
 	// Lookup logic. There is no return from this method.
 	NotFound()
 
+	// Execute the given function 'f' in an explanation context named by 'n'
+	WithExplanationContext(n string, f func())
+
 	// Explain will add the message returned by the given function to the
 	// lookup explainer. The method will only get called when the explanation
 	// support is enabled
 	Explain(messageProducer func() string)
 
-	Check(key Key, value Producer) (px.Value, bool)
-	WithDataProvider(dh DataProvider, value Producer) (px.Value, bool)
-	WithLocation(loc Location, value Producer) (px.Value, bool)
+	Check(key Key, value px.Producer) px.Value
+	WithDataProvider(dh DataProvider, value px.Producer) px.Value
+	WithLocation(loc Location, value px.Producer) px.Value
 	ReportLocationNotFound()
-	ReportFound(key string, value px.Value)
+	ReportFound(value px.Value)
 	ReportNotFound(key string)
 }
 
@@ -84,7 +145,7 @@ type Key interface {
 	Root() string
 }
 
-type NotFound struct{}
+var NotFound issue.Reported
 
 type DataDig func(ic ProviderContext, key Key, options map[string]px.Value) (px.Value, bool)
 

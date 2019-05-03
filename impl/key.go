@@ -40,7 +40,7 @@ func (k *key) Dig(v px.Value) (px.Value, bool) {
 				return nil, false
 			}
 		}
-		panic(px.Error(HieraDigMismatch, issue.H{`type`: px.GenericValueType(v), `segment`: p, `key`: k.orig}))
+		panic(px.Error(DigMismatch, issue.H{`type`: px.GenericValueType(v), `segment`: p, `key`: k.orig}))
 	}
 	return v, true
 }
@@ -58,15 +58,15 @@ func (k *key) Root() string {
 }
 
 func parseUnquoted(b *bytes.Buffer, key, part string, parts []interface{}) []interface{} {
-	mungePart := func(ix int, part string) interface{} {
+	mungedPart := func(ix int, part string) interface{} {
 		if i, err := strconv.ParseInt(part, 10, 32); err == nil {
 			if ix == 0 {
-				panic(px.Error(HieraFirstKeySegmentInt, issue.H{`key`: key}))
+				panic(px.Error(FirstKeySegmentInt, issue.H{`key`: key}))
 			}
 			return int(i)
 		}
 		if part == `` {
-			panic(px.Error(HieraEmptyKeySegment, issue.H{`key`: key}))
+			panic(px.Error(EmptyKeySegment, issue.H{`key`: key}))
 		}
 		return part
 	}
@@ -76,13 +76,13 @@ func parseUnquoted(b *bytes.Buffer, key, part string, parts []interface{}) []int
 		case '\'', '"':
 			return parseQuoted(b, c, key, part[i+1:], parts)
 		case '.':
-			parts = append(parts, mungePart(len(parts), b.String()))
+			parts = append(parts, mungedPart(len(parts), b.String()))
 			b.Reset()
 		default:
 			b.WriteRune(c)
 		}
 	}
-	return append(parts, mungePart(len(parts), b.String()))
+	return append(parts, mungedPart(len(parts), b.String()))
 }
 
 func parseQuoted(b *bytes.Buffer, q rune, key, part string, parts []interface{}) []interface{} {
@@ -95,5 +95,5 @@ func parseQuoted(b *bytes.Buffer, q rune, key, part string, parts []interface{})
 		}
 		b.WriteRune(c)
 	}
-	panic(px.Error(HieraUnterminatedQuote, issue.H{`key`: key}))
+	panic(px.Error(UnterminatedQuote, issue.H{`key`: key}))
 }

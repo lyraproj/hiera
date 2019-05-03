@@ -14,4 +14,6 @@ type Location interface {
 	Kind() LocationKind
 	Exist() bool
 	Resolve(ic Invocation, dataDir string) []Location
+	Original() string
+	Resolved() string
 }

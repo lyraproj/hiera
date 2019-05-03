@@ -1,0 +1,10 @@
+version: 5
+hierarchy:
+  - name: Test 1
+    data_hash: yaml_data
+    data_dir: hiera_data
+    path: data.yaml
+  - name: Test 2
+    data_hash: yaml_data
+    data_dir: hiera_data
+    path: data2.yaml

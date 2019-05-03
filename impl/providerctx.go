@@ -1,16 +1,17 @@
 package impl
 
 import (
+	"io"
+
 	"github.com/lyraproj/hiera/lookup"
 	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
-	"io"
 )
 
 var ContextType px.ObjectType
 
 func init() {
-	ContextType = px.NewObjectType(`Puppet::LookupContext`, `{
+	ContextType = px.NewObjectType(`Hiera::Context`, `{
     attributes => {
       environment_name => {
         type => String[1],
@@ -47,7 +48,7 @@ func (c *providerCtx) Interpolate(value px.Value) px.Value {
 	return Interpolate(c.invocation, value, true)
 }
 
-func newContext(c lookup.Invocation, cache map[string]px.Value) lookup.ProviderContext {
+func newContext(c *invocation, cache map[string]px.Value) lookup.ProviderContext {
 	// TODO: Cache should be specific to a provider identity determined by the providers position in
 	//  the configured hierarchy
 	return &providerCtx{invocation: c, cache: cache}

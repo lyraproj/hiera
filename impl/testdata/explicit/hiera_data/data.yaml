@@ -1,0 +1,13 @@
+first: value of first
+
+hash:
+  one: 1
+  two: two
+  three:
+    a: A
+    c: C
+
+array:
+  - one
+  - two
+  - three

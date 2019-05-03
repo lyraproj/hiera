@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/lyraproj/hiera/config"
 	"github.com/lyraproj/hiera/lookup"
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/pcore/pcore"
@@ -18,11 +17,11 @@ import (
 )
 
 type function struct {
-	kind config.LookupKind
+	kind lookup.LookupKind
 	name string
 }
 
-func (f *function) Kind() config.LookupKind {
+func (f *function) Kind() lookup.LookupKind {
 	return f.kind
 }
 
@@ -30,7 +29,7 @@ func (f *function) Name() string {
 	return f.name
 }
 
-func (f *function) Resolve(ic lookup.Invocation) (config.Function, bool) {
+func (f *function) Resolve(ic lookup.Invocation) (lookup.Function, bool) {
 	if n, changed := interpolateString(ic, f.name, false); changed {
 		return &function{f.kind, n.String()}, true
 	}
@@ -38,9 +37,10 @@ func (f *function) Resolve(ic lookup.Invocation) (config.Function, bool) {
 }
 
 type entry struct {
+	cfg      *hieraCfg
 	dataDir  string
 	options  px.OrderedMap
-	function config.Function
+	function lookup.Function
 }
 
 func (e *entry) Options() px.OrderedMap {
@@ -51,8 +51,33 @@ func (e *entry) DataDir() string {
 	return e.dataDir
 }
 
-func (e *entry) Function() config.Function {
+func (e *entry) Function() lookup.Function {
 	return e.function
+}
+
+func (e *entry) initialize(ic lookup.Invocation, name string, entryHash *types.Hash) {
+	entryHash.EachPair(func(k, v px.Value) {
+		ks := k.String()
+		if ks == `options` {
+			e.options = v.(*types.Hash)
+			e.options.EachKey(func(optKey px.Value) {
+				if utils.ContainsString(lookup.ReservedOptionKeys, optKey.String()) {
+					panic(px.Error(OptionReservedByHiera, issue.H{`key`: optKey.String(), `name`: name}))
+				}
+			})
+		} else if utils.ContainsString(lookup.FunctionKeys, ks) {
+			if e.function != nil {
+				panic(px.Error(MultipleDataProviderFunctions, issue.H{`keys`: lookup.FunctionKeys, `name`: name}))
+			}
+			e.function = &function{lookup.LookupKind(ks), v.String()}
+		}
+	})
+}
+
+func (e *entry) Copy(cfg lookup.Config) lookup.Entry {
+	c := *e
+	c.cfg = cfg.(*hieraCfg)
+	return &c
 }
 
 type hierEntry struct {
@@ -61,55 +86,66 @@ type hierEntry struct {
 	locations []lookup.Location
 }
 
+func (e *hierEntry) Copy(cfg lookup.Config) lookup.Entry {
+	c := *e
+	c.cfg = cfg.(*hieraCfg)
+	return &c
+}
+
 func (e *hierEntry) Name() string {
 	return e.name
 }
 
-func (e *hierEntry) CreateProvider(ic lookup.Invocation) lookup.DataProvider {
+func (e *hierEntry) Locations() []lookup.Location {
+	return e.locations
+}
+
+func (e *hierEntry) CreateProvider() lookup.DataProvider {
 	switch e.function.Kind() {
-	case config.DataHash:
-		return newDataHashProvider(ic, e)
-	case config.DataDig:
-		return newDataDigProvider(ic, e)
+	case lookup.KindDataHash:
+		return newDataHashProvider(e)
+	case lookup.KindDataDig:
+		return newDataDigProvider(e)
 	default:
-		return newLookupKeyProvider(ic, e)
+		return newLookupKeyProvider(e)
 	}
 }
 
-func (e *hierEntry) Resolve(ic lookup.Invocation, defaults config.Entry) config.HierarchyEntry {
+func (e *hierEntry) Resolve(ic lookup.Invocation, defaults lookup.Entry) lookup.HierarchyEntry {
 	// Resolve interpolated strings and locations
 	ce := *e
 
-	if e.function == nil {
-		e.function = defaults.Function()
-	} else if f, fc := e.function.Resolve(ic); fc {
+	if ce.function == nil {
+		ce.function = defaults.Function()
+	} else if f, fc := ce.function.Resolve(ic); fc {
 		ce.function = f
 	}
 
-	if e.function == nil {
-		panic(px.Error(HieraMissingDataProviderFunction, issue.H{`keys`: config.FunctionKeys, `name`: e.name}))
+	if ce.function == nil {
+		panic(px.Error(MissingDataProviderFunction, issue.H{`keys`: lookup.FunctionKeys, `name`: e.name}))
 	}
 
-	if e.dataDir == `` {
+	if ce.dataDir == `` {
 		ce.dataDir = defaults.DataDir()
 	} else {
-		if d, dc := interpolateString(ic, e.dataDir, false); dc {
+		if d, dc := interpolateString(ic, ce.dataDir, false); dc {
 			ce.dataDir = d.String()
 		}
 	}
 
-	if e.options == nil {
-		e.options = defaults.Options()
-	} else if e.options.Len() > 0 {
-		if o, oc := doInterpolate(ic, e.options, false); oc {
+	if ce.options == nil {
+		ce.options = defaults.Options()
+	} else if ce.options.Len() > 0 {
+		if o, oc := doInterpolate(ic, ce.options, false); oc {
 			ce.options = o.(*types.Hash)
 		}
 	}
 
-	if e.locations != nil {
-		ne := make([]lookup.Location, 0, len(e.locations))
-		for _, l := range e.locations {
-			ne = append(ne, l.Resolve(ic, ce.dataDir)...)
+	dataRoot := filepath.Join(e.cfg.root, ce.dataDir)
+	if ce.locations != nil {
+		ne := make([]lookup.Location, 0, len(ce.locations))
+		for _, l := range ce.locations {
+			ne = append(ne, l.Resolve(ic, dataRoot)...)
 		}
 		ce.locations = ne
 	}
@@ -117,12 +153,8 @@ func (e *hierEntry) Resolve(ic lookup.Invocation, defaults config.Entry) config.
 	return &ce
 }
 
-var hieraTypeSet px.Type
-
-var DefaultConfig config.Config
-
 func init() {
-	hieraTypeSet = px.NewNamedType(`Hiera`, `TypeSet{
+	px.RegisterResolvableType(px.NewNamedType(`Hiera`, `TypeSet[{
 		pcore_version => '1.0.0',
 		version => '5.0.0',
 		types => {
@@ -156,56 +188,84 @@ func init() {
 				Optional[default_hierarchy] => Array[Entry]
 			}]
 		}
-  }`)
-
-	DefaultConfig = &hieraCfg{
-		root:             ``,
-		path:             ``,
-		loadedHash:       nil,
-		defaults:         &entry{dataDir: `data`, function: &function{kind: config.DataHash, name: `yaml_data`}},
-		hierarchy:        []config.HierarchyEntry{&hierEntry{name: `Common`, locations: []lookup.Location{&path{original: `common.yaml`}}}},
-		defaultHierarchy: []config.HierarchyEntry{},
-	}
-
+  }]`).(px.ResolvableType))
 	pcore.DefineSetting(`hiera_config`, types.DefaultStringType(), nil)
+
+	lookup.NotFound = px.Error(KeyNotFound, issue.NoArgs)
 }
 
 type hieraCfg struct {
 	root             string
 	path             string
 	loadedHash       px.OrderedMap
-	defaults         config.Entry
-	hierarchy        []config.HierarchyEntry
-	defaultHierarchy []config.HierarchyEntry
+	defaults         lookup.Entry
+	hierarchy        []lookup.HierarchyEntry
+	defaultHierarchy []lookup.HierarchyEntry
 }
 
-func NewConfig(ic lookup.Invocation, configPath string) config.Config {
-
-	// TODO: Cache parsed file content
-	if b, ok := types.BinaryFromFile2(configPath); ok {
-		v, ok := px.Load(ic, px.NewTypedName(px.NsType, `Hiera::Config`))
-		if !ok {
-			panic(px.Error(px.Failure, issue.H{`message`: `Unable to load Hiera::Config data type`}))
+func NewConfig(ic lookup.Invocation, configPath string) lookup.Config {
+	b, ok := types.BinaryFromFile2(configPath)
+	if !ok {
+		dc := &hieraCfg{
+			root:             filepath.Dir(configPath),
+			path:             ``,
+			loadedHash:       nil,
+			defaultHierarchy: []lookup.HierarchyEntry{},
 		}
-		cfgType := v.(px.Type)
-		yv := yaml.Unmarshal(ic, b.Bytes())
-		return createConfig(ic, configPath, px.AssertInstance(func() string {
-			return fmt.Sprintf(`The Lookup Configuration at '%s'`, configPath)
-		}, cfgType, yv).(*types.Hash))
+		dc.defaults = dc.makeDefaultConfig()
+		dc.hierarchy = dc.makeDefaultHierarchy()
+		return dc
 	}
-	return DefaultConfig
+
+	cfgType := ic.ParseType(`Hiera::Config`)
+	yv := yaml.Unmarshal(ic, b.Bytes())
+
+	return createConfig(ic, configPath, px.AssertInstance(func() string {
+		return fmt.Sprintf(`The Lookup Configuration at '%s'`, configPath)
+	}, cfgType, yv).(*types.Hash))
 }
 
-func (hc *hieraCfg) Resolve(ic lookup.Invocation) config.ResolvedConfig {
+func createConfig(ic lookup.Invocation, path string, hash *types.Hash) lookup.Config {
+	cfg := &hieraCfg{root: filepath.Dir(path), path: path}
+
+	if dv, ok := hash.Get4(`defaults`); ok {
+		cfg.defaults = cfg.createDefaultsEntry(ic, dv.(*types.Hash))
+	} else {
+		cfg.defaults = cfg.makeDefaultConfig()
+	}
+
+	if hv, ok := hash.Get4(`hierarchy`); ok {
+		cfg.hierarchy = cfg.createHierarchy(ic, hv.(*types.Array))
+	} else {
+		cfg.hierarchy = cfg.makeDefaultHierarchy()
+	}
+
+	if hv, ok := hash.Get4(`default_hierarchy`); ok {
+		cfg.defaultHierarchy = cfg.createHierarchy(ic, hv.(*types.Array))
+	}
+
+	return cfg
+}
+
+func (cfg *hieraCfg) makeDefaultConfig() *entry {
+	return &entry{cfg: cfg, dataDir: `data`, function: &function{kind: lookup.KindDataHash, name: `yaml_data`}}
+}
+
+func (cfg *hieraCfg) makeDefaultHierarchy() []lookup.HierarchyEntry {
+	return []lookup.HierarchyEntry{&hierEntry{entry: entry{cfg: cfg}, name: `Common`, locations: []lookup.Location{&path{original: `common.yaml`}}}}
+}
+
+func (hc *hieraCfg) Resolve(ic lookup.Invocation) lookup.ResolvedConfig {
 	r := &resolvedConfig{config: hc}
-	return r.ReResolve(ic)
+	r.Resolve(ic)
+	return r
 }
 
-func (hc *hieraCfg) Hierarchy() []config.HierarchyEntry {
+func (hc *hieraCfg) Hierarchy() []lookup.HierarchyEntry {
 	return hc.hierarchy
 }
 
-func (hc *hieraCfg) DefaultHierarchy() []config.HierarchyEntry {
+func (hc *hieraCfg) DefaultHierarchy() []lookup.HierarchyEntry {
 	return hc.defaultHierarchy
 }
 
@@ -221,89 +281,56 @@ func (hc *hieraCfg) LoadedConfig() px.OrderedMap {
 	return hc.loadedHash
 }
 
-func (hc *hieraCfg) Defaults() config.Entry {
+func (hc *hieraCfg) Defaults() lookup.Entry {
 	return hc.defaults
 }
 
-func (hc *hieraCfg) CreateProviders(ic lookup.Invocation, hierarchy []config.HierarchyEntry) []lookup.DataProvider {
+func (hc *hieraCfg) CreateProviders(ic lookup.Invocation, hierarchy []lookup.HierarchyEntry) []lookup.DataProvider {
 	providers := make([]lookup.DataProvider, len(hierarchy))
-	defaults := hc.defaults.(*hierEntry).Resolve(ic, nil)
+	var defaults lookup.Entry
+	if hdf, ok := hc.defaults.(*hierEntry); ok {
+		defaults = hdf.Resolve(ic, nil)
+	} else {
+		defaults = hc.defaults.Copy(hc)
+	}
 	for i, he := range hierarchy {
-		providers[i] = he.(*hierEntry).Resolve(ic, defaults).CreateProvider(ic)
+		providers[i] = he.(*hierEntry).Resolve(ic, defaults).CreateProvider()
 	}
 	return providers
 }
 
-func createConfig(ic lookup.Invocation, path string, hash *types.Hash) config.Config {
-	cfg := &hieraCfg{root: filepath.Dir(path), path: path}
-
-	if dv, ok := hash.Get4(`defaults`); ok {
-		cfg.defaults = createDefaultsEntry(ic, dv.(*types.Hash))
-	} else {
-		cfg.defaults = DefaultConfig.Defaults()
-	}
-
-	if hv, ok := hash.Get4(`hierarchy`); ok {
-		cfg.hierarchy = createHierarchy(ic, hv.(*types.Array))
-	} else {
-		cfg.hierarchy = DefaultConfig.Hierarchy()
-	}
-
-	if hv, ok := hash.Get4(`default_hierarchy`); ok {
-		cfg.defaultHierarchy = createHierarchy(ic, hv.(*types.Array))
-	}
-
-	return cfg
-}
-
-func createHierarchy(ic lookup.Invocation, hier *types.Array) []config.HierarchyEntry {
-	entries := make([]config.HierarchyEntry, 0, hier.Len())
+func (hc *hieraCfg) createHierarchy(ic lookup.Invocation, hier *types.Array) []lookup.HierarchyEntry {
+	entries := make([]lookup.HierarchyEntry, 0, hier.Len())
 	uniqueNames := make(map[string]bool, hier.Len())
 	hier.Each(func(hv px.Value) {
 		hh := hv.(*types.Hash)
 		name := hh.Get5(`name`, px.EmptyString).String()
 		if uniqueNames[name] {
-			panic(px.Error(HieraHierarchyNameMultiplyDefined, issue.H{`name`: name}))
+			panic(px.Error(HierarchyNameMultiplyDefined, issue.H{`name`: name}))
 		}
 		uniqueNames[name] = true
-		entries = append(entries, createHierarchyEntry(ic, name, hh))
+		entries = append(entries, hc.createHierarchyEntry(ic, name, hh))
 	})
 	return entries
 }
 
-func (e *entry) initialize(ic lookup.Invocation, name string, entryHash *types.Hash) {
-	entryHash.EachPair(func(k, v px.Value) {
-		ks := k.String()
-		if ks == `options` {
-			e.options = v.(*types.Hash)
-			e.options.EachKey(func(optKey px.Value) {
-				if utils.ContainsString(config.ReservedOptionKeys, optKey.String()) {
-					panic(px.Error(HieraOptionReservedByPuppet, issue.H{`key`: optKey.String(), `name`: name}))
-				}
-			})
-		} else if utils.ContainsString(config.FunctionKeys, ks) {
-			if e.function != nil {
-				panic(px.Error(HieraMultipleDataProviderFunctions, issue.H{`keys`: config.FunctionKeys, `name`: name}))
-			}
-			e.function = &function{config.LookupKind(ks), v.String()}
-		}
-	})
-}
-
-func createDefaultsEntry(ic lookup.Invocation, entryHash *types.Hash) config.Entry {
-	defaults := &entry{}
+func (hc *hieraCfg) createDefaultsEntry(ic lookup.Invocation, entryHash *types.Hash) lookup.Entry {
+	defaults := &entry{cfg: hc}
 	defaults.initialize(ic, `defaults`, entryHash)
 	return defaults
 }
 
-func createHierarchyEntry(ic lookup.Invocation, name string, entryHash *types.Hash) config.HierarchyEntry {
-	entry := &hierEntry{name: name}
+func (hc *hieraCfg) createHierarchyEntry(ic lookup.Invocation, name string, entryHash *types.Hash) lookup.HierarchyEntry {
+	entry := &hierEntry{entry: entry{cfg: hc}, name: name}
 	entry.initialize(ic, name, entryHash)
 	entryHash.EachPair(func(k, v px.Value) {
 		ks := k.String()
-		if utils.ContainsString(config.LocationKeys, ks) {
+		if ks == `data_dir` {
+			entry.dataDir = v.String()
+		}
+		if utils.ContainsString(lookup.LocationKeys, ks) {
 			if entry.locations != nil {
-				panic(px.Error(HieraMultipleLocationSpecs, issue.H{`keys`: config.LocationKeys, `name`: name}))
+				panic(px.Error(MultipleLocationSpecs, issue.H{`keys`: lookup.LocationKeys, `name`: name}))
 			}
 			switch ks {
 			case `path`:
@@ -335,36 +362,11 @@ func createHierarchyEntry(ic lookup.Invocation, name string, entryHash *types.Ha
 
 type resolvedConfig struct {
 	config           *hieraCfg
-	variablesUsed    map[string]px.Value
 	providers        []lookup.DataProvider
 	defaultProviders []lookup.DataProvider
 }
 
-func (r *resolvedConfig) ReResolve(ic lookup.Invocation) config.ResolvedConfig {
-	if r.variablesUsed == nil {
-		r.Resolve(ic)
-		return r
-	}
-
-	allEqual := true
-	scope := ic.Scope()
-	for k, v := range r.variablesUsed {
-		if sv, ok := scope.Get(types.WrapString(k)); ok && v.Equals(sv, nil) {
-			continue
-		}
-		allEqual = false
-		break
-	}
-	if allEqual {
-		return r
-	}
-
-	rr := &resolvedConfig{config: r.config}
-	rr.Resolve(ic)
-	return rr
-}
-
-func (r *resolvedConfig) Config() config.Config {
+func (r *resolvedConfig) Config() lookup.Config {
 	return r.config
 }
 
@@ -377,10 +379,6 @@ func (r *resolvedConfig) DefaultHierarchy() []lookup.DataProvider {
 }
 
 func (r *resolvedConfig) Resolve(ic lookup.Invocation) {
-	ts := NewTrackingScope(ic.Scope())
-	ic.DoWithScope(ts, func() {
-		r.providers = r.config.CreateProviders(ic, r.config.Hierarchy())
-		r.defaultProviders = r.config.CreateProviders(ic, r.config.DefaultHierarchy())
-	})
-	r.variablesUsed = ts.GetRead()
+	r.providers = r.config.CreateProviders(ic, r.config.Hierarchy())
+	r.defaultProviders = r.config.CreateProviders(ic, r.config.DefaultHierarchy())
 }

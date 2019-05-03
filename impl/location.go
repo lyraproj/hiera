@@ -36,6 +36,14 @@ func (p *path) Resolve(ic lookup.Invocation, dataDir string) []lookup.Location {
 	return []lookup.Location{&path{p.original, rp, err == nil}}
 }
 
+func (p *path) Original() string {
+	return p.original
+}
+
+func (p *path) Resolved() string {
+	return p.resolved
+}
+
 type glob struct {
 	pattern string
 }
@@ -52,6 +60,10 @@ func (g *glob) String() string {
 	return fmt.Sprintf("glob{pattern:%s}", g.pattern)
 }
 
+func (p *glob) Original() string {
+	return p.pattern
+}
+
 func (g *glob) Resolve(ic lookup.Invocation, dataDir string) []lookup.Location {
 	r, _ := interpolateString(ic, g.pattern, false)
 	rp := filepath.Join(dataDir, r.String())
@@ -61,6 +73,11 @@ func (g *glob) Resolve(ic lookup.Invocation, dataDir string) []lookup.Location {
 		locs[i] = &path{g.pattern, m, true}
 	}
 	return locs
+}
+
+func (p *glob) Resolved() string {
+	// This should never happen.
+	panic(fmt.Errorf(`resolved requested on a glob`))
 }
 
 type uri struct {
@@ -80,9 +97,17 @@ func (u *uri) String() string {
 	return fmt.Sprintf("uri{original:%s, resolved:%s", u.original, u.resolved)
 }
 
+func (p *uri) Original() string {
+	return p.original
+}
+
 func (u *uri) Resolve(ic lookup.Invocation, dataDir string) []lookup.Location {
 	r, _ := interpolateString(ic, u.original, false)
 	return []lookup.Location{&uri{u.original, r.String()}}
+}
+
+func (p *uri) Resolved() string {
+	return p.resolved
 }
 
 type mappedPaths struct {
@@ -102,6 +127,10 @@ func (m *mappedPaths) Exist() bool {
 
 func (m *mappedPaths) Kind() lookup.LocationKind {
 	return lookup.LcMappedPaths
+}
+
+func (m *mappedPaths) Original() string {
+	return m.String()
 }
 
 func (m *mappedPaths) String() string {
@@ -141,4 +170,9 @@ func (m *mappedPaths) Resolve(ic lookup.Invocation, dataDir string) []lookup.Loc
 		})
 	*/
 	return paths
+}
+
+func (m *mappedPaths) Resolved() string {
+	// This should never happen.
+	panic(fmt.Errorf(`resolved requested on mapped paths`))
 }

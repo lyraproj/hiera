@@ -1,7 +1,6 @@
-package functions
+package impl
 
 import (
-	"github.com/lyraproj/hiera/impl"
 	"github.com/lyraproj/hiera/lookup"
 	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
@@ -24,7 +23,7 @@ func mergeType(nameOrHash px.Value) (merge map[string]px.Value) {
 		merge = make(map[string]px.Value, hs.Len())
 		hs.EachPair(func(k, v px.Value) { merge[k.String()] = v })
 	} else if nameOrHash == px.Undef {
-		merge = impl.NoOptions
+		merge = NoOptions
 	} else {
 		merge = map[string]px.Value{`merge`: nameOrHash}
 	}
@@ -70,7 +69,7 @@ func init() {
 						options = mergeType(args[2])
 					}
 				}
-				return lookup.Lookup2(impl.NewInvocation(c, c.Scope()), luNames(args[0]), vtype, nil, nil, nil, options, nil)
+				return lookup.Lookup2(NewInvocation(c, c.Scope()), luNames(args[0]), vtype, nil, nil, nil, options, nil)
 			})
 		},
 
@@ -85,7 +84,7 @@ func init() {
 					vtype = arg.(px.Type)
 				}
 				options := mergeType(args[2])
-				return lookup.Lookup2(impl.NewInvocation(c, c.Scope()), luNames(args[0]), vtype, args[3], nil, nil, options, nil)
+				return lookup.Lookup2(NewInvocation(c, c.Scope()), luNames(args[0]), vtype, args[3], nil, nil, options, nil)
 			})
 		},
 
@@ -100,7 +99,7 @@ func init() {
 					vtype = arg.(px.Type)
 				}
 				options := mergeType(args[2])
-				return lookup.Lookup2(impl.NewInvocation(c, c.Scope()), luNames(args[0]), vtype, nil, nil, nil, options, block)
+				return lookup.Lookup2(NewInvocation(c, c.Scope()), luNames(args[0]), vtype, nil, nil, nil, options, block)
 			})
 		},
 
@@ -115,7 +114,7 @@ func init() {
 				override := hash.Get5(`override`, px.EmptyMap).(px.OrderedMap)
 				dfltHash := hash.Get5(`default_values_hash`, px.EmptyMap).(px.OrderedMap)
 				options := mergeType(hash.Get5(`merge`, px.Undef))
-				return lookup.Lookup2(impl.NewInvocation(c, c.Scope()), names, vtype, dflt, override, dfltHash, options, block)
+				return lookup.Lookup2(NewInvocation(c, c.Scope()), names, vtype, dflt, override, dfltHash, options, block)
 			})
 		},
 
@@ -131,7 +130,7 @@ func init() {
 				override := hash.Get5(`override`, px.EmptyMap).(px.OrderedMap)
 				dfltHash := hash.Get5(`default_values_hash`, px.EmptyMap).(px.OrderedMap)
 				options := mergeType(hash.Get5(`merge`, px.Undef))
-				return lookup.Lookup2(impl.NewInvocation(c, c.Scope()), names, vtype, dflt, override, dfltHash, options, block)
+				return lookup.Lookup2(NewInvocation(c, c.Scope()), names, vtype, dflt, override, dfltHash, options, block)
 			})
 		},
 	)
