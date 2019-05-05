@@ -247,12 +247,16 @@ func createConfig(ic lookup.Invocation, path string, hash *types.Hash) lookup.Co
 	return cfg
 }
 
-func (cfg *hieraCfg) makeDefaultConfig() *entry {
-	return &entry{cfg: cfg, dataDir: `data`, function: &function{kind: lookup.KindDataHash, name: `yaml_data`}}
+func (hc *hieraCfg) makeDefaultConfig() *entry {
+	return &entry{cfg: hc, dataDir: `data`, function: &function{kind: lookup.KindDataHash, name: `yaml_data`}}
 }
 
-func (cfg *hieraCfg) makeDefaultHierarchy() []lookup.HierarchyEntry {
-	return []lookup.HierarchyEntry{&hierEntry{entry: entry{cfg: cfg}, name: `Common`, locations: []lookup.Location{&path{original: `common.yaml`}}}}
+func (hc *hieraCfg) makeDefaultHierarchy() []lookup.HierarchyEntry {
+	return []lookup.HierarchyEntry{
+		// The lyra default behavior is to look for a <Hiera root>/data.yaml. Hiera root is the current directory.
+		&hierEntry{entry: entry{cfg: hc, dataDir: `.`}, name: `Root`, locations: []lookup.Location{&path{original: `data.yaml`}}},
+		// Hiera proper default behavior is to look for <Hiera root>/data/common.yaml
+		&hierEntry{entry: entry{cfg: hc}, name: `Common`, locations: []lookup.Location{&path{original: `common.yaml`}}}}
 }
 
 func (hc *hieraCfg) Resolve(ic lookup.Invocation) lookup.ResolvedConfig {

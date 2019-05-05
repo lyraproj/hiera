@@ -9,10 +9,6 @@ import (
 	"github.com/lyraproj/pcore/types"
 )
 
-func CheckedLookup(dp lookup.DataProvider, key lookup.Key, ic lookup.Invocation, merge lookup.MergeStrategy) px.Value {
-	return ic.Check(key, func() px.Value { return dp.UncheckedLookup(key, ic, merge) })
-}
-
 type DataHashProvider struct {
 	function     lookup.Function
 	locations    []lookup.Location
@@ -121,7 +117,7 @@ func (dh *DataHashProvider) dataHash(ic lookup.Invocation, location lookup.Locat
 	if hash, ok = dh.hashes[key]; ok {
 		return hash
 	}
-	hash = dh.providerFunction(ic)(&providerCtx{cache: map[string]px.Value{}, invocation: ic}, opts)
+	hash = dh.providerFunction(ic)(newProviderContext(ic, &sync.Map{}), opts)
 	dh.hashes[key] = hash
 	return
 }
@@ -137,14 +133,4 @@ func newDataHashProvider(he lookup.HierarchyEntry) lookup.DataProvider {
 		locations: ls,
 		hashes:    make(map[string]px.OrderedMap, len(ls)),
 	}
-}
-
-func newDataDigProvider(he lookup.HierarchyEntry) lookup.DataProvider {
-	// TODO
-	return nil
-}
-
-func newLookupKeyProvider(he lookup.HierarchyEntry) lookup.DataProvider {
-	// TODO
-	return nil
 }

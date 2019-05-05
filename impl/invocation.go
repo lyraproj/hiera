@@ -51,7 +51,7 @@ func InitContext(c px.Context, topProvider lookup.LookupKey, options map[string]
 		topProvider = ConfigLookup
 	}
 	c.Set(hieraTopProviderKey, topProvider)
-	c.Set(hieraTopProviderCacheKey, make(map[string]px.Value, 23))
+	c.Set(hieraTopProviderCacheKey, &sync.Map{})
 	c.Set(hieraGlobalOptionsKey, options)
 
 	_, ok := options[HieraConfig]
@@ -115,10 +115,10 @@ func (ic *invocation) topProvider() lookup.LookupKey {
 	panic(px.Error(NotInitialized, issue.NoArgs))
 }
 
-func (ic *invocation) topProviderCache() map[string]px.Value {
+func (ic *invocation) topProviderCache() *sync.Map {
 	if v, ok := ic.Get(hieraTopProviderCacheKey); ok {
-		var tc map[string]px.Value
-		if tc, ok = v.(map[string]px.Value); ok {
+		var tc *sync.Map
+		if tc, ok = v.(*sync.Map); ok {
 			return tc
 		}
 	}
@@ -195,7 +195,7 @@ func (ic *invocation) lookupViaCache(key lookup.Key, options map[string]px.Value
 		options = no
 	}
 	ic.key = key
-	if v, ok := ic.topProvider()(newContext(ic, ic.topProviderCache()), rootKey, options); ok {
+	if v, ok := ic.topProvider()(newProviderContext(ic, ic.topProviderCache()), rootKey, options); ok {
 		v := Interpolate(ic, v, true)
 		sc.Store(rootKey, v)
 		return key.Dig(v)
@@ -203,7 +203,7 @@ func (ic *invocation) lookupViaCache(key lookup.Key, options map[string]px.Value
 	return nil, false
 }
 
-func (ic *invocation) Check(key lookup.Key, actor px.Producer) px.Value {
+func (ic *invocation) CheckedLookup(key lookup.Key, actor px.Producer) px.Value {
 	if utils.ContainsString(ic.nameStack, key.String()) {
 		panic(px.Error(EndlessRecursion, issue.H{`name_stack`: ic.nameStack}))
 	}

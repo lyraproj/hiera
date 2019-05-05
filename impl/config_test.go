@@ -25,6 +25,16 @@ func TestConfigLookup_default(t *testing.T) {
 	})
 }
 
+func TestConfigLookup_lyra_default(t *testing.T) {
+	hclog.DefaultOptions.Level = hclog.Debug
+	wd, err := os.Getwd()
+	require.NoError(t, err)
+	options := map[string]px.Value{impl.HieraRoot: types.WrapString(filepath.Join(wd, `testdata`, `defaultlyraconfig`))}
+	lookup.DoWithParent(context.Background(), nil, options, func(c px.Context) {
+		require.Equal(t, `value of first`, lookup.Lookup(impl.NewInvocation(c, px.EmptyMap), `first`, nil, nil).String())
+	})
+}
+
 func TestConfigLookup_explicit(t *testing.T) {
 	testExplicit(t, `first`, `first`, `value of first`)
 }

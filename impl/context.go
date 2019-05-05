@@ -51,7 +51,7 @@ func init() {
 				return ov
 			}
 			key := NewKey(name)
-			if v := ic.Check(key, func() px.Value {
+			if v := ic.CheckedLookup(key, func() px.Value {
 				if v, ok := ic.(*invocation).lookupViaCache(key, options); ok {
 					return v
 				}

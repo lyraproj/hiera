@@ -2,6 +2,7 @@ package impl
 
 import (
 	"io"
+	"sync"
 
 	"github.com/lyraproj/hiera/lookup"
 	"github.com/lyraproj/pcore/px"
@@ -41,14 +42,14 @@ func init() {
 
 type providerCtx struct {
 	invocation lookup.Invocation
-	cache      map[string]px.Value
+	cache      *sync.Map
 }
 
 func (c *providerCtx) Interpolate(value px.Value) px.Value {
 	return Interpolate(c.invocation, value, true)
 }
 
-func newContext(c *invocation, cache map[string]px.Value) lookup.ProviderContext {
+func newProviderContext(c lookup.Invocation, cache *sync.Map) lookup.ProviderContext {
 	// TODO: Cache should be specific to a provider identity determined by the providers position in
 	//  the configured hierarchy
 	return &providerCtx{invocation: c, cache: cache}
@@ -116,29 +117,35 @@ func (c *providerCtx) Explain(messageProducer func() string) {
 }
 
 func (c *providerCtx) Cache(key string, value px.Value) px.Value {
-	old, ok := c.cache[key]
-	if !ok {
+	old, loaded := c.cache.LoadOrStore(key, value)
+	if loaded {
+		// Replace old value
+		c.cache.Store(key, value)
+	} else {
 		old = px.Undef
 	}
-	c.cache[key] = value
-	return old
+	return old.(px.Value)
 }
 
 func (c *providerCtx) CacheAll(hash px.OrderedMap) {
 	hash.EachPair(func(k, v px.Value) {
-		c.cache[k.String()] = v
+		c.cache.Store(k.String(), v)
 	})
 }
 
-func (c *providerCtx) CachedValue(key string) (v px.Value, ok bool) {
-	v, ok = c.cache[key]
-	return
+func (c *providerCtx) CachedValue(key string) (px.Value, bool) {
+	if v, ok := c.cache.Load(key); ok {
+		return v.(px.Value), true
+	}
+	return nil, false
 }
 
 func (c *providerCtx) CachedEntries(consumer px.BiConsumer) {
-	for k, v := range c.cache {
-		consumer(types.WrapString(k), v)
-	}
+	ic := c.invocation
+	c.cache.Range(func(k, v interface{}) bool {
+		consumer(px.Wrap(ic, k), px.Wrap(ic, v))
+		return true
+	})
 }
 
 func (c *providerCtx) Invocation() lookup.Invocation {

@@ -128,7 +128,7 @@ type Invocation interface {
 	// support is enabled
 	Explain(messageProducer func() string)
 
-	Check(key Key, value px.Producer) px.Value
+	CheckedLookup(key Key, value px.Producer) px.Value
 	WithDataProvider(dh DataProvider, value px.Producer) px.Value
 	WithLocation(loc Location, value px.Producer) px.Value
 	ReportLocationNotFound()
