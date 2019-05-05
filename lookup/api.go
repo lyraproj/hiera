@@ -63,6 +63,10 @@ type ResolvedConfig interface {
 	// DefaultHierarchy returns the DataProvider slice for the configured default_hierarchy.
 	// The slice will be empty if no such hierarchy has been defined.
 	DefaultHierarchy() []DataProvider
+
+	// LookupOptions returns the resolved lookup_options value for the given key or nil
+	// if no such options exists
+	LookupOptions(key Key) map[string]px.Value
 }
 
 // A Context provides a local cache and utility functions to a provider function
@@ -111,6 +115,9 @@ type Invocation interface {
 	Config() ResolvedConfig
 
 	DoWithScope(scope px.Keyed, doer px.Doer)
+
+	// Call doer and while it is executing, don't reveal any found values in logs
+	DoRedacted(doer px.Doer)
 
 	// NotFound should be called by a function to indicate that a specified key
 	// was not found. This is different from returning an UNDEF since UNDEF is

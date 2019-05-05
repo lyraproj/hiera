@@ -259,9 +259,39 @@ func (hc *hieraCfg) makeDefaultHierarchy() []lookup.HierarchyEntry {
 		&hierEntry{entry: entry{cfg: hc}, name: `Common`, locations: []lookup.Location{&path{original: `common.yaml`}}}}
 }
 
-func (hc *hieraCfg) Resolve(ic lookup.Invocation) lookup.ResolvedConfig {
+func (hc *hieraCfg) Resolve(ic lookup.Invocation) (cfg lookup.ResolvedConfig) {
 	r := &resolvedConfig{config: hc}
 	r.Resolve(ic)
+	cfg = r
+
+	defer func() {
+		if r := recover(); r != nil {
+			// lookup.NotFound is ok. It just means that there was no lookup_options
+			if r != lookup.NotFound {
+				panic(r)
+			}
+		}
+	}()
+
+	ms := lookup.GetMergeStrategy(`deep`, nil)
+	k := NewKey(`lookup_options`)
+	v := ms.Lookup(r.Hierarchy(), ic, func(prv interface{}) px.Value {
+		pr := prv.(lookup.DataProvider)
+		return pr.UncheckedLookup(k, ic, ms)
+	})
+	if lm, ok := v.(px.OrderedMap); ok {
+		lo := make(map[string]map[string]px.Value, lm.Len())
+		lm.EachPair(func(k, v px.Value) {
+			if km, ok := v.(px.OrderedMap); ok {
+				ko := make(map[string]px.Value, km.Len())
+				lo[k.String()] = ko
+				km.EachPair(func(k, v px.Value) {
+					ko[k.String()] = v
+				})
+			}
+		})
+		r.lookupOptions = lo
+	}
 	return r
 }
 
@@ -368,6 +398,7 @@ type resolvedConfig struct {
 	config           *hieraCfg
 	providers        []lookup.DataProvider
 	defaultProviders []lookup.DataProvider
+	lookupOptions    map[string]map[string]px.Value
 }
 
 func (r *resolvedConfig) Config() lookup.Config {
@@ -380,6 +411,13 @@ func (r *resolvedConfig) Hierarchy() []lookup.DataProvider {
 
 func (r *resolvedConfig) DefaultHierarchy() []lookup.DataProvider {
 	return r.defaultProviders
+}
+
+func (r *resolvedConfig) LookupOptions(key lookup.Key) map[string]px.Value {
+	if r.lookupOptions != nil {
+		return r.lookupOptions[key.Root()]
+	}
+	return nil
 }
 
 func (r *resolvedConfig) Resolve(ic lookup.Invocation) {

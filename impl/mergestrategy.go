@@ -16,7 +16,7 @@ func init() {
 	lookup.GetMergeStrategy = getMergeStrategy
 }
 
-func getMergeStrategy(n string) lookup.MergeStrategy {
+func getMergeStrategy(n string, opts map[string]px.Value) lookup.MergeStrategy {
 	switch n {
 	case `first`:
 		return &firstFound{}
@@ -25,7 +25,7 @@ func getMergeStrategy(n string) lookup.MergeStrategy {
 	case `hash`:
 		return &hashMerge{}
 	case `deep`:
-		return &deepMerge{}
+		return &deepMerge{opts}
 	default:
 		panic(px.Error(UnknownMergeStrategy, issue.H{`name`: n}))
 	}
@@ -42,7 +42,7 @@ type merger interface {
 	convertValue(v px.Value) px.Value
 }
 
-type deepMerge struct{}
+type deepMerge struct{ opts map[string]px.Value }
 
 type hashMerge struct{}
 
@@ -179,7 +179,7 @@ func (d *deepMerge) convertValue(v px.Value) px.Value {
 }
 
 func (d *deepMerge) merge(a, b px.Value) px.Value {
-	v, _ := DeepMerge(a, b)
+	v, _ := DeepMerge(a, b, d.opts)
 	return v
 }
 

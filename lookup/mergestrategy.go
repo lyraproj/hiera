@@ -4,8 +4,9 @@ import (
 	"github.com/lyraproj/pcore/px"
 )
 
-// GetMergeStrategy returns the MergeStrategy that corresponds to the given name
-var GetMergeStrategy func(name string) MergeStrategy
+// GetMergeStrategy returns the MergeStrategy that corresponds to the given name. The
+// options argument is only applicable to deep merge
+var GetMergeStrategy func(name string, options map[string]px.Value) MergeStrategy
 
 // MergeStrategy is responsible for merging or prioritizing the result of several lookups into one.
 type MergeStrategy interface {

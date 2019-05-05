@@ -41,6 +41,7 @@ type invocation struct {
 	key      lookup.Key
 	provider lookup.DataProvider
 	location lookup.Location
+	redacted bool
 }
 
 // InitContext initializes the given context with the Hiera cache. The context initialized
@@ -86,23 +87,88 @@ var first = types.WrapString(`first`)
 func ConfigLookup(pc lookup.ProviderContext, key string, options map[string]px.Value) (px.Value, bool) {
 	ic := pc.(*providerCtx).invocation
 	cfg := ic.Config()
+	k := NewKey(key)
+	lo := cfg.LookupOptions(k)
 	merge, ok := options[`merge`]
-	if ok {
-		var mh px.OrderedMap
-		if mh, ok = merge.(px.OrderedMap); ok {
-			merge = mh.Get5(`strategy`, first)
+	if !ok {
+		if lo == nil {
+			merge = first
+		} else {
+			merge, ok = lo[`merge`]
+			if !ok {
+				merge = first
+			}
 		}
-	} else {
-		merge = first
 	}
 
-	k := NewKey(key)
-	ms := lookup.GetMergeStrategy(merge.String())
-	v := ms.Lookup(cfg.Hierarchy(), ic, func(prv interface{}) px.Value {
-		pr := prv.(lookup.DataProvider)
-		return pr.UncheckedLookup(k, ic, ms)
-	})
-	return v, v != nil
+	var mh px.OrderedMap
+	var mergeOpts map[string]px.Value
+	if mh, ok = merge.(px.OrderedMap); ok {
+		merge = mh.Get5(`strategy`, first)
+		mergeOpts = make(map[string]px.Value, mh.Len())
+		mh.EachPair(func(k, v px.Value) {
+			ks := k.String()
+			if ks != `strategy` {
+				mergeOpts[ks] = v
+			}
+		})
+	}
+
+	redacted := false
+
+	var convertToType px.Type
+	var convertToArgs []px.Value
+	if lo != nil {
+		ts := ``
+		if ct, ok := lo[`convert_to`]; ok {
+			if cm, ok := ct.(*types.Array); ok {
+				// First arg must be a type. The rest is arguments
+				switch cm.Len() {
+				case 0:
+					// Obviously bogus
+				case 1:
+					ts = cm.At(0).String()
+				default:
+					ts = cm.At(0).String()
+					convertToArgs = cm.Slice(1, cm.Len()).AppendTo(make([]px.Value, 0, cm.Len()-1))
+				}
+			} else {
+				ts = ct.String()
+			}
+		}
+		if ts != `` {
+			convertToType = ic.ParseType(ts)
+			redacted = ts == `Sensitive`
+		}
+	}
+
+	var v px.Value
+	hf := func() {
+		ms := lookup.GetMergeStrategy(merge.String(), mergeOpts)
+		v = ms.Lookup(cfg.Hierarchy(), ic, func(prv interface{}) px.Value {
+			pr := prv.(lookup.DataProvider)
+			return pr.UncheckedLookup(k, ic, ms)
+		})
+	}
+
+	if redacted {
+		ic.DoRedacted(hf)
+	} else {
+		hf()
+	}
+
+	if v == nil {
+		return nil, false
+	}
+
+	if convertToType != nil {
+		av := []px.Value{v}
+		if convertToArgs != nil {
+			av = append(av, convertToArgs...)
+		}
+		v = px.New(ic, convertToType, av...)
+	}
+	return v, true
 }
 
 func (ic *invocation) topProvider() lookup.LookupKey {
@@ -214,6 +280,18 @@ func (ic *invocation) CheckedLookup(key lookup.Key, actor px.Producer) px.Value 
 	return actor()
 }
 
+func (ic *invocation) DoRedacted(doer px.Doer) {
+	if ic.redacted {
+		doer()
+	} else {
+		defer func() {
+			ic.redacted = false
+		}()
+		ic.redacted = true
+		doer()
+	}
+}
+
 func (ic *invocation) DoWithScope(scope px.Keyed, doer px.Doer) {
 	sc := ic.scope
 	ic.scope = scope
@@ -253,7 +331,14 @@ func (ic *invocation) ReportLocationNotFound() {
 func (ic *invocation) ReportFound(value px.Value) {
 	lg := hclog.Default()
 	if lg.IsDebug() {
-		lg.Debug(`value found`, append(ic.debugArgs(), `key`, ic.key.String(), `value`, value.String())...)
+		var vs string
+		if ic.redacted {
+			// Value hasn't been assembled yet so it's not yet converted to a Sensitive
+			vs = `value redacted`
+		} else {
+			vs = value.String()
+		}
+		lg.Debug(`value found`, append(ic.debugArgs(), `key`, ic.key.String(), `value`, vs)...)
 	}
 }
 

@@ -14,7 +14,7 @@ import (
 // When both values are hashes, DeepMerge is called recursively entries with identical keys.
 // When both values are arrays, the merge creates a union of the unique elements from the two arrays.
 // No recursive merge takes place for the array elements.
-func DeepMerge(a, b px.Value) (px.Value, bool) {
+func DeepMerge(a, b px.Value, options map[string]px.Value) (px.Value, bool) {
 	switch a := a.(type) {
 	case *types.Hash:
 		if hb, ok := b.(*types.Hash); ok {
@@ -23,7 +23,7 @@ func DeepMerge(a, b px.Value) (px.Value, bool) {
 			a.Each(func(ev px.Value) {
 				e := ev.(*types.HashEntry)
 				if bv, ok := hb.Get(e.Key()); ok {
-					if m, mh := DeepMerge(e.Value(), bv); mh {
+					if m, mh := DeepMerge(e.Value(), bv, options); mh {
 						es = append(es, types.WrapHashEntry(e.Key(), m))
 						mergeHappened = true
 						return

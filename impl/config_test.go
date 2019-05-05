@@ -46,12 +46,17 @@ func TestConfigLookup_hash_merge(t *testing.T) {
 
 func TestConfigLookup_deep_merge(t *testing.T) {
 	testExplicit(t, `hash`,
-		`deep`, `{'one' => 1, 'two' => 'two', 'three' => {'a' => 'A', 'c' => 'C', 'b' => 'B'}}`)
+		``, `{'one' => 1, 'two' => 'two', 'three' => {'a' => 'A', 'c' => 'C', 'b' => 'B'}}`)
 }
 
 func TestConfigLookup_unique(t *testing.T) {
 	testExplicit(t, `array`,
 		`unique`, `['one', 'two', 'three', 'four', 'five']`)
+}
+
+func TestConfigLookup_sensitive(t *testing.T) {
+	testExplicit(t, `sense`,
+		``, `Sensitive [value redacted]`)
 }
 
 func testExplicit(t *testing.T, key, merge, expected string) {
@@ -60,7 +65,10 @@ func testExplicit(t *testing.T, key, merge, expected string) {
 	wd, err := os.Getwd()
 	require.NoError(t, err)
 	options := map[string]px.Value{impl.HieraRoot: types.WrapString(filepath.Join(wd, `testdata`, `explicit`))}
-	luOpts := map[string]px.Value{`merge`: types.WrapString(merge)}
+	var luOpts map[string]px.Value
+	if merge != `` {
+		luOpts = map[string]px.Value{`merge`: types.WrapString(merge)}
+	}
 	lookup.DoWithParent(context.Background(), nil, options, func(c px.Context) {
 		require.Equal(t, expected, lookup.Lookup(impl.NewInvocation(c, px.EmptyMap), key, nil, luOpts).String())
 	})
