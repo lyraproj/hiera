@@ -73,6 +73,11 @@ func (dh *DataHashProvider) providerFunction(ic lookup.Invocation) (pf lookup.Da
 			dh.providerFunc = YamlData
 			return dh.providerFunc
 		}
+		if n == `json_data` {
+			// Shortcut. No need to go through pcore calling mechanism
+			dh.providerFunc = JsonData
+			return dh.providerFunc
+		}
 
 		// Load lookup provider function using the standard loader
 		if f, ok := px.Load(ic, px.NewTypedName(px.NsFunction, dh.function.Name())); ok {
