@@ -1,0 +1,16 @@
+{
+  "first": "second value of first",
+  "hash": {
+    "one": "overwritten one",
+    "three": {
+      "a": "overwritten A",
+      "b": "B",
+      "c": "overwritten C"
+    }
+  },
+  "array": [
+    "three",
+    "four",
+    "five"
+  ]
+}

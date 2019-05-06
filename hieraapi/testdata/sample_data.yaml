@@ -1,0 +1,24 @@
+first: value of first
+array:
+  - one
+  - two
+  - three
+hash:
+  int: 1
+  string: one
+  array:
+    - two
+    - "%{hiera('first')}"
+second: "includes '%{lookup('first')}'"
+ipAlias: "%{alias('array')}"
+ipBadAlias: "x %{alias('array')}"
+ipScope: "hello %{world}"
+ipScope2: "hello %{scope('world')}"
+ipLiteral: "some %{literal('literal')} text"
+ipBad: "hello %{bad('world')}"
+empty1: "Start%{}End"
+empty2: "Start%{''}End"
+empty3: 'Start%{""}End'
+empty4: "Start%{::}End"
+empty5: "Start%{'::'}End"
+empty6: 'Start%{"::"}End'
