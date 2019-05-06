@@ -1,4 +1,4 @@
-package hieraimpl
+package internal
 
 import (
 	"github.com/lyraproj/hiera/hieraapi"

@@ -1,4 +1,4 @@
-package hieraimpl_test
+package hieraapi_test
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 	"github.com/lyraproj/pcore/pcore"
 	"github.com/lyraproj/pcore/px"
 
-	// Ensure impl is initialized
-	_ "github.com/lyraproj/hiera/hieraimpl"
+	// Ensure internal is initialized
+	_ "github.com/lyraproj/hiera/internal"
 )
 
 func ExampleNewKey_simple() {
@@ -67,14 +67,6 @@ func ExampleNewKey_doubleQuotedQuote() {
 	// Output: a.b."c'd'e", 3, c'd'e
 }
 
-func printErr(e error) {
-	s := e.Error()
-	if ix := strings.Index(s, ` (file: `); ix > 0 {
-		s = s[0:ix]
-	}
-	fmt.Println(s)
-}
-
 func ExampleNewKey_unterminatedQuoted() {
 	printErr(pcore.TryWithParent(context.Background(), func(c px.Context) error {
 		hieraapi.NewKey(`a.b."c`)
@@ -121,4 +113,12 @@ func ExampleNewKey_firstSegmentIndex() {
 		return nil
 	}))
 	// Output: lookup() key '1.a' first segment cannot be an index
+}
+
+func printErr(e error) {
+	s := e.Error()
+	if ix := strings.Index(s, ` (file: `); ix > 0 {
+		s = s[0:ix]
+	}
+	fmt.Println(s)
 }

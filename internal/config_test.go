@@ -1,4 +1,4 @@
-package hieraimpl_test
+package internal_test
 
 import (
 	"context"
