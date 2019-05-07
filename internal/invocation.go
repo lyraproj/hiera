@@ -45,6 +45,10 @@ func InitContext(c px.Context, topProvider hieraapi.LookupKey, options map[strin
 	}
 	c.Set(hieraTopProviderKey, topProvider)
 	c.Set(hieraTopProviderCacheKey, &sync.Map{})
+
+	if options == nil {
+		options = make(map[string]px.Value)
+	}
 	c.Set(hieraGlobalOptionsKey, options)
 
 	_, ok := options[hieraapi.HieraConfig]
