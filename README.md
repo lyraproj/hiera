@@ -19,10 +19,13 @@ Hiera uses the concept of "managing by exception": you design a *hierarchy* of d
 * [x] interpolation using lookup/hiera function
 * [x] interpolation using alias function
 * [x] interpolation using literal function
-* [ ] configuration
-* [ ] layered hierarchy
-* [ ] merge strategies
-* [ ] YAML configuration
+* [x] configuration
+* [x] merge strategies (first, unique, hash, deep)
+* [x] YAML configuration
 * [x] YAML data
-* [ ] JSON data
-
+* [x] JSON data
+* [x] lookup options stored adjacent to data
+* [x] convert_to type coercions
+* [x] Sensitive data
+* [ ] configurable deep merge
+* [ ] layered hierarchy (global, environment, module)
