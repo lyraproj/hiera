@@ -15,6 +15,11 @@ type Key interface {
 	// unless the dig was a success
 	Dig(px.Value) px.Value
 
+	// Bury is the opposite of Dig. It returns the value that represents what would be found
+	// using the root of this key. If this key has one part, the value itself is returned, otherwise
+	// a nested chain of single entry hashes is returned.
+	Bury(px.Value) px.Value
+
 	// Return the parts of this key. Each part is either a string or an int value
 	Parts() []interface{}
 

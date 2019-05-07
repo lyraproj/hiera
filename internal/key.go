@@ -21,28 +21,48 @@ func newKey(str string) hieraapi.Key {
 }
 
 func (k *key) Dig(v px.Value) px.Value {
+	var ok bool
+	var ix int
 	for i := 1; i < len(k.parts); i++ {
 		p := k.parts[i]
-		if ix, ok := p.(int); ok {
-			if iv, ok := v.(*types.Array); ok {
-				if ix >= 0 && ix < iv.Len() {
-					v = iv.At(ix)
+		switch vc := v.(type) {
+		case *types.Array:
+			if ix, ok = p.(int); ok {
+				if ix >= 0 && ix < vc.Len() {
+					v = vc.At(ix)
 					continue
 				}
 				return nil
 			}
-		} else {
-			kx := p.(string)
-			if kv, ok := v.(*types.Hash); ok {
-				if v, ok = kv.Get4(kx); ok {
-					continue
-				}
-				return nil
+		case *types.Hash:
+			var kx px.Value
+			if ix, ok = p.(int); ok {
+				kx = types.WrapInteger(int64(ix))
+			} else {
+				kx = types.WrapString(p.(string))
 			}
+			if v, ok = vc.Get(kx); ok {
+				continue
+			}
+			return nil
 		}
 		panic(px.Error(hieraapi.DigMismatch, issue.H{`type`: px.GenericValueType(v), `segment`: p, `key`: k.orig}))
 	}
 	return v
+}
+
+func (k *key) Bury(value px.Value) px.Value {
+	for i := len(k.parts) - 1; i > 0; i-- {
+		p := k.parts[i]
+		var kx px.Value
+		if ix, ok := p.(int); ok {
+			kx = types.WrapInteger(int64(ix))
+		} else {
+			kx = types.WrapString(p.(string))
+		}
+		value = types.WrapHash([]*types.HashEntry{types.WrapHashEntry(kx, value)})
+	}
+	return value
 }
 
 func (k *key) Parts() []interface{} {

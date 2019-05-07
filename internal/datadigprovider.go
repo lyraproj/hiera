@@ -25,16 +25,22 @@ func (dh *DataDigProvider) UncheckedLookup(key hieraapi.Key, invocation hieraapi
 }
 
 func (dh *DataDigProvider) invokeWithLocation(invocation hieraapi.Invocation, location hieraapi.Location, key hieraapi.Key) px.Value {
+	var v px.Value
 	if location == nil {
-		return dh.lookupKey(invocation, nil, key)
+		v = dh.lookupKey(invocation, nil, key)
+	} else {
+		v = invocation.WithLocation(location, func() px.Value {
+			if location.Exist() {
+				return dh.lookupKey(invocation, location, key)
+			}
+			invocation.ReportLocationNotFound()
+			return nil
+		})
 	}
-	return invocation.WithLocation(location, func() px.Value {
-		if location.Exist() {
-			return dh.lookupKey(invocation, location, key)
-		}
-		invocation.ReportLocationNotFound()
-		return nil
-	})
+	if v != nil {
+		v = key.Bury(v)
+	}
+	return v
 }
 
 func (dh *DataDigProvider) lookupKey(ic hieraapi.Invocation, location hieraapi.Location, key hieraapi.Key) px.Value {

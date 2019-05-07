@@ -161,10 +161,10 @@ func ExampleLookup_badStringDig() {
 
 func ExampleLookup_badIntDig() {
 	printErr(hiera.TryWithParent(context.Background(), provider.YamlLookupKey, options, func(c px.Context) error {
-		hiera.Lookup(internal.NewInvocation(c, px.EmptyMap), `hash.3`, nil, options)
+		hiera.Lookup(internal.NewInvocation(c, px.EmptyMap), `hash.int.3`, nil, options)
 		return nil
 	}))
-	// Output: lookup() Got Hash[Enum, Data] when a hash-like object was expected to access value using '3' from key 'hash.3'
+	// Output: lookup() Got Integer when a hash-like object was expected to access value using '3' from key 'hash.int.3'
 }
 
 func ExampleLookup2_findFirst() {

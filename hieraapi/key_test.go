@@ -8,6 +8,7 @@ import (
 	"github.com/lyraproj/hiera/hieraapi"
 	"github.com/lyraproj/pcore/pcore"
 	"github.com/lyraproj/pcore/px"
+	"github.com/lyraproj/pcore/types"
 
 	// Ensure internal is initialized
 	_ "github.com/lyraproj/hiera/internal"
@@ -121,4 +122,22 @@ func printErr(e error) {
 		s = s[0:ix]
 	}
 	fmt.Println(s)
+}
+
+func ExampleKey_Bury_dotted() {
+	v := hieraapi.NewKey(`a.b.c`).Bury(types.WrapString(`x`))
+	fmt.Println(v)
+	// Output: {'b' => {'c' => 'x'}}
+}
+
+func ExampleKey_Bury_dotted_int() {
+	v := hieraapi.NewKey(`a.3`).Bury(types.WrapString(`x`))
+	fmt.Println(v)
+	// Output: {3 => 'x'}
+}
+
+func ExampleKey_Bury_untouched() {
+	v := hieraapi.NewKey(`a`).Bury(types.WrapString(`x`))
+	fmt.Println(v)
+	// Output: x
 }
