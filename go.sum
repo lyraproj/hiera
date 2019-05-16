@@ -12,8 +12,8 @@ github.com/lyraproj/data-protobuf v0.0.0-20190329160005-a909d9e1f93b h1:qGgMkFUQ
 github.com/lyraproj/data-protobuf v0.0.0-20190329160005-a909d9e1f93b/go.mod h1:oQIFBu0fmkiSpSRROEgK5gnjQ/ZDrx3UdpRpT3791Gg=
 github.com/lyraproj/issue v0.0.0-20190513084509-faf9b542f594 h1:IcsHRQ3xzCIcK0eXpot8IYgEyUQPEFHmFErZwJcsDqk=
 github.com/lyraproj/issue v0.0.0-20190513084509-faf9b542f594/go.mod h1:jqRRmAiVqjTehhncbKJPoC2AFoxxkritzzlfWioTa00=
-github.com/lyraproj/pcore v0.0.0-20190513110440-3136007d878d h1:UGQ37YS1mhNm2I4xutG+DaM+4P4x/TEdWpQk950eWaI=
-github.com/lyraproj/pcore v0.0.0-20190513110440-3136007d878d/go.mod h1:NGvVSNVj6tF0acszsfqcu+qtNt5b1hlSiiL3oNSuNMI=
+github.com/lyraproj/pcore v0.0.0-20190516164225-2c1838ece043 h1:tSLm3r+Z+ej4kyaXn7/okyw8sHkjE5LKZ1dNqA1gpVM=
+github.com/lyraproj/pcore v0.0.0-20190516164225-2c1838ece043/go.mod h1:NEsDhoJnhU6dqrNy3M2W4AWryrwPhADubXu6RWVdAl4=
 github.com/lyraproj/semver v0.0.0-20181213164306-02ecea2cd6a2 h1:vb4PbiMtIXdhsOUinkkcqZiASDIZzXRhSG4yvNfE0tg=
 github.com/lyraproj/semver v0.0.0-20181213164306-02ecea2cd6a2/go.mod h1:KOdZKnEBdDb2iGPUnHiKpk3M5cvv949xMyj8XPqaMF0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
@@ -25,5 +25,5 @@ github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UV
 golang.org/x/sync v0.0.0-20190227155943-e225da77a7e6/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
-gopkg.in/yaml.v2 v2.2.2 h1:ZCJp+EgiOT7lHqUV2J862kp8Qj64Jo6az82+3Td9dZw=
-gopkg.in/yaml.v2 v2.2.2/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
+gopkg.in/yaml.v3 v3.0.0-20190502103701-55513cacd4ae h1:ehhBuCxzgQEGk38YjhFv/97fMIc2JGHZAhAWMmEjmu0=
+gopkg.in/yaml.v3 v3.0.0-20190502103701-55513cacd4ae/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
