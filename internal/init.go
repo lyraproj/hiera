@@ -22,7 +22,7 @@ func init() {
 				Optional[data_dig] => String[1],
 				Optional[data_hash] => String[1],
 				Optional[lookup_key] => String[1],
-				Optional[data_dir] => String[1],
+				Optional[datadir] => String[1],
 			}],
 			Entry => Struct[{
 				name => String[1],
@@ -30,7 +30,7 @@ func init() {
 				Optional[data_dig] => String[1],
 				Optional[data_hash] => String[1],
 				Optional[lookup_key] => String[1],
-				Optional[data_dir] => String[1],
+				Optional[datadir] => String[1],
 				Optional[path] => String[1],
 				Optional[paths] => Array[String[1], 1],
 				Optional[glob] => String[1],
