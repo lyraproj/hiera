@@ -302,7 +302,7 @@ func (hc *hieraCfg) createHierarchyEntry(ic hieraapi.Invocation, name string, en
 	entry.initialize(ic, name, entryHash)
 	entryHash.EachPair(func(k, v px.Value) {
 		ks := k.String()
-		if ks == `data_dir` {
+		if ks == `datadir` {
 			entry.dataDir = v.String()
 		}
 		if utils.ContainsString(hieraapi.LocationKeys, ks) {
