@@ -24,7 +24,7 @@ func Environment(_ hieraapi.ProviderContext, key string, _ map[string]px.Value) 
 		}
 		return types.WrapHash(em)
 	}
-	if strings.HasSuffix(key, `env::`) {
+	if strings.HasPrefix(key, `env::`) {
 		// Rest of key is name of environment
 		if v, ok := os.LookupEnv(key[5:]); ok {
 			return types.WrapString(v)
