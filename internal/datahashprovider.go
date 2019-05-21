@@ -135,7 +135,7 @@ func (dh *DataHashProvider) FullName() string {
 	return fmt.Sprintf(`data_hash function '%s'`, dh.function.Name())
 }
 
-func newDataHashProvider(he hieraapi.HierarchyEntry) hieraapi.DataProvider {
+func newDataHashProvider(he hieraapi.Entry) hieraapi.DataProvider {
 	ls := he.Locations()
 	return &DataHashProvider{
 		function:  he.Function(),

@@ -36,10 +36,12 @@ func (f *function) Resolve(ic hieraapi.Invocation) (hieraapi.Function, bool) {
 }
 
 type entry struct {
-	cfg      *hieraCfg
-	dataDir  string
-	options  px.OrderedMap
-	function hieraapi.Function
+	cfg       *hieraCfg
+	dataDir   string
+	options   px.OrderedMap
+	function  hieraapi.Function
+	name      string
+	locations []hieraapi.Location
 }
 
 func (e *entry) Options() px.OrderedMap {
@@ -79,27 +81,15 @@ func (e *entry) Copy(cfg hieraapi.Config) hieraapi.Entry {
 	return &c
 }
 
-type hieraEntry struct {
-	entry
-	name      string
-	locations []hieraapi.Location
-}
-
-func (e *hieraEntry) Copy(cfg hieraapi.Config) hieraapi.Entry {
-	c := *e
-	c.cfg = cfg.(*hieraCfg)
-	return &c
-}
-
-func (e *hieraEntry) Name() string {
+func (e *entry) Name() string {
 	return e.name
 }
 
-func (e *hieraEntry) Locations() []hieraapi.Location {
+func (e *entry) Locations() []hieraapi.Location {
 	return e.locations
 }
 
-func (e *hieraEntry) CreateProvider() hieraapi.DataProvider {
+func (e *entry) CreateProvider() hieraapi.DataProvider {
 	switch e.function.Kind() {
 	case hieraapi.KindDataHash:
 		return newDataHashProvider(e)
@@ -110,12 +100,16 @@ func (e *hieraEntry) CreateProvider() hieraapi.DataProvider {
 	}
 }
 
-func (e *hieraEntry) Resolve(ic hieraapi.Invocation, defaults hieraapi.Entry) hieraapi.HierarchyEntry {
+func (e *entry) Resolve(ic hieraapi.Invocation, defaults hieraapi.Entry) hieraapi.Entry {
 	// Resolve interpolated strings and locations
 	ce := *e
 
 	if ce.function == nil {
-		ce.function = defaults.Function()
+		if defaults == nil {
+			ce.function = &function{kind: hieraapi.KindDataHash, name: `yaml_data`}
+		} else {
+			ce.function = defaults.Function()
+		}
 	} else if f, fc := ce.function.Resolve(ic); fc {
 		ce.function = f
 	}
@@ -125,7 +119,11 @@ func (e *hieraEntry) Resolve(ic hieraapi.Invocation, defaults hieraapi.Entry) hi
 	}
 
 	if ce.dataDir == `` {
-		ce.dataDir = defaults.DataDir()
+		if defaults == nil {
+			ce.dataDir = `data`
+		} else {
+			ce.dataDir = defaults.DataDir()
+		}
 	} else {
 		if d, dc := interpolateString(ic, ce.dataDir, false); dc {
 			ce.dataDir = d.String()
@@ -133,7 +131,9 @@ func (e *hieraEntry) Resolve(ic hieraapi.Invocation, defaults hieraapi.Entry) hi
 	}
 
 	if ce.options == nil {
-		ce.options = defaults.Options()
+		if defaults != nil {
+			ce.options = defaults.Options()
+		}
 	} else if ce.options.Len() > 0 {
 		if o, oc := doInterpolate(ic, ce.options, false); oc {
 			ce.options = o.(*types.Hash)
@@ -155,9 +155,9 @@ func (e *hieraEntry) Resolve(ic hieraapi.Invocation, defaults hieraapi.Entry) hi
 type hieraCfg struct {
 	root             string
 	path             string
-	defaults         hieraapi.Entry
-	hierarchy        []hieraapi.HierarchyEntry
-	defaultHierarchy []hieraapi.HierarchyEntry
+	defaults         *entry
+	hierarchy        []hieraapi.Entry
+	defaultHierarchy []hieraapi.Entry
 }
 
 func NewConfig(ic hieraapi.Invocation, configPath string) hieraapi.Config {
@@ -166,7 +166,7 @@ func NewConfig(ic hieraapi.Invocation, configPath string) hieraapi.Config {
 		dc := &hieraCfg{
 			root:             filepath.Dir(configPath),
 			path:             ``,
-			defaultHierarchy: []hieraapi.HierarchyEntry{},
+			defaultHierarchy: []hieraapi.Entry{},
 		}
 		dc.defaults = dc.makeDefaultConfig()
 		dc.hierarchy = dc.makeDefaultHierarchy()
@@ -185,7 +185,7 @@ func createConfig(ic hieraapi.Invocation, path string, hash *types.Hash) hieraap
 	cfg := &hieraCfg{root: filepath.Dir(path), path: path}
 
 	if dv, ok := hash.Get4(`defaults`); ok {
-		cfg.defaults = cfg.createDefaultsEntry(ic, dv.(*types.Hash))
+		cfg.defaults = cfg.createEntry(ic, `defaults`, dv.(*types.Hash)).(*entry)
 	} else {
 		cfg.defaults = cfg.makeDefaultConfig()
 	}
@@ -207,12 +207,12 @@ func (hc *hieraCfg) makeDefaultConfig() *entry {
 	return &entry{cfg: hc, dataDir: `data`, function: &function{kind: hieraapi.KindDataHash, name: `yaml_data`}}
 }
 
-func (hc *hieraCfg) makeDefaultHierarchy() []hieraapi.HierarchyEntry {
-	return []hieraapi.HierarchyEntry{
+func (hc *hieraCfg) makeDefaultHierarchy() []hieraapi.Entry {
+	return []hieraapi.Entry{
 		// The lyra default behavior is to look for a <Hiera root>/data.yaml. Hiera root is the current directory.
-		&hieraEntry{entry: entry{cfg: hc, dataDir: `.`}, name: `Root`, locations: []hieraapi.Location{&path{original: `data.yaml`}}},
+		&entry{cfg: hc, dataDir: `.`, name: `Root`, locations: []hieraapi.Location{&path{original: `data.yaml`}}},
 		// Hiera proper default behavior is to look for <Hiera root>/data/common.yaml
-		&hieraEntry{entry: entry{cfg: hc}, name: `Common`, locations: []hieraapi.Location{&path{original: `common.yaml`}}}}
+		&entry{cfg: hc, name: `Common`, locations: []hieraapi.Location{&path{original: `common.yaml`}}}}
 }
 
 func (hc *hieraCfg) Resolve(ic hieraapi.Invocation) (cfg hieraapi.ResolvedConfig) {
@@ -242,11 +242,11 @@ func (hc *hieraCfg) Resolve(ic hieraapi.Invocation) (cfg hieraapi.ResolvedConfig
 	return r
 }
 
-func (hc *hieraCfg) Hierarchy() []hieraapi.HierarchyEntry {
+func (hc *hieraCfg) Hierarchy() []hieraapi.Entry {
 	return hc.hierarchy
 }
 
-func (hc *hieraCfg) DefaultHierarchy() []hieraapi.HierarchyEntry {
+func (hc *hieraCfg) DefaultHierarchy() []hieraapi.Entry {
 	return hc.defaultHierarchy
 }
 
@@ -262,22 +262,17 @@ func (hc *hieraCfg) Defaults() hieraapi.Entry {
 	return hc.defaults
 }
 
-func (hc *hieraCfg) CreateProviders(ic hieraapi.Invocation, hierarchy []hieraapi.HierarchyEntry) []hieraapi.DataProvider {
+func (hc *hieraCfg) CreateProviders(ic hieraapi.Invocation, hierarchy []hieraapi.Entry) []hieraapi.DataProvider {
 	providers := make([]hieraapi.DataProvider, len(hierarchy))
-	var defaults hieraapi.Entry
-	if hdf, ok := hc.defaults.(*hieraEntry); ok {
-		defaults = hdf.Resolve(ic, nil)
-	} else {
-		defaults = hc.defaults.Copy(hc)
-	}
+	defaults := hc.defaults.Resolve(ic, nil)
 	for i, he := range hierarchy {
-		providers[i] = he.(*hieraEntry).Resolve(ic, defaults).CreateProvider()
+		providers[i] = he.Resolve(ic, defaults).CreateProvider()
 	}
 	return providers
 }
 
-func (hc *hieraCfg) createHierarchy(ic hieraapi.Invocation, hierarchy *types.Array) []hieraapi.HierarchyEntry {
-	entries := make([]hieraapi.HierarchyEntry, 0, hierarchy.Len())
+func (hc *hieraCfg) createHierarchy(ic hieraapi.Invocation, hierarchy *types.Array) []hieraapi.Entry {
+	entries := make([]hieraapi.Entry, 0, hierarchy.Len())
 	uniqueNames := make(map[string]bool, hierarchy.Len())
 	hierarchy.Each(func(hv px.Value) {
 		hh := hv.(*types.Hash)
@@ -286,19 +281,13 @@ func (hc *hieraCfg) createHierarchy(ic hieraapi.Invocation, hierarchy *types.Arr
 			panic(px.Error(hieraapi.HierarchyNameMultiplyDefined, issue.H{`name`: name}))
 		}
 		uniqueNames[name] = true
-		entries = append(entries, hc.createHierarchyEntry(ic, name, hh))
+		entries = append(entries, hc.createEntry(ic, name, hh))
 	})
 	return entries
 }
 
-func (hc *hieraCfg) createDefaultsEntry(ic hieraapi.Invocation, entryHash *types.Hash) hieraapi.Entry {
-	defaults := &entry{cfg: hc}
-	defaults.initialize(ic, `defaults`, entryHash)
-	return defaults
-}
-
-func (hc *hieraCfg) createHierarchyEntry(ic hieraapi.Invocation, name string, entryHash *types.Hash) hieraapi.HierarchyEntry {
-	entry := &hieraEntry{entry: entry{cfg: hc}, name: name}
+func (hc *hieraCfg) createEntry(ic hieraapi.Invocation, name string, entryHash *types.Hash) hieraapi.Entry {
+	entry := &entry{cfg: hc, name: name}
 	entry.initialize(ic, name, entryHash)
 	entryHash.EachPair(func(k, v px.Value) {
 		ks := k.String()

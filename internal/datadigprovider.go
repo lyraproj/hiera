@@ -84,7 +84,7 @@ func (dh *DataDigProvider) FullName() string {
 	return fmt.Sprintf(`data_dig function '%s'`, dh.function.Name())
 }
 
-func newDataDigProvider(he hieraapi.HierarchyEntry) hieraapi.DataProvider {
+func newDataDigProvider(he hieraapi.Entry) hieraapi.DataProvider {
 	ls := he.Locations()
 	return &DataDigProvider{
 		function:  he.Function(),

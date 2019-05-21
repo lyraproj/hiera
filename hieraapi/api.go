@@ -38,12 +38,8 @@ type Entry interface {
 	Options() px.OrderedMap
 	DataDir() string
 	Function() Function
-}
-
-type HierarchyEntry interface {
-	Entry
 	Name() string
-	Resolve(ic Invocation, defaults Entry) HierarchyEntry
+	Resolve(ic Invocation, defaults Entry) Entry
 	CreateProvider() DataProvider
 	Locations() []Location
 }
@@ -59,10 +55,10 @@ type Config interface {
 	Defaults() Entry
 
 	// Hierarchy returns the configuration hierarchy slice
-	Hierarchy() []HierarchyEntry
+	Hierarchy() []Entry
 
 	// DefaultHierarchy returns the default hierarchy slice
-	DefaultHierarchy() []HierarchyEntry
+	DefaultHierarchy() []Entry
 
 	// Resolve resolves this instance into a ResolveHierarchy. Resolving means creating the proper
 	// DataProviders for all Hierarchy entries
