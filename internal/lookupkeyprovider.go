@@ -83,7 +83,7 @@ func (dh *LookupKeyProvider) FullName() string {
 	return fmt.Sprintf(`lookup_key function '%s'`, dh.function.Name())
 }
 
-func newLookupKeyProvider(he hieraapi.HierarchyEntry) hieraapi.DataProvider {
+func newLookupKeyProvider(he hieraapi.Entry) hieraapi.DataProvider {
 	ls := he.Locations()
 	return &LookupKeyProvider{
 		function:  he.Function(),
