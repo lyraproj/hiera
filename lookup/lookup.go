@@ -46,8 +46,6 @@ Additional help topics:{{range .Commands}}{{if .IsHelpCommand}}
 {{rpad .CommandPath .CommandPathPadding}} {{.Short}}{{end}}{{end}}{{end}}
 `
 
-var options = map[string]px.Value{`path`: types.WrapString(`./testdata/sample_data.yaml`)}
-
 var (
 	logLevel string
 	merge    string
