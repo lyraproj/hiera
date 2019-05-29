@@ -140,7 +140,12 @@ func (e *entry) Resolve(ic hieraapi.Invocation, defaults hieraapi.Entry) hieraap
 		}
 	}
 
-	dataRoot := filepath.Join(e.cfg.root, ce.dataDir)
+	var dataRoot string
+	if filepath.IsAbs(ce.dataDir) {
+		dataRoot = ce.dataDir
+	} else {
+		dataRoot = filepath.Join(e.cfg.root, ce.dataDir)
+	}
 	if ce.locations != nil {
 		ne := make([]hieraapi.Location, 0, len(ce.locations))
 		for _, l := range ce.locations {
