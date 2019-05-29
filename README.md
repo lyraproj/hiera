@@ -43,4 +43,5 @@ Hiera uses the concept of "managing by exception": you design a *hierarchy* of d
 * [x] convert_to type coercions
 * [x] Sensitive data
 * [ ] configurable deep merge
-* [ ] layered hierarchy (global, environment, module)
+* [ ] pluggable back ends (initially for secrets management)
+* [ ] `explain` functionality to show traversal
