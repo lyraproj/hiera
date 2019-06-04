@@ -5,11 +5,12 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/lyraproj/hiera/explain"
+
 	"github.com/lyraproj/hiera/hieraapi"
 
 	"github.com/lyraproj/hiera/provider"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
@@ -29,11 +30,8 @@ type invocation struct {
 	nameStack  []string
 	configPath string
 	scope      px.Keyed
-
-	expCtx   string
-	provider hieraapi.DataProvider
-	location hieraapi.Location
-	redacted bool
+	redacted   bool
+	explainer  explain.Explainer
 }
 
 // InitContext initializes the given context with the Hiera cache. The context initialized
@@ -74,8 +72,13 @@ func InitContext(c px.Context, topProvider hieraapi.LookupKey, options map[strin
 	}
 }
 
-func NewInvocation(c px.Context, scope px.Keyed) hieraapi.Invocation {
-	return &invocation{Context: c, nameStack: []string{}, scope: scope, configPath: globalOptions(c)[hieraapi.HieraConfig].String()}
+func NewInvocation(c px.Context, scope px.Keyed, explainer explain.Explainer) hieraapi.Invocation {
+	return &invocation{
+		Context:    c,
+		nameStack:  []string{},
+		scope:      scope,
+		configPath: globalOptions(c)[hieraapi.HieraConfig].String(),
+		explainer:  explainer}
 }
 
 func (ic *invocation) topProvider() hieraapi.LookupKey {
@@ -148,10 +151,16 @@ func (ic *invocation) Config() (conf hieraapi.ResolvedConfig) {
 
 func (ic *invocation) lookupViaCache(key hieraapi.Key, options map[string]px.Value) px.Value {
 	rootKey := key.Root()
+	if rootKey == `lookup_options` {
+		return ic.WithInvalidKey(key, func() px.Value {
+			ic.ReportNotFound(key)
+			return nil
+		})
+	}
 
 	sc := ic.sharedCache()
 	if val, ok := sc.Load(rootKey); ok {
-		return key.Dig(val.(px.Value))
+		return key.Dig(ic.ForData(), val.(px.Value))
 	}
 
 	globalOptions := globalOptions(ic)
@@ -169,11 +178,12 @@ func (ic *invocation) lookupViaCache(key hieraapi.Key, options map[string]px.Val
 	}
 	v := ic.topProvider()(newProviderContext(ic, ic.topProviderCache()), rootKey, options)
 	if v != nil {
-		v := Interpolate(ic, v, true)
+		dc := ic.ForData()
+		v = Interpolate(dc, v, true)
 		sc.Store(rootKey, v)
-		return key.Dig(v)
+		v = key.Dig(dc, v)
 	}
-	return nil
+	return v
 }
 
 func (ic *invocation) WithKey(key hieraapi.Key, actor px.Producer) px.Value {
@@ -211,89 +221,140 @@ func (ic *invocation) Scope() px.Keyed {
 }
 
 func (ic *invocation) WithDataProvider(p hieraapi.DataProvider, actor px.Producer) px.Value {
-	saveProv := ic.provider
-	ic.provider = p
-	defer func() {
-		ic.provider = saveProv
-	}()
+	if ic.explainer == nil {
+		return actor()
+	}
+	defer ic.explainer.Pop()
+	ic.explainer.PushDataProvider(p)
+	return actor()
+}
+
+func (ic *invocation) WithInterpolation(expr string, actor px.Producer) px.Value {
+	if ic.explainer == nil {
+		return actor()
+	}
+	defer ic.explainer.Pop()
+	ic.explainer.PushInterpolation(expr)
+	return actor()
+}
+
+func (ic *invocation) WithInvalidKey(key interface{}, actor px.Producer) px.Value {
+	if ic.explainer == nil {
+		return actor()
+	}
+	defer ic.explainer.Pop()
+	ic.explainer.PushInvalidKey(key)
 	return actor()
 }
 
 func (ic *invocation) WithLocation(loc hieraapi.Location, actor px.Producer) px.Value {
-	saveLoc := ic.location
-	ic.location = loc
-	defer func() {
-		ic.location = saveLoc
-	}()
+	if ic.explainer == nil {
+		return actor()
+	}
+	defer ic.explainer.Pop()
+	ic.explainer.PushLocation(loc)
 	return actor()
 }
 
+func (ic *invocation) WithLookup(key hieraapi.Key, actor px.Producer) px.Value {
+	if ic.explainer == nil {
+		return actor()
+	}
+	defer ic.explainer.Pop()
+	ic.explainer.PushLookup(key)
+	return actor()
+}
+
+func (ic *invocation) WithMerge(ms hieraapi.MergeStrategy, actor px.Producer) px.Value {
+	if ic.explainer == nil {
+		return actor()
+	}
+	defer ic.explainer.Pop()
+	ic.explainer.PushMerge(ms)
+	return actor()
+}
+
+func (ic *invocation) WithSegment(seg interface{}, actor px.Producer) px.Value {
+	if ic.explainer == nil {
+		return actor()
+	}
+	defer ic.explainer.Pop()
+	ic.explainer.PushSegment(seg)
+	return actor()
+}
+
+func (ic *invocation) WithSubLookup(key hieraapi.Key, actor px.Producer) px.Value {
+	if ic.explainer == nil {
+		return actor()
+	}
+	defer ic.explainer.Pop()
+	ic.explainer.PushSubLookup(key)
+	return actor()
+}
+
+func (ic *invocation) ForConfig() hieraapi.Invocation {
+	if ic.explainer == nil {
+		return ic
+	}
+	lic := *ic
+	lic.explainer = nil
+	return &lic
+}
+
+func (ic *invocation) ForData() hieraapi.Invocation {
+	if ic.explainer == nil || !ic.explainer.OnlyOptions() {
+		return ic
+	}
+	lic := *ic
+	lic.explainer = nil
+	return &lic
+}
+
+func (ic *invocation) ForLookupOptions() hieraapi.Invocation {
+	if ic.explainer == nil || ic.explainer.Options() || ic.explainer.OnlyOptions() {
+		return ic
+	}
+	lic := *ic
+	lic.explainer = nil
+	return &lic
+}
+
 func (ic *invocation) ReportLocationNotFound() {
-	lg := hclog.Default()
-	if lg.IsDebug() {
-		lg.Debug(`location not found`, ic.debugArgs()...)
+	if ic.explainer != nil {
+		ic.explainer.AcceptLocationNotFound()
 	}
 }
 
-func (ic *invocation) ReportFound(value px.Value) {
-	lg := hclog.Default()
-	if lg.IsDebug() {
-		var vs string
-		if ic.redacted {
-			// Value hasn't been assembled yet so it's not yet converted to a Sensitive
-			vs = `value redacted`
-		} else {
-			vs = value.String()
-		}
-		lg.Debug(`value found`, append(ic.debugArgs(), `value`, vs)...)
+func (ic *invocation) ReportFound(key interface{}, value px.Value) {
+	if ic.explainer != nil {
+		ic.explainer.AcceptFound(key, value)
 	}
 }
 
-func (ic *invocation) ReportNotFound() {
-	lg := hclog.Default()
-	if lg.IsDebug() {
-		lg.Debug(`key not found`, append(ic.debugArgs())...)
+func (ic *invocation) ReportMergeResult(value px.Value) {
+	if ic.explainer != nil {
+		ic.explainer.AcceptMergeResult(value)
+	}
+}
+
+func (ic *invocation) ReportMergeSource(source string) {
+	if ic.explainer != nil {
+		ic.explainer.AcceptMergeSource(source)
+	}
+}
+
+func (ic *invocation) ReportNotFound(key interface{}) {
+	if ic.explainer != nil {
+		ic.explainer.AcceptNotFound(key)
+	}
+}
+
+func (ic *invocation) ReportText(messageProducer func() string) {
+	if ic.explainer != nil {
+		ic.explainer.AcceptText(messageProducer())
 	}
 }
 
 func (ic *invocation) NotFound() {
 	panic(hieraapi.NotFound)
-}
-
-func (ic *invocation) Explain(messageProducer func() string) {
-	lg := hclog.Default()
-	if lg.IsDebug() {
-		lg.Debug(messageProducer())
-	}
-}
-
-func (ic *invocation) WithExplanationContext(n string, f func()) {
-	saveExpCtx := ic.expCtx
-	defer func() {
-		ic.expCtx = saveExpCtx
-	}()
-	ic.expCtx = n
-	// TODO: Add explanation support
-	f()
-}
-
-func (ic *invocation) debugArgs() []interface{} {
-	args := make([]interface{}, 0, 4)
-	if len(ic.nameStack) > 0 {
-		args = append(args, `key`)
-		args = append(args, ic.nameStack[len(ic.nameStack)-1])
-	}
-	if ic.expCtx != `` {
-		args = append(args, `context`)
-		args = append(args, ic.expCtx)
-	}
-	if ic.provider != nil {
-		args = append(args, `provider`)
-		args = append(args, ic.provider.FullName())
-	}
-	if ic.location != nil {
-		args = append(args, `location`)
-		args = append(args, ic.location.String())
-	}
-	return args
 }

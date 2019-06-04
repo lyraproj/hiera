@@ -93,20 +93,42 @@ type Invocation interface {
 	// Call doer and while it is executing, don't reveal any found values in logs
 	DoRedacted(doer px.Doer)
 
-	// Execute the given function 'f' in an explanation context named by 'n'
-	WithExplanationContext(n string, f func())
-
-	// Explain will add the message returned by the given function to the
+	// ReportText will add the message returned by the given function to the
 	// lookup explainer. The method will only get called when the explanation
 	// support is enabled
-	Explain(messageProducer func() string)
-
-	WithKey(key Key, value px.Producer) px.Value
-	WithDataProvider(dh DataProvider, value px.Producer) px.Value
-	WithLocation(loc Location, value px.Producer) px.Value
+	ReportText(messageProducer func() string)
 	ReportLocationNotFound()
-	ReportFound(value px.Value)
-	ReportNotFound()
+	ReportFound(key interface{}, value px.Value)
+	ReportMergeResult(value px.Value)
+	ReportMergeSource(source string)
+	ReportNotFound(key interface{})
+
+	WithDataProvider(pvd DataProvider, f px.Producer) px.Value
+
+	WithInterpolation(expr string, f px.Producer) px.Value
+
+	WithInvalidKey(key interface{}, f px.Producer) px.Value
+
+	WithLocation(loc Location, f px.Producer) px.Value
+
+	WithLookup(key Key, f px.Producer) px.Value
+
+	WithMerge(ms MergeStrategy, f px.Producer) px.Value
+
+	WithSegment(seg interface{}, f px.Producer) px.Value
+
+	WithSubLookup(key Key, f px.Producer) px.Value
+
+	// ForConfig returns an Invocation that without explainer support
+	ForConfig() Invocation
+
+	// ForData returns an Invocation that has adjusted its explainer according to
+	// how it should report lookup of data as opposed to the "lookup_options" key.
+	ForData() Invocation
+
+	// ForLookupOptions returns an Invocation that has adjusted its explainer according to
+	// how it should report lookup of the "lookup_options" key.
+	ForLookupOptions() Invocation
 }
 
 // NotFound is the error that Hiera will panic with when a value cannot be found and no default

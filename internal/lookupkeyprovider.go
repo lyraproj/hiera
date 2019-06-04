@@ -50,7 +50,9 @@ func (dh *LookupKeyProvider) lookupKey(ic hieraapi.Invocation, location hieraapi
 	cache, _ := dh.hashes.LoadOrStore(key, &sync.Map{})
 	value := dh.providerFunction(ic)(newProviderContext(ic, cache.(*sync.Map)), root, opts)
 	if value != nil {
-		ic.ReportFound(value)
+		ic.ReportFound(root, value)
+	} else {
+		ic.ReportNotFound(root)
 	}
 	return value
 }
@@ -68,7 +70,7 @@ func (dh *LookupKeyProvider) providerFunction(ic hieraapi.Invocation) (pf hieraa
 				return f.(px.Function).Call(ic, nil, []px.Value{pc, types.WrapString(key), px.Wrap(ic, options)}...)
 			}
 		} else {
-			ic.Explain(func() string {
+			ic.ReportText(func() string {
 				return fmt.Sprintf(`unresolved function '%s'`, n)
 			})
 			dh.providerFunc = func(pc hieraapi.ProviderContext, key string, options map[string]px.Value) px.Value {

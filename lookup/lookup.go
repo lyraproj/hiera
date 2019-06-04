@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/lyraproj/hiera/explain"
+
 	"github.com/lyraproj/pcore/yaml"
 
 	"github.com/hashicorp/go-hclog"
@@ -47,12 +49,14 @@ Additional help topics:{{range .Commands}}{{if .IsHelpCommand}}
 `
 
 var (
-	logLevel string
-	merge    string
-	facts    string
-	dflt     string
-	typ      string
-	renderAs string
+	logLevel       string
+	merge          string
+	facts          string
+	dflt           string
+	typ            string
+	renderAs       string
+	explainData    bool
+	explainOptions bool
 )
 
 func main() {
@@ -80,7 +84,9 @@ func newCommnand() *cobra.Command {
 	flags.StringVar(&facts, `facts`, ``, `path to a JSON or YAML file that contains key-value mappings to become facts for this lookup`)
 	flags.StringVar(&dflt, `default`, ``, `a value to return if Hiera can't find a value in data`)
 	flags.StringVar(&typ, `type`, `Any`, `assert that the value has the specified type`)
-	flags.StringVar(&renderAs, `render-as`, `yaml`, `s/json/yaml/binary: Specify the output format of the results; s means plain text`)
+	flags.StringVar(&renderAs, `render-as`, ``, `s/json/yaml/binary: Specify the output format of the results; s means plain text`)
+	flags.BoolVar(&explainData, `explain`, false, `Explain the details of how the lookup was performed and where the final value came from (or the reason no value was found)`)
+	flags.BoolVar(&explainOptions, `explain-options`, false, `Explain whether a lookup_options hash affects this lookup, and how that hash was assembled`)
 
 	cmd.SetHelpTemplate(helpTemplate)
 	return cmd
@@ -89,9 +95,8 @@ func newCommnand() *cobra.Command {
 func initialize(_ *cobra.Command, _ []string) {
 	issue.IncludeStacktrace(logLevel == `debug`)
 	hclog.DefaultOptions = &hclog.LoggerOptions{
-		Name:       `lookup`,
-		Level:      hclog.LevelFromString(logLevel),
-		JSONFormat: renderAs == `yaml` || renderAs == `json`,
+		Name:  `lookup`,
+		Level: hclog.LevelFromString(logLevel),
 	}
 }
 
@@ -137,9 +142,32 @@ func lookup(cmd *cobra.Command, args []string) {
 			}
 		}
 
-		found := hiera.Lookup2(internal.NewInvocation(c, scope), args, tp, dv, nil, nil, options, nil)
+		var explainer explain.Explainer
+		if explainData || explainOptions {
+			if renderAs != `` {
+				var ex string
+				if explainData {
+					ex = `explain`
+				} else {
+					ex = `explain-options`
+				}
+				panic(fmt.Errorf(`--render-as is mutually exclusive to --%s`, ex))
+			}
+			explainer = explain.NewExplainer(explainOptions, explainOptions && !explainData)
+		}
+
+		found := hiera.Lookup2(internal.NewInvocation(c, scope, explainer), args, tp, dv, nil, nil, options, nil)
+		if explainer != nil {
+			cmd.Println(explainer)
+			return
+		}
+
 		if found == nil {
 			os.Exit(1)
+		}
+
+		if renderAs == `` {
+			renderAs = `yaml`
 		}
 
 		out := cmd.OutOrStdout()
@@ -173,8 +201,6 @@ func lookup(cmd *cobra.Command, args []string) {
 			}
 		case `s`:
 			cmd.Println(found)
-		default:
-
 		}
 	})
 }

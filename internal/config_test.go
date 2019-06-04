@@ -20,7 +20,7 @@ func TestConfigLookup_default(t *testing.T) {
 	require.NoError(t, err)
 	options := map[string]px.Value{hieraapi.HieraRoot: types.WrapString(filepath.Join(wd, `testdata`, `defaultconfig`))}
 	hiera.DoWithParent(context.Background(), nil, options, func(c px.Context) {
-		require.Equal(t, `value of first`, hiera.Lookup(hiera.NewInvocation(c, px.EmptyMap), `first`, nil, nil).String())
+		require.Equal(t, `value of first`, hiera.Lookup(hiera.NewInvocation(c, px.EmptyMap, nil), `first`, nil, nil).String())
 	})
 }
 
@@ -30,7 +30,7 @@ func TestConfigLookup_lyra_default(t *testing.T) {
 	require.NoError(t, err)
 	options := map[string]px.Value{hieraapi.HieraRoot: types.WrapString(filepath.Join(wd, `testdata`, `defaultlyraconfig`))}
 	hiera.DoWithParent(context.Background(), nil, options, func(c px.Context) {
-		require.Equal(t, `value of first`, hiera.Lookup(hiera.NewInvocation(c, px.EmptyMap), `first`, nil, nil).String())
+		require.Equal(t, `value of first`, hiera.Lookup(hiera.NewInvocation(c, px.EmptyMap, nil), `first`, nil, nil).String())
 	})
 }
 
@@ -69,6 +69,6 @@ func testExplicit(t *testing.T, key, merge, expected string) {
 		luOpts = map[string]px.Value{`merge`: types.WrapString(merge)}
 	}
 	hiera.DoWithParent(context.Background(), nil, options, func(c px.Context) {
-		require.Equal(t, expected, hiera.Lookup(hiera.NewInvocation(c, px.EmptyMap), key, nil, luOpts).String())
+		require.Equal(t, expected, hiera.Lookup(hiera.NewInvocation(c, px.EmptyMap, nil), key, nil, luOpts).String())
 	})
 }

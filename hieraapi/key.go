@@ -13,7 +13,7 @@ type Key interface {
 
 	// Return the result of using this key to dig into the given value. Nil is returned
 	// unless the dig was a success
-	Dig(px.Value) px.Value
+	Dig(Invocation, px.Value) px.Value
 
 	// Bury is the opposite of Dig. It returns the value that represents what would be found
 	// using the root of this key. If this key has one part, the value itself is returned, otherwise

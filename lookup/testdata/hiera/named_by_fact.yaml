@@ -1,1 +1,8 @@
 interpolate_ca: 'This is %{c.a}'
+
+hash:
+  one: overwritten one
+  three:
+    a: overwritten A
+    b: B
+    c: overwritten C

@@ -28,7 +28,7 @@ func ExampleProviderContext_CachedValue() {
 			`a`: `scope 'a'`,
 			`b`: `scope 'b'`,
 		})
-		ic := hiera.NewInvocation(c, s)
+		ic := hiera.NewInvocation(c, s, nil)
 		fmt.Println(hiera.Lookup(ic, `a`, nil, nil))
 		fmt.Println(hiera.Lookup(ic, `b`, nil, nil))
 		fmt.Println(hiera.Lookup(ic, `a`, nil, nil))

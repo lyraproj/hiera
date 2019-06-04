@@ -68,7 +68,7 @@ func init() {
 						options = mergeType(args[2])
 					}
 				}
-				return Lookup2(NewInvocation(c, c.Scope()), luNames(args[0]), vt, nil, nil, nil, options, nil)
+				return Lookup2(NewInvocation(c, c.Scope(), nil), luNames(args[0]), vt, nil, nil, nil, options, nil)
 			})
 		},
 
@@ -83,7 +83,7 @@ func init() {
 					vt = arg.(px.Type)
 				}
 				options := mergeType(args[2])
-				return Lookup2(NewInvocation(c, c.Scope()), luNames(args[0]), vt, args[3], nil, nil, options, nil)
+				return Lookup2(NewInvocation(c, c.Scope(), nil), luNames(args[0]), vt, args[3], nil, nil, options, nil)
 			})
 		},
 
@@ -98,7 +98,7 @@ func init() {
 					vt = arg.(px.Type)
 				}
 				options := mergeType(args[2])
-				return Lookup2(NewInvocation(c, c.Scope()), luNames(args[0]), vt, nil, nil, nil, options, block)
+				return Lookup2(NewInvocation(c, c.Scope(), nil), luNames(args[0]), vt, nil, nil, nil, options, block)
 			})
 		},
 
@@ -113,7 +113,7 @@ func init() {
 				override := hash.Get5(`override`, px.EmptyMap).(px.OrderedMap)
 				dfltHash := hash.Get5(`default_values_hash`, px.EmptyMap).(px.OrderedMap)
 				options := mergeType(hash.Get5(`merge`, px.Undef))
-				return Lookup2(NewInvocation(c, c.Scope()), names, vt, dflt, override, dfltHash, options, block)
+				return Lookup2(NewInvocation(c, c.Scope(), nil), names, vt, dflt, override, dfltHash, options, block)
 			})
 		},
 
@@ -129,7 +129,7 @@ func init() {
 				override := hash.Get5(`override`, px.EmptyMap).(px.OrderedMap)
 				dfltHash := hash.Get5(`default_values_hash`, px.EmptyMap).(px.OrderedMap)
 				options := mergeType(hash.Get5(`merge`, px.Undef))
-				return Lookup2(NewInvocation(c, c.Scope()), names, vt, dflt, override, dfltHash, options, block)
+				return Lookup2(NewInvocation(c, c.Scope(), nil), names, vt, dflt, override, dfltHash, options, block)
 			})
 		},
 	)
