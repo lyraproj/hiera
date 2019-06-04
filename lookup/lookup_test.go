@@ -83,6 +83,7 @@ func TestLookup_explain(t *testing.T) {
         Original path: "named_%{data_file}.yaml"
         Interpolation on "This is %\{c\.a\}"
           Sub key: "a"
+            Found key: "a" value: 'value of c.a'
         Found key: "interpolate_ca" value: 'This is value of c\.a'
     Merged result: 'This is value of c\.a'
 \z`, string(result))
