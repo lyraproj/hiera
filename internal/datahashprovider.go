@@ -42,9 +42,10 @@ func (dh *DataHashProvider) invokeWithLocation(invocation hieraapi.Invocation, l
 
 func (dh *DataHashProvider) lookupKey(invocation hieraapi.Invocation, location hieraapi.Location, root string) px.Value {
 	if value := dh.dataValue(invocation, location, root); value != nil {
-		invocation.ReportFound(value)
+		invocation.ReportFound(root, value)
 		return value
 	}
+	invocation.ReportNotFound(root)
 	return nil
 }
 
@@ -93,7 +94,7 @@ func (dh *DataHashProvider) providerFunction(ic hieraapi.Invocation) (pf hieraap
 				return
 			}
 		} else {
-			ic.Explain(func() string {
+			ic.ReportText(func() string {
 				return fmt.Sprintf(`unresolved function '%s'`, dh.function.Name())
 			})
 			dh.providerFunc = func(pc hieraapi.ProviderContext, options map[string]px.Value) px.OrderedMap {

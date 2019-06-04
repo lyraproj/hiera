@@ -222,15 +222,19 @@ func (hc *hieraCfg) makeDefaultHierarchy() []hieraapi.Entry {
 
 func (hc *hieraCfg) Resolve(ic hieraapi.Invocation) (cfg hieraapi.ResolvedConfig) {
 	r := &resolvedConfig{config: hc}
-	r.Resolve(ic)
+	r.Resolve(ic.ForConfig())
 	cfg = r
 
 	ms := hieraapi.GetMergeStrategy(`deep`, nil)
 	k := newKey(`lookup_options`)
-	v := ms.Lookup(r.Hierarchy(), ic, func(prv interface{}) px.Value {
-		pr := prv.(hieraapi.DataProvider)
-		return pr.UncheckedLookup(k, ic, ms)
+	ic = ic.ForLookupOptions()
+	v := ic.WithLookup(k, func() px.Value {
+		return ms.Lookup(r.Hierarchy(), ic, func(prv interface{}) px.Value {
+			pr := prv.(hieraapi.DataProvider)
+			return pr.UncheckedLookup(k, ic, ms)
+		})
 	})
+
 	if lm, ok := v.(px.OrderedMap); ok {
 		lo := make(map[string]map[string]px.Value, lm.Len())
 		lm.EachPair(func(k, v px.Value) {

@@ -83,10 +83,7 @@ func Lookup2(
 		if ov, ok := override.Get4(name); ok {
 			return ov
 		}
-		key := newKey(name)
-		v := ic.WithKey(key, func() px.Value {
-			return ic.(*invocation).lookupViaCache(key, options)
-		})
+		v := ic.(*invocation).lookupViaCache(newKey(name), options)
 		if v != nil {
 			return v
 		}

@@ -20,35 +20,46 @@ func newKey(str string) hieraapi.Key {
 	return &key{str, parseUnquoted(b, str, str, []interface{}{})}
 }
 
-func (k *key) Dig(v px.Value) px.Value {
-	var ok bool
-	var ix int
-	for i := 1; i < len(k.parts); i++ {
-		p := k.parts[i]
-		switch vc := v.(type) {
-		case *types.Array:
-			if ix, ok = p.(int); ok {
-				if ix >= 0 && ix < vc.Len() {
-					v = vc.At(ix)
-					continue
-				}
-				return nil
-			}
-		case *types.Hash:
-			var kx px.Value
-			if ix, ok = p.(int); ok {
-				kx = types.WrapInteger(int64(ix))
-			} else {
-				kx = types.WrapString(p.(string))
-			}
-			if v, ok = vc.Get(kx); ok {
-				continue
-			}
-			return nil
-		}
-		panic(px.Error(hieraapi.DigMismatch, issue.H{`type`: px.GenericValueType(v), `segment`: p, `key`: k.orig}))
+func (k *key) Dig(ic hieraapi.Invocation, v px.Value) px.Value {
+	t := len(k.parts)
+	if t == 1 {
+		return v
 	}
-	return v
+
+	return ic.WithSubLookup(k, func() px.Value {
+		for i := 1; i < t; i++ {
+			p := k.parts[i]
+			v = ic.WithSegment(p, func() px.Value {
+				switch vc := v.(type) {
+				case *types.Array:
+					if ix, ok := p.(int); ok {
+						if ix >= 0 && ix < vc.Len() {
+							v = vc.At(ix)
+							ic.ReportFound(p, v)
+							return v
+						}
+					}
+				case *types.Hash:
+					var kx px.Value
+					if ix, ok := p.(int); ok {
+						kx = types.WrapInteger(int64(ix))
+					} else {
+						kx = types.WrapString(p.(string))
+					}
+					if v, ok := vc.Get(kx); ok {
+						ic.ReportFound(p, v)
+						return v
+					}
+				}
+				ic.ReportNotFound(p)
+				return nil
+			})
+			if v == nil {
+				break
+			}
+		}
+		return v
+	})
 }
 
 func (k *key) Bury(value px.Value) px.Value {

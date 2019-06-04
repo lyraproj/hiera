@@ -113,7 +113,7 @@ func (c *providerCtx) NotFound() {
 }
 
 func (c *providerCtx) Explain(messageProducer func() string) {
-	c.invocation.Explain(messageProducer)
+	c.invocation.ReportText(messageProducer)
 }
 
 func (c *providerCtx) Cache(key string, value px.Value) px.Value {

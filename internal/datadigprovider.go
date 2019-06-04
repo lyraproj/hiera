@@ -25,22 +25,20 @@ func (dh *DataDigProvider) UncheckedLookup(key hieraapi.Key, invocation hieraapi
 }
 
 func (dh *DataDigProvider) invokeWithLocation(invocation hieraapi.Invocation, location hieraapi.Location, key hieraapi.Key) px.Value {
-	var v px.Value
 	if location == nil {
-		v = dh.lookupKey(invocation, nil, key)
-	} else {
-		v = invocation.WithLocation(location, func() px.Value {
-			if location.Exist() {
-				return dh.lookupKey(invocation, location, key)
-			}
-			invocation.ReportLocationNotFound()
-			return nil
-		})
+		return dh.lookupKey(invocation, nil, key)
 	}
-	if v != nil {
-		v = key.Bury(v)
+	result := invocation.WithLocation(location, func() px.Value {
+		if location.Exist() {
+			return dh.lookupKey(invocation, location, key)
+		}
+		invocation.ReportLocationNotFound()
+		return nil
+	})
+	if result != nil {
+		result = key.Bury(result)
 	}
-	return v
+	return result
 }
 
 func (dh *DataDigProvider) lookupKey(ic hieraapi.Invocation, location hieraapi.Location, key hieraapi.Key) px.Value {
@@ -54,7 +52,9 @@ func (dh *DataDigProvider) lookupKey(ic hieraapi.Invocation, location hieraapi.L
 	cache, _ := dh.hashes.LoadOrStore(cacheKey, &sync.Map{})
 	value := dh.providerFunction(ic)(newProviderContext(ic, cache.(*sync.Map)), key, opts)
 	if value != nil {
-		ic.ReportFound(value)
+		ic.ReportFound(key.String(), value)
+	} else {
+		ic.ReportNotFound(key)
 	}
 	return value
 }
@@ -69,7 +69,7 @@ func (dh *DataDigProvider) providerFunction(ic hieraapi.Invocation) (pf hieraapi
 				return f.(px.Function).Call(ic, nil, []px.Value{pc, px.Wrap(ic, key.Parts()), px.Wrap(ic, options)}...)
 			}
 		} else {
-			ic.Explain(func() string {
+			ic.ReportText(func() string {
 				return fmt.Sprintf(`unresolved function '%s'`, n)
 			})
 			dh.providerFunc = func(pc hieraapi.ProviderContext, key hieraapi.Key, options map[string]px.Value) px.Value {

@@ -31,7 +31,6 @@ func getMergeStrategy(n string, opts map[string]px.Value) hieraapi.MergeStrategy
 }
 
 type merger interface {
-	issue.Labeled
 	hieraapi.MergeStrategy
 
 	merge(a, b px.Value) px.Value
@@ -61,8 +60,8 @@ func doLookup(s merger, vs interface{}, ic hieraapi.Invocation, vf func(l interf
 	case 1:
 		return s.mergeSingle(vsr.Index(0), vf)
 	default:
-		var memo px.Value
-		ic.WithExplanationContext(s.Label(), func() {
+		return ic.WithMerge(s, func() px.Value {
+			var memo px.Value
 			for idx := 0; idx < top; idx++ {
 				v := variantLookup(vsr.Index(idx), vf)
 				if v != nil {
@@ -74,10 +73,10 @@ func doLookup(s merger, vs interface{}, ic hieraapi.Invocation, vf func(l interf
 				}
 			}
 			if memo != nil {
-				ic.ReportFound(memo)
+				ic.ReportMergeResult(memo)
 			}
+			return memo
 		})
-		return memo
 	}
 }
 
@@ -105,7 +104,7 @@ func (d *firstFound) Lookup(vs interface{}, ic hieraapi.Invocation, f func(locat
 		return variantLookup(vsr.Index(0), f)
 	default:
 		var v px.Value
-		ic.WithExplanationContext(d.Label(), func() {
+		return ic.WithMerge(d, func() px.Value {
 			for idx := 0; idx < top; idx++ {
 				v = variantLookup(vsr.Index(idx), f)
 				if v != nil {
@@ -113,11 +112,15 @@ func (d *firstFound) Lookup(vs interface{}, ic hieraapi.Invocation, f func(locat
 				}
 			}
 			if v != nil {
-				ic.ReportFound(v)
+				ic.ReportMergeResult(v)
 			}
+			return v
 		})
-		return v
 	}
+}
+
+func (d *firstFound) Options() px.OrderedMap {
+	return px.EmptyMap
 }
 
 func (d *firstFound) mergeSingle(v reflect.Value, vf func(l interface{}) px.Value) px.Value {
@@ -138,6 +141,10 @@ func (d *unique) Label() string {
 
 func (d *unique) Lookup(vs interface{}, ic hieraapi.Invocation, f func(location interface{}) px.Value) px.Value {
 	return doLookup(d, vs, ic, f)
+}
+
+func (d *unique) Options() px.OrderedMap {
+	return px.EmptyMap
 }
 
 func (d *unique) mergeSingle(rv reflect.Value, vf func(l interface{}) px.Value) px.Value {
@@ -167,6 +174,13 @@ func (d *deepMerge) Lookup(vs interface{}, ic hieraapi.Invocation, f func(locati
 	return doLookup(d, vs, ic, f)
 }
 
+func (d *deepMerge) Options() px.OrderedMap {
+	if len(d.opts) > 0 {
+		return types.WrapStringToValueMap(d.opts)
+	}
+	return px.EmptyMap
+}
+
 func (d *deepMerge) mergeSingle(v reflect.Value, vf func(l interface{}) px.Value) px.Value {
 	return variantLookup(v, vf)
 }
@@ -186,6 +200,10 @@ func (d *hashMerge) Label() string {
 
 func (d *hashMerge) Lookup(vs interface{}, ic hieraapi.Invocation, f func(location interface{}) px.Value) px.Value {
 	return doLookup(d, vs, ic, f)
+}
+
+func (d *hashMerge) Options() px.OrderedMap {
+	return px.EmptyMap
 }
 
 func (d *hashMerge) mergeSingle(v reflect.Value, vf func(l interface{}) px.Value) px.Value {

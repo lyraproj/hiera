@@ -1,6 +1,8 @@
 package internal
 
 import (
+	"github.com/hashicorp/go-hclog"
+	"github.com/lyraproj/hiera/explain"
 	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
 )
@@ -27,6 +29,13 @@ func mergeType(nameOrHash px.Value) (merge map[string]px.Value) {
 		merge = map[string]px.Value{`merge`: nameOrHash}
 	}
 	return
+}
+
+func debugExplainer() explain.Explainer {
+	if hclog.Default().IsDebug() {
+		return explain.NewExplainer(false, false)
+	}
+	return nil
 }
 
 func init() {
@@ -60,15 +69,15 @@ func init() {
 			d.OptionalParam(`MergeType`)
 			d.Function(func(c px.Context, args []px.Value) px.Value {
 				vt := px.Type(types.DefaultAnyType())
-				var options map[string]px.Value
+				options := px.Undef
 				argc := len(args)
 				if argc > 1 {
 					vt = args[1].(px.Type)
 					if argc > 2 {
-						options = mergeType(args[2])
+						options = args[2]
 					}
 				}
-				return Lookup2(NewInvocation(c, c.Scope()), luNames(args[0]), vt, nil, nil, nil, options, nil)
+				return invokeLookup(c, luNames(args[0]), vt, nil, nil, nil, options, nil)
 			})
 		},
 
@@ -82,8 +91,7 @@ func init() {
 				if arg := args[1]; arg != px.Undef {
 					vt = arg.(px.Type)
 				}
-				options := mergeType(args[2])
-				return Lookup2(NewInvocation(c, c.Scope()), luNames(args[0]), vt, args[3], nil, nil, options, nil)
+				return invokeLookup(c, luNames(args[0]), vt, args[3], nil, nil, args[2], nil)
 			})
 		},
 
@@ -97,8 +105,7 @@ func init() {
 				if arg := args[1]; arg != px.Undef {
 					vt = arg.(px.Type)
 				}
-				options := mergeType(args[2])
-				return Lookup2(NewInvocation(c, c.Scope()), luNames(args[0]), vt, nil, nil, nil, options, block)
+				return invokeLookup(c, luNames(args[0]), vt, nil, nil, nil, args[2], block)
 			})
 		},
 
@@ -112,8 +119,7 @@ func init() {
 				vt := hash.Get5(`value_type`, types.DefaultAnyType()).(px.Type)
 				override := hash.Get5(`override`, px.EmptyMap).(px.OrderedMap)
 				dfltHash := hash.Get5(`default_values_hash`, px.EmptyMap).(px.OrderedMap)
-				options := mergeType(hash.Get5(`merge`, px.Undef))
-				return Lookup2(NewInvocation(c, c.Scope()), names, vt, dflt, override, dfltHash, options, block)
+				return invokeLookup(c, names, vt, dflt, override, dfltHash, hash.Get5(`merge`, px.Undef), block)
 			})
 		},
 
@@ -128,9 +134,17 @@ func init() {
 				vt := hash.Get5(`value_type`, types.DefaultAnyType()).(px.Type)
 				override := hash.Get5(`override`, px.EmptyMap).(px.OrderedMap)
 				dfltHash := hash.Get5(`default_values_hash`, px.EmptyMap).(px.OrderedMap)
-				options := mergeType(hash.Get5(`merge`, px.Undef))
-				return Lookup2(NewInvocation(c, c.Scope()), names, vt, dflt, override, dfltHash, options, block)
+				return invokeLookup(c, names, vt, dflt, override, dfltHash, hash.Get5(`merge`, px.Undef), block)
 			})
 		},
 	)
+}
+
+func invokeLookup(c px.Context, names []string, vt px.Type, dflt px.Value, override, dfltHash px.OrderedMap, options px.Value, block px.Lambda) px.Value {
+	ex := debugExplainer()
+	v := Lookup2(NewInvocation(c, c.Scope(), ex), names, vt, dflt, override, dfltHash, mergeType(options), block)
+	if ex != nil {
+		hclog.Default().Debug(ex.String())
+	}
+	return v
 }

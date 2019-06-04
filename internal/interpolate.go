@@ -96,59 +96,59 @@ func getMethodAndData(expr string, allowMethods bool) (int, string) {
 	return scopeMethod, expr
 }
 
-func interpolateString(ic hieraapi.Invocation, str string, allowMethods bool) (result px.Value, changed bool) {
-	changed = false
+func interpolateString(ic hieraapi.Invocation, str string, allowMethods bool) (px.Value, bool) {
 	if !strings.Contains(str, `%{`) {
-		result = types.WrapString(str)
-		return
+		return types.WrapString(str), false
 	}
-	str = iplPattern.ReplaceAllStringFunc(str, func(match string) string {
-		expr := strings.TrimSpace(match[2 : len(match)-1])
-		if emptyInterpolations[expr] {
-			return ``
-		}
-		var methodKey int
-		methodKey, expr = getMethodAndData(expr, allowMethods)
-		if methodKey == aliasMethod && match != str {
-			panic(px.Error(hieraapi.InterpolationAliasNotEntireString, issue.NoArgs))
-		}
 
-		switch methodKey {
-		case literalMethod:
-			return expr
-		case scopeMethod:
-			key := newKey(expr)
-			if val, ok := ic.Scope().Get(types.WrapString(key.Root())); ok {
-				val, _ = doInterpolate(ic, val, allowMethods)
-				val = key.Dig(val)
-				if val == nil {
+	return ic.WithInterpolation(str, func() px.Value {
+		var result px.Value
+		str = iplPattern.ReplaceAllStringFunc(str, func(match string) string {
+			expr := strings.TrimSpace(match[2 : len(match)-1])
+			if emptyInterpolations[expr] {
+				return ``
+			}
+			var methodKey int
+			methodKey, expr = getMethodAndData(expr, allowMethods)
+			if methodKey == aliasMethod && match != str {
+				panic(px.Error(hieraapi.InterpolationAliasNotEntireString, issue.NoArgs))
+			}
+
+			switch methodKey {
+			case literalMethod:
+				return expr
+			case scopeMethod:
+				key := newKey(expr)
+				if val, ok := ic.Scope().Get(types.WrapString(key.Root())); ok {
+					val, _ = doInterpolate(ic, val, allowMethods)
+					val = key.Dig(ic, val)
+					if val == nil {
+						return ``
+					}
+					return val.String()
+				}
+				return ``
+			default:
+				val := Lookup(ic, expr, px.Undef, nil)
+				if methodKey == aliasMethod {
+					result = val
 					return ``
 				}
 				return val.String()
 			}
-			return ``
-		default:
-			val := Lookup(ic, expr, px.Undef, nil)
-			if methodKey == aliasMethod {
-				result = val
-				return ``
-			}
-			return val.String()
+		})
+		if result == nil {
+			result = types.WrapString(str)
 		}
-	})
-	changed = true
-	if result == nil {
-		result = types.WrapString(str)
-	}
-	return
-
+		return result
+	}), true
 }
 
 func resolveInScope(ic hieraapi.Invocation, expr string, allowMethods bool) px.Value {
 	key := newKey(expr)
 	if val, ok := ic.Scope().Get(types.WrapString(key.Root())); ok {
 		val, _ = doInterpolate(ic, val, allowMethods)
-		return key.Dig(val)
+		return key.Dig(ic, val)
 	}
 	return nil
 }

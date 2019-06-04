@@ -17,7 +17,7 @@ type ProviderContext interface {
 	// Lookup logic. There is no return from this method.
 	NotFound()
 
-	// Explain will add the message returned by the given function to the
+	// ReportText will add the message returned by the given function to the
 	// lookup explainer. The method will only get called when the explanation
 	// support is enabled
 	Explain(messageProducer func() string)

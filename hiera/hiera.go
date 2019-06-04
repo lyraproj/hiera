@@ -3,14 +3,16 @@ package hiera
 import (
 	"context"
 
+	"github.com/lyraproj/hiera/explain"
+
 	"github.com/lyraproj/hiera/hieraapi"
 	"github.com/lyraproj/hiera/internal"
 	"github.com/lyraproj/pcore/pcore"
 	"github.com/lyraproj/pcore/px"
 )
 
-func NewInvocation(c px.Context, scope px.Keyed) hieraapi.Invocation {
-	return internal.NewInvocation(c, scope)
+func NewInvocation(c px.Context, scope px.Keyed, explainer explain.Explainer) hieraapi.Invocation {
+	return internal.NewInvocation(c, scope, explainer)
 }
 
 func Lookup(ic hieraapi.Invocation, name string, dflt px.Value, options map[string]px.Value) px.Value {

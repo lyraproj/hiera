@@ -66,6 +66,134 @@ func TestLookup_fact_interpolated_config(t *testing.T) {
 	})
 }
 
+func TestLookup_explain(t *testing.T) {
+	inTestdata(func() {
+		result, err := executeLookup(`--explain`, `--facts`, `facts.yaml`, `interpolate_ca`)
+		require.NoError(t, err)
+		require.Regexp(t,
+			`\ASearching for "interpolate_ca"
+  Merge strategy "first found strategy"
+    data_hash function 'yaml_data'
+      Path "[^"]*/testdata/hiera/common\.yaml"
+        Original path: "common\.yaml"
+        path not found
+        No such key: "interpolate_ca"
+    data_hash function 'yaml_data'
+      Path "[^"]*/testdata/hiera/named_by_fact\.yaml"
+        Original path: "named_%{data_file}.yaml"
+        Interpolation on "This is %\{c\.a\}"
+          Sub key: "a"
+            Found key: "a" value: 'value of c.a'
+        Found key: "interpolate_ca" value: 'This is value of c\.a'
+    Merged result: 'This is value of c\.a'
+\z`, string(result))
+	})
+}
+
+func TestLookup_explain_options(t *testing.T) {
+	inTestdata(func() {
+		result, err := executeLookup(`--explain-options`, `--facts`, `facts.yaml`, `hash`)
+		require.NoError(t, err)
+		require.Regexp(t,
+			`\ASearching for "lookup_options"
+  Merge strategy "deep merge strategy"
+    data_hash function 'yaml_data'
+      Path "[^"]*/testdata/hiera/common\.yaml"
+        Original path: "common\.yaml"
+        Found key: "lookup_options" value: \{
+          'hash' => \{
+            'merge' => 'deep'
+          \},
+          'sense' => \{
+            'convert_to' => 'Sensitive'
+          \}
+        \}
+    data_hash function 'yaml_data'
+      Path "[^"]*/testdata/hiera/named_by_fact\.yaml"
+        Original path: "named_%\{data_file\}\.yaml"
+        path not found
+        No such key: "lookup_options"
+    Merged result: \{
+        'hash' => \{
+          'merge' => 'deep'
+        \},
+        'sense' => \{
+          'convert_to' => 'Sensitive'
+        \}
+      \}
+\z`, string(result))
+	})
+}
+
+func TestLookup_explain_explain_options(t *testing.T) {
+	inTestdata(func() {
+		result, err := executeLookup(`--explain`, `--explain-options`, `--facts`, `facts.yaml`, `hash`)
+		require.NoError(t, err)
+		require.Regexp(t,
+			`\ASearching for "lookup_options"
+  Merge strategy "deep merge strategy"
+    data_hash function 'yaml_data'
+      Path "[^"]*/testdata/hiera/common\.yaml"
+        Original path: "common\.yaml"
+        Found key: "lookup_options" value: \{
+          'hash' => \{
+            'merge' => 'deep'
+          \},
+          'sense' => \{
+            'convert_to' => 'Sensitive'
+          \}
+        \}
+    data_hash function 'yaml_data'
+      Path "[^"]*/testdata/hiera/named_by_fact\.yaml"
+        Original path: "named_%\{data_file\}\.yaml"
+        path not found
+        No such key: "lookup_options"
+    Merged result: \{
+        'hash' => \{
+          'merge' => 'deep'
+        \},
+        'sense' => \{
+          'convert_to' => 'Sensitive'
+        \}
+      \}
+Searching for "hash"
+  Using merge options from "lookup_options" hash
+  Merge strategy "deep merge strategy"
+    data_hash function 'yaml_data'
+      Path "[^"]*/testdata/hiera/common\.yaml"
+        Original path: "common\.yaml"
+        Found key: "hash" value: \{
+          'one' => 1,
+          'two' => 'two',
+          'three' => \{
+            'a' => 'A',
+            'c' => 'C'
+          \}
+        \}
+    data_hash function 'yaml_data'
+      Path "[^"]*/testdata/hiera/named_by_fact\.yaml"
+        Original path: "named_%\{data_file\}\.yaml"
+        Found key: "hash" value: \{
+          'one' => 'overwritten one',
+          'three' => \{
+            'a' => 'overwritten A',
+            'b' => 'B',
+            'c' => 'overwritten C'
+          \}
+        \}
+    Merged result: \{
+        'one' => 1,
+        'two' => 'two',
+        'three' => \{
+          'a' => 'A',
+          'c' => 'C',
+          'b' => 'B'
+        \}
+      \}
+\z`, string(result))
+	})
+}
+
 func inTestdata(f func()) {
 	cw, err := os.Getwd()
 	if err == nil {
