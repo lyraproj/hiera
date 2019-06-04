@@ -34,7 +34,9 @@ func (k *key) Dig(ic hieraapi.Invocation, v px.Value) px.Value {
 				case *types.Array:
 					if ix, ok := p.(int); ok {
 						if ix >= 0 && ix < vc.Len() {
-							return vc.At(ix)
+							v = vc.At(ix)
+							ic.ReportFound(p, v)
+							return v
 						}
 					}
 				case *types.Hash:
@@ -45,6 +47,7 @@ func (k *key) Dig(ic hieraapi.Invocation, v px.Value) px.Value {
 						kx = types.WrapString(p.(string))
 					}
 					if v, ok := vc.Get(kx); ok {
+						ic.ReportFound(p, v)
 						return v
 					}
 				}

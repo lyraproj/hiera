@@ -69,7 +69,7 @@ func init() {
 			d.OptionalParam(`MergeType`)
 			d.Function(func(c px.Context, args []px.Value) px.Value {
 				vt := px.Type(types.DefaultAnyType())
-				var options px.Value
+				options := px.Undef
 				argc := len(args)
 				if argc > 1 {
 					vt = args[1].(px.Type)
