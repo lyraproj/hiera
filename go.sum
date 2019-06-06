@@ -19,10 +19,10 @@ github.com/inconshreveable/mousetrap v1.0.0 h1:Z8tu5sraLXCXIcARxBp/8cbvlwVa7Z1NH
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
 github.com/lyraproj/data-protobuf v0.0.0-20190329160005-a909d9e1f93b h1:qGgMkFUQVnT5qjIKV4MB0j6RkRBVSZvhuD35vsnvglI=
 github.com/lyraproj/data-protobuf v0.0.0-20190329160005-a909d9e1f93b/go.mod h1:oQIFBu0fmkiSpSRROEgK5gnjQ/ZDrx3UdpRpT3791Gg=
-github.com/lyraproj/issue v0.0.0-20190513084509-faf9b542f594 h1:IcsHRQ3xzCIcK0eXpot8IYgEyUQPEFHmFErZwJcsDqk=
-github.com/lyraproj/issue v0.0.0-20190513084509-faf9b542f594/go.mod h1:jqRRmAiVqjTehhncbKJPoC2AFoxxkritzzlfWioTa00=
-github.com/lyraproj/pcore v0.0.0-20190604153946-03f706b24291 h1:XrveF2dlFKU7Ngi0rF1kyHPGRAyMZDerAl9y9peA0ps=
-github.com/lyraproj/pcore v0.0.0-20190604153946-03f706b24291/go.mod h1:ZnU8IagnqPnmjQDz2DiQaQvkKZVYpdePETJpOY8BAo0=
+github.com/lyraproj/issue v0.0.0-20190606092846-e082d6813d15 h1:e1uefKgfSdC7uaYG9ipIZcpY+2gyefCYXQwsrWSdJLw=
+github.com/lyraproj/issue v0.0.0-20190606092846-e082d6813d15/go.mod h1:jqRRmAiVqjTehhncbKJPoC2AFoxxkritzzlfWioTa00=
+github.com/lyraproj/pcore v0.0.0-20190606102217-7824aee25201 h1:KlTHcsEPuRXi/cXY2OuK6tPUiGmO2HzgqAbd4UF7niA=
+github.com/lyraproj/pcore v0.0.0-20190606102217-7824aee25201/go.mod h1:yqZNNXXw/2It5Jh2Vc+g93Qm+1q6EklXJ0t/xqNNBV8=
 github.com/lyraproj/semver v0.0.0-20181213164306-02ecea2cd6a2 h1:vb4PbiMtIXdhsOUinkkcqZiASDIZzXRhSG4yvNfE0tg=
 github.com/lyraproj/semver v0.0.0-20181213164306-02ecea2cd6a2/go.mod h1:KOdZKnEBdDb2iGPUnHiKpk3M5cvv949xMyj8XPqaMF0=
 github.com/magiconair/properties v1.8.0/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=
