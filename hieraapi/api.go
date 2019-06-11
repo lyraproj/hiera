@@ -119,6 +119,9 @@ type Invocation interface {
 
 	WithSubLookup(key Key, f px.Producer) px.Value
 
+	// ExplainMode returns true if explain support is active
+	ExplainMode() bool
+
 	// ForConfig returns an Invocation that without explainer support
 	ForConfig() Invocation
 

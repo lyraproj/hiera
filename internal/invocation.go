@@ -149,6 +149,10 @@ func (ic *invocation) Config() (conf hieraapi.ResolvedConfig) {
 	return
 }
 
+func (ic *invocation) ExplainMode() bool {
+	return ic.explainer != nil
+}
+
 func (ic *invocation) lookupViaCache(key hieraapi.Key, options map[string]px.Value) px.Value {
 	rootKey := key.Root()
 	if rootKey == `lookup_options` {
