@@ -5,3 +5,5 @@ c:
   b: value of c.b
 
 data_file: by_fact
+
+the_fact: value of the_fact
