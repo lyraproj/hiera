@@ -52,6 +52,7 @@ var (
 	logLevel       string
 	merge          string
 	facts          string
+	config         string
 	dflt           string
 	typ            string
 	renderAs       string
@@ -60,7 +61,7 @@ var (
 )
 
 func main() {
-	cmd := newCommnand()
+	cmd := newCommand()
 	err := cmd.Execute()
 	if err != nil {
 		fmt.Println(cmd.OutOrStderr(), err)
@@ -68,7 +69,7 @@ func main() {
 	}
 }
 
-func newCommnand() *cobra.Command {
+func newCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "lookup <key> [<key> ...]",
 		Short:   `Lookup - Perform lookups in Hiera data storage`,
@@ -81,6 +82,7 @@ func newCommnand() *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringVar(&logLevel, `loglevel`, `error`, `error/warn/info/debug`)
 	flags.StringVar(&merge, `merge`, `first`, `first/unique/hash/deep`)
+	flags.StringVar(&config, `config`, ``, `path to the hiera config file. Overrides <current directory>/hiera.yaml`)
 	flags.StringVar(&facts, `facts`, ``, `path to a JSON or YAML file that contains key-value mappings to become facts for this lookup`)
 	flags.StringVar(&dflt, `default`, ``, `a value to return if Hiera can't find a value in data`)
 	flags.StringVar(&typ, `type`, `Any`, `assert that the value has the specified type`)
@@ -103,6 +105,10 @@ func initialize(_ *cobra.Command, _ []string) {
 func lookup(cmd *cobra.Command, args []string) {
 	configOptions := map[string]px.Value{
 		provider.LookupProvidersKey: types.WrapRuntime([]hieraapi.LookupKey{provider.ConfigLookupKey, provider.Environment})}
+
+	if config != `` {
+		configOptions[hieraapi.HieraConfig] = types.WrapString(config)
+	}
 
 	hiera.DoWithParent(context.Background(), provider.MuxLookupKey, configOptions, func(c px.Context) {
 		defer func() {

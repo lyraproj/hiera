@@ -211,7 +211,7 @@ func inTestdata(f func()) {
 }
 
 func executeLookup(args ...string) (output []byte, err error) {
-	cmd := newCommnand()
+	cmd := newCommand()
 	buf := new(bytes.Buffer)
 	cmd.SetOutput(buf)
 	cmd.SetArgs(args)
