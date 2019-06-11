@@ -21,9 +21,16 @@ type DataHashProvider struct {
 
 func (dh *DataHashProvider) UncheckedLookup(key hieraapi.Key, invocation hieraapi.Invocation, merge hieraapi.MergeStrategy) px.Value {
 	return invocation.WithDataProvider(dh, func() px.Value {
-		return merge.Lookup(dh.locations, invocation, func(location interface{}) px.Value {
-			return dh.invokeWithLocation(invocation, location.(hieraapi.Location), key.Root())
-		})
+		switch len(dh.locations) {
+		case 0:
+			return dh.invokeWithLocation(invocation, nil, key.Root())
+		case 1:
+			return dh.invokeWithLocation(invocation, dh.locations[0], key.Root())
+		default:
+			return merge.Lookup(dh.locations, invocation, func(location interface{}) px.Value {
+				return dh.invokeWithLocation(invocation, location.(hieraapi.Location), key.Root())
+			})
+		}
 	})
 }
 

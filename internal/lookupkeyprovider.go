@@ -20,9 +20,16 @@ type LookupKeyProvider struct {
 
 func (dh *LookupKeyProvider) UncheckedLookup(key hieraapi.Key, invocation hieraapi.Invocation, merge hieraapi.MergeStrategy) px.Value {
 	return invocation.WithDataProvider(dh, func() px.Value {
-		return merge.Lookup(dh.locations, invocation, func(location interface{}) px.Value {
-			return dh.invokeWithLocation(invocation, location.(hieraapi.Location), key.Root())
-		})
+		switch len(dh.locations) {
+		case 0:
+			return dh.invokeWithLocation(invocation, nil, key.Root())
+		case 1:
+			return dh.invokeWithLocation(invocation, dh.locations[0], key.Root())
+		default:
+			return merge.Lookup(dh.locations, invocation, func(location interface{}) px.Value {
+				return dh.invokeWithLocation(invocation, location.(hieraapi.Location), key.Root())
+			})
+		}
 	})
 }
 
@@ -62,9 +69,10 @@ func (dh *LookupKeyProvider) providerFunction(ic hieraapi.Invocation) (pf hieraa
 		n := dh.function.Name()
 		if n == `environment` {
 			dh.providerFunc = provider.Environment
-		}
-		// Load lookup provider function using the standard loader
-		if f, ok := px.Load(ic, px.NewTypedName(px.NsFunction, n)); ok {
+		} else if n == `scope` {
+			dh.providerFunc = provider.ScopeLookupKey
+		} else if f, ok := px.Load(ic, px.NewTypedName(px.NsFunction, n)); ok {
+			// Load lookup provider function using the standard loader
 			dh.providerFunc = func(pc hieraapi.ProviderContext, key string, options map[string]px.Value) px.Value {
 				defer catchNotFound()
 				return f.(px.Function).Call(ic, nil, []px.Value{pc, types.WrapString(key), px.Wrap(ic, options)}...)
