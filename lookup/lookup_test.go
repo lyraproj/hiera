@@ -66,6 +66,14 @@ func TestLookup_fact_interpolated_config(t *testing.T) {
 	})
 }
 
+func TestLookup_fact_directly(t *testing.T) {
+	inTestdata(func() {
+		result, err := executeLookup(`--facts`, `facts.yaml`, `--config`, `fact_directly.yaml`, `the_fact`)
+		require.NoError(t, err)
+		require.Equal(t, "value of the_fact\n", string(result))
+	})
+}
+
 func TestLookup_explain(t *testing.T) {
 	inTestdata(func() {
 		result, err := executeLookup(`--explain`, `--facts`, `facts.yaml`, `interpolate_ca`)
@@ -211,7 +219,7 @@ func inTestdata(f func()) {
 }
 
 func executeLookup(args ...string) (output []byte, err error) {
-	cmd := newCommnand()
+	cmd := newCommand()
 	buf := new(bytes.Buffer)
 	cmd.SetOutput(buf)
 	cmd.SetArgs(args)

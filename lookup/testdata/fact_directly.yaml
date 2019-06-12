@@ -1,0 +1,9 @@
+version: 5
+
+# Hierarchy that contains the "scope" lookup_key function. That function finds scope
+# variables directly
+hierarchy:
+  - name: Scope
+    lookup_key: scope
+  - name: Common
+    path: common.yaml

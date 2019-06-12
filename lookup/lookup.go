@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 
@@ -18,9 +17,7 @@ import (
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
-	"github.com/lyraproj/pcore/utils"
 	"github.com/spf13/cobra"
-	yl "gopkg.in/yaml.v3"
 )
 
 var helpTemplate = `Description:
@@ -52,6 +49,7 @@ var (
 	logLevel       string
 	merge          string
 	facts          string
+	config         string
 	dflt           string
 	typ            string
 	renderAs       string
@@ -60,7 +58,7 @@ var (
 )
 
 func main() {
-	cmd := newCommnand()
+	cmd := newCommand()
 	err := cmd.Execute()
 	if err != nil {
 		fmt.Println(cmd.OutOrStderr(), err)
@@ -68,7 +66,7 @@ func main() {
 	}
 }
 
-func newCommnand() *cobra.Command {
+func newCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "lookup <key> [<key> ...]",
 		Short:   `Lookup - Perform lookups in Hiera data storage`,
@@ -81,6 +79,7 @@ func newCommnand() *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringVar(&logLevel, `loglevel`, `error`, `error/warn/info/debug`)
 	flags.StringVar(&merge, `merge`, `first`, `first/unique/hash/deep`)
+	flags.StringVar(&config, `config`, ``, `path to the hiera config file. Overrides <current directory>/hiera.yaml`)
 	flags.StringVar(&facts, `facts`, ``, `path to a JSON or YAML file that contains key-value mappings to become facts for this lookup`)
 	flags.StringVar(&dflt, `default`, ``, `a value to return if Hiera can't find a value in data`)
 	flags.StringVar(&typ, `type`, `Any`, `assert that the value has the specified type`)
@@ -103,6 +102,10 @@ func initialize(_ *cobra.Command, _ []string) {
 func lookup(cmd *cobra.Command, args []string) {
 	configOptions := map[string]px.Value{
 		provider.LookupProvidersKey: types.WrapRuntime([]hieraapi.LookupKey{provider.ConfigLookupKey, provider.Environment})}
+
+	if config != `` {
+		configOptions[hieraapi.HieraConfig] = types.WrapString(config)
+	}
 
 	hiera.DoWithParent(context.Background(), provider.MuxLookupKey, configOptions, func(c px.Context) {
 		defer func() {
@@ -169,38 +172,6 @@ func lookup(cmd *cobra.Command, args []string) {
 		if renderAs == `` {
 			renderAs = `yaml`
 		}
-
-		out := cmd.OutOrStdout()
-		switch renderAs {
-		case `yaml`, `json`:
-			var v interface{}
-			if !found.Equals(px.Undef, nil) {
-				rf := c.Reflector().Reflect(found)
-				if rf.IsValid() && rf.CanInterface() {
-					v = rf.Interface()
-				} else {
-					v = found.String()
-				}
-			}
-			var bs []byte
-			var err error
-			if renderAs == `yaml` {
-				bs, err = yl.Marshal(v)
-			} else {
-				bs, err = json.Marshal(v)
-			}
-			if err != nil {
-				panic(err)
-			}
-			utils.WriteString(out, string(bs))
-		case `binary`:
-			bi := types.CoerceTo(c, `lookup value`, types.DefaultBinaryType(), found).(*types.Binary)
-			_, err := out.Write(bi.Bytes())
-			if err != nil {
-				panic(err)
-			}
-		case `s`:
-			cmd.Println(found)
-		}
+		hiera.Render(c, renderAs, found, cmd.OutOrStdout())
 	})
 }

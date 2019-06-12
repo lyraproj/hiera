@@ -18,9 +18,16 @@ type DataDigProvider struct {
 
 func (dh *DataDigProvider) UncheckedLookup(key hieraapi.Key, invocation hieraapi.Invocation, merge hieraapi.MergeStrategy) px.Value {
 	return invocation.WithDataProvider(dh, func() px.Value {
-		return merge.Lookup(dh.locations, invocation, func(location interface{}) px.Value {
-			return dh.invokeWithLocation(invocation, location.(hieraapi.Location), key)
-		})
+		switch len(dh.locations) {
+		case 0:
+			return dh.invokeWithLocation(invocation, nil, key)
+		case 1:
+			return dh.invokeWithLocation(invocation, dh.locations[0], key)
+		default:
+			return merge.Lookup(dh.locations, invocation, func(location interface{}) px.Value {
+				return dh.invokeWithLocation(invocation, location.(hieraapi.Location), key)
+			})
+		}
 	})
 }
 

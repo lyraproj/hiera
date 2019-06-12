@@ -17,6 +17,10 @@ const HieraConfigFileName = `Hiera::ConfigFileName`
 // HieraRoot and HieraConfigFileName will not have any effect.
 const HieraConfig = `Hiera::Config`
 
+// HieraScope is an option that can be used to pass a variable scope to Hiera. This scope is used
+// by the 'scope' lookup_key provider function and when doing variable interpolations
+const HieraScope = `Hiera::Scope`
+
 const KindDataDig = Kind(`data_dig`)
 const KindDataHash = Kind(`data_hash`)
 const KindLookupKey = Kind(`lookup_key`)
@@ -118,6 +122,9 @@ type Invocation interface {
 	WithSegment(seg interface{}, f px.Producer) px.Value
 
 	WithSubLookup(key Key, f px.Producer) px.Value
+
+	// ExplainMode returns true if explain support is active
+	ExplainMode() bool
 
 	// ForConfig returns an Invocation that without explainer support
 	ForConfig() Invocation

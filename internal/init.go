@@ -97,7 +97,7 @@ func Lookup2(
 		}
 	}
 
-	if defaultValue == nil {
+	if defaultValue == nil && !ic.ExplainMode() {
 		// nil (as opposed to UNDEF) means that no default was provided.
 		if len(names) == 1 {
 			panic(px.Error(hieraapi.NameNotFound, issue.H{`name`: names[0]}))
