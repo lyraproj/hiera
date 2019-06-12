@@ -72,13 +72,43 @@ func InitContext(c px.Context, topProvider hieraapi.LookupKey, options map[strin
 	}
 }
 
+type nestedScope struct {
+	parentScope px.Keyed
+	scope       px.Keyed
+}
+
+func (ns *nestedScope) Get(key px.Value) (px.Value, bool) {
+	v, ok := ns.scope.Get(key)
+	if !ok {
+		v, ok = ns.parentScope.Get(key)
+	}
+	return v, ok
+}
+
 func NewInvocation(c px.Context, scope px.Keyed, explainer explain.Explainer) hieraapi.Invocation {
-	return &invocation{
+	options := globalOptions(c)
+	if gs, ok := options[hieraapi.HieraScope]; ok {
+		var globalScope px.Keyed
+		if globalScope, ok = gs.(px.Keyed); ok {
+			if scope != nil {
+				scope = &nestedScope{globalScope, scope}
+			} else {
+				scope = globalScope
+			}
+		}
+	}
+	if scope == nil {
+		scope = px.EmptyMap
+	}
+
+	ic := &invocation{
 		Context:    c,
 		nameStack:  []string{},
 		scope:      scope,
-		configPath: globalOptions(c)[hieraapi.HieraConfig].String(),
+		configPath: options[hieraapi.HieraConfig].String(),
 		explainer:  explainer}
+
+	return ic
 }
 
 func (ic *invocation) topProvider() hieraapi.LookupKey {

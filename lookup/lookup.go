@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 
@@ -18,9 +17,7 @@ import (
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
-	"github.com/lyraproj/pcore/utils"
 	"github.com/spf13/cobra"
-	yl "gopkg.in/yaml.v3"
 )
 
 var helpTemplate = `Description:
@@ -175,38 +172,6 @@ func lookup(cmd *cobra.Command, args []string) {
 		if renderAs == `` {
 			renderAs = `yaml`
 		}
-
-		out := cmd.OutOrStdout()
-		switch renderAs {
-		case `yaml`, `json`:
-			var v interface{}
-			if !found.Equals(px.Undef, nil) {
-				rf := c.Reflector().Reflect(found)
-				if rf.IsValid() && rf.CanInterface() {
-					v = rf.Interface()
-				} else {
-					v = found.String()
-				}
-			}
-			var bs []byte
-			var err error
-			if renderAs == `yaml` {
-				bs, err = yl.Marshal(v)
-			} else {
-				bs, err = json.Marshal(v)
-			}
-			if err != nil {
-				panic(err)
-			}
-			utils.WriteString(out, string(bs))
-		case `binary`:
-			bi := types.CoerceTo(c, `lookup value`, types.DefaultBinaryType(), found).(*types.Binary)
-			_, err := out.Write(bi.Bytes())
-			if err != nil {
-				panic(err)
-			}
-		case `s`:
-			cmd.Println(found)
-		}
+		hiera.Render(c, renderAs, found, cmd.OutOrStdout())
 	})
 }
