@@ -8,6 +8,11 @@ This module is a "clean-room" Go implementation of the Hiera framework, suitable
 
 ## How to use
 
+Hiera is a go module and go modules must be enabled by setting the environment variable GO111MODULE is on before an
+attempt is made to install:
+
+    export GO111MODULE=on
+
 #### Install the module
 
 To install the module under $GOPATH/src:
