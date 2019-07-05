@@ -15,7 +15,7 @@ func init() {
 	hieraapi.GetMergeStrategy = getMergeStrategy
 }
 
-func getMergeStrategy(n string, opts map[string]px.Value) hieraapi.MergeStrategy {
+func getMergeStrategy(n hieraapi.MergeStrategyName, opts map[string]px.Value) hieraapi.MergeStrategy {
 	switch n {
 	case `first`:
 		return &firstFound{}

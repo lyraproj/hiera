@@ -78,7 +78,7 @@ func ConfigLookupKey(pc hieraapi.ProviderContext, key string, options map[string
 
 		var v px.Value
 		hf := func() {
-			ms := hieraapi.GetMergeStrategy(merge.String(), mergeOpts)
+			ms := hieraapi.GetMergeStrategy(hieraapi.MergeStrategyName(merge.String()), mergeOpts)
 			v = ms.Lookup(cfg.Hierarchy(), ic, func(prv interface{}) px.Value {
 				pr := prv.(hieraapi.DataProvider)
 				return pr.UncheckedLookup(k, ic, ms)

@@ -232,7 +232,7 @@ func (hc *hieraCfg) Resolve(ic hieraapi.Invocation) (cfg hieraapi.ResolvedConfig
 	r.Resolve(ic.ForConfig())
 	cfg = r
 
-	ms := hieraapi.GetMergeStrategy(`deep`, nil)
+	ms := hieraapi.GetMergeStrategy(hieraapi.Deep, nil)
 	k := newKey(`lookup_options`)
 	ic = ic.ForLookupOptions()
 	v := ic.WithLookup(k, func() px.Value {
