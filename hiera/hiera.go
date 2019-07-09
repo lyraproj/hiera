@@ -128,6 +128,7 @@ func LookupAndRender(c px.Context, opts *CommandOptions, args []string, out io.W
 	found := Lookup2(internal.NewInvocation(c, scope, explainer), args, tp, dv, nil, nil, options, nil)
 	if explainer != nil {
 		utils.Fprintln(out, explainer)
+		return found != nil
 	}
 
 	if found == nil {
