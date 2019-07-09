@@ -12,22 +12,22 @@ import (
 )
 
 type DataHashProvider struct {
-	function     hieraapi.Function
-	locations    []hieraapi.Location
-	providerFunc hieraapi.DataHash
-	hashes       map[string]px.OrderedMap
-	hashesLock   sync.RWMutex
+	hierarchyEntry hieraapi.Entry
+	providerFunc   hieraapi.DataHash
+	hashes         map[string]px.OrderedMap
+	hashesLock     sync.RWMutex
 }
 
 func (dh *DataHashProvider) UncheckedLookup(key hieraapi.Key, invocation hieraapi.Invocation, merge hieraapi.MergeStrategy) px.Value {
 	return invocation.WithDataProvider(dh, func() px.Value {
-		switch len(dh.locations) {
+		locations := dh.hierarchyEntry.Locations()
+		switch len(locations) {
 		case 0:
 			return dh.invokeWithLocation(invocation, nil, key.Root())
 		case 1:
-			return dh.invokeWithLocation(invocation, dh.locations[0], key.Root())
+			return dh.invokeWithLocation(invocation, locations[0], key.Root())
 		default:
-			return merge.Lookup(dh.locations, invocation, func(location interface{}) px.Value {
+			return merge.Lookup(locations, invocation, func(location interface{}) px.Value {
 				return dh.invokeWithLocation(invocation, location.(hieraapi.Location), key.Root())
 			})
 		}
@@ -77,7 +77,7 @@ func (dh *DataHashProvider) dataValue(ic hieraapi.Invocation, location hieraapi.
 
 func (dh *DataHashProvider) providerFunction(ic hieraapi.Invocation) (pf hieraapi.DataHash) {
 	if dh.providerFunc == nil {
-		n := dh.function.Name()
+		n := dh.hierarchyEntry.Function().Name()
 		if n == `yaml_data` {
 			// Shortcut. No need to go through pcore calling mechanism
 			dh.providerFunc = provider.YamlData
@@ -90,7 +90,7 @@ func (dh *DataHashProvider) providerFunction(ic hieraapi.Invocation) (pf hieraap
 		}
 
 		// Load lookup provider function using the standard loader
-		if f, ok := px.Load(ic, px.NewTypedName(px.NsFunction, dh.function.Name())); ok {
+		if f, ok := px.Load(ic, px.NewTypedName(px.NsFunction, n)); ok {
 			dh.providerFunc = func(pc hieraapi.ProviderContext, options map[string]px.Value) (value px.OrderedMap) {
 				value = px.EmptyMap
 				defer catchNotFound()
@@ -102,7 +102,7 @@ func (dh *DataHashProvider) providerFunction(ic hieraapi.Invocation) (pf hieraap
 			}
 		} else {
 			ic.ReportText(func() string {
-				return fmt.Sprintf(`unresolved function '%s'`, dh.function.Name())
+				return fmt.Sprintf(`unresolved function '%s'`, n)
 			})
 			dh.providerFunc = func(pc hieraapi.ProviderContext, options map[string]px.Value) px.OrderedMap {
 				return px.EmptyMap
@@ -114,10 +114,10 @@ func (dh *DataHashProvider) providerFunction(ic hieraapi.Invocation) (pf hieraap
 
 func (dh *DataHashProvider) dataHash(ic hieraapi.Invocation, location hieraapi.Location) (hash px.OrderedMap) {
 	key := ``
-	opts := NoOptions
+	opts := dh.hierarchyEntry.OptionsMap()
 	if location != nil {
 		key = location.Resolved()
-		opts = map[string]px.Value{`path`: types.WrapString(key)}
+		opts = optionsWithLocation(opts, key)
 	}
 
 	var ok bool
@@ -140,14 +140,23 @@ func (dh *DataHashProvider) dataHash(ic hieraapi.Invocation, location hieraapi.L
 }
 
 func (dh *DataHashProvider) FullName() string {
-	return fmt.Sprintf(`data_hash function '%s'`, dh.function.Name())
+	return fmt.Sprintf(`data_hash function '%s'`, dh.hierarchyEntry.Function().Name())
 }
 
 func newDataHashProvider(he hieraapi.Entry) hieraapi.DataProvider {
 	ls := he.Locations()
-	return &DataHashProvider{
-		function:  he.Function(),
-		locations: ls,
-		hashes:    make(map[string]px.OrderedMap, len(ls)),
+	return &DataHashProvider{hierarchyEntry: he, hashes: make(map[string]px.OrderedMap, len(ls))}
+}
+
+func optionsWithLocation(options map[string]px.Value, loc string) map[string]px.Value {
+	ov := types.WrapString(loc)
+	if len(options) == 0 {
+		return map[string]px.Value{`path`: ov}
 	}
+	newOpts := make(map[string]px.Value, len(options)+1)
+	for k, v := range options {
+		newOpts[k] = v
+	}
+	newOpts[`path`] = ov
+	return newOpts
 }

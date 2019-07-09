@@ -1,0 +1,8 @@
+version: 5
+
+hierarchy:
+  - name: Custom
+    lookup_key: customLK
+    options:
+      a: option a
+      b: option b

@@ -6,25 +6,24 @@ import (
 
 	"github.com/lyraproj/hiera/hieraapi"
 	"github.com/lyraproj/pcore/px"
-	"github.com/lyraproj/pcore/types"
 )
 
 type DataDigProvider struct {
-	function     hieraapi.Function
-	locations    []hieraapi.Location
-	providerFunc hieraapi.DataDig
-	hashes       *sync.Map
+	hierarchyEntry hieraapi.Entry
+	providerFunc   hieraapi.DataDig
+	hashes         *sync.Map
 }
 
 func (dh *DataDigProvider) UncheckedLookup(key hieraapi.Key, invocation hieraapi.Invocation, merge hieraapi.MergeStrategy) px.Value {
 	return invocation.WithDataProvider(dh, func() px.Value {
-		switch len(dh.locations) {
+		locations := dh.hierarchyEntry.Locations()
+		switch len(locations) {
 		case 0:
 			return dh.invokeWithLocation(invocation, nil, key)
 		case 1:
-			return dh.invokeWithLocation(invocation, dh.locations[0], key)
+			return dh.invokeWithLocation(invocation, locations[0], key)
 		default:
-			return merge.Lookup(dh.locations, invocation, func(location interface{}) px.Value {
+			return merge.Lookup(locations, invocation, func(location interface{}) px.Value {
 				return dh.invokeWithLocation(invocation, location.(hieraapi.Location), key)
 			})
 		}
@@ -50,12 +49,11 @@ func (dh *DataDigProvider) invokeWithLocation(invocation hieraapi.Invocation, lo
 
 func (dh *DataDigProvider) lookupKey(ic hieraapi.Invocation, location hieraapi.Location, key hieraapi.Key) px.Value {
 	cacheKey := ``
-	opts := NoOptions
+	opts := dh.hierarchyEntry.OptionsMap()
 	if location != nil {
 		cacheKey = location.Resolved()
-		opts = map[string]px.Value{`path`: types.WrapString(cacheKey)}
+		opts = optionsWithLocation(opts, cacheKey)
 	}
-
 	cache, _ := dh.hashes.LoadOrStore(cacheKey, &sync.Map{})
 	value := dh.providerFunction(ic)(newProviderContext(ic, cache.(*sync.Map)), key, opts)
 	if value != nil {
@@ -68,7 +66,7 @@ func (dh *DataDigProvider) lookupKey(ic hieraapi.Invocation, location hieraapi.L
 
 func (dh *DataDigProvider) providerFunction(ic hieraapi.Invocation) (pf hieraapi.DataDig) {
 	if dh.providerFunc == nil {
-		n := dh.function.Name()
+		n := dh.hierarchyEntry.Function().Name()
 		// Load lookup provider function using the standard loader
 		if f, ok := px.Load(ic, px.NewTypedName(px.NsFunction, n)); ok {
 			dh.providerFunc = func(pc hieraapi.ProviderContext, key hieraapi.Key, options map[string]px.Value) px.Value {
@@ -88,14 +86,9 @@ func (dh *DataDigProvider) providerFunction(ic hieraapi.Invocation) (pf hieraapi
 }
 
 func (dh *DataDigProvider) FullName() string {
-	return fmt.Sprintf(`data_dig function '%s'`, dh.function.Name())
+	return fmt.Sprintf(`data_dig function '%s'`, dh.hierarchyEntry.Function().Name())
 }
 
 func newDataDigProvider(he hieraapi.Entry) hieraapi.DataProvider {
-	ls := he.Locations()
-	return &DataDigProvider{
-		function:  he.Function(),
-		locations: ls,
-		hashes:    &sync.Map{},
-	}
+	return &DataDigProvider{hierarchyEntry: he, hashes: &sync.Map{}}
 }
