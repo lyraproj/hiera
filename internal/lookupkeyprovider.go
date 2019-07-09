@@ -12,21 +12,21 @@ import (
 )
 
 type LookupKeyProvider struct {
-	function     hieraapi.Function
-	locations    []hieraapi.Location
-	providerFunc hieraapi.LookupKey
-	hashes       *sync.Map
+	hierarchyEntry hieraapi.Entry
+	providerFunc   hieraapi.LookupKey
+	hashes         *sync.Map
 }
 
 func (dh *LookupKeyProvider) UncheckedLookup(key hieraapi.Key, invocation hieraapi.Invocation, merge hieraapi.MergeStrategy) px.Value {
 	return invocation.WithDataProvider(dh, func() px.Value {
-		switch len(dh.locations) {
+		locations := dh.hierarchyEntry.Locations()
+		switch len(locations) {
 		case 0:
 			return dh.invokeWithLocation(invocation, nil, key.Root())
 		case 1:
-			return dh.invokeWithLocation(invocation, dh.locations[0], key.Root())
+			return dh.invokeWithLocation(invocation, locations[0], key.Root())
 		default:
-			return merge.Lookup(dh.locations, invocation, func(location interface{}) px.Value {
+			return merge.Lookup(locations, invocation, func(location interface{}) px.Value {
 				return dh.invokeWithLocation(invocation, location.(hieraapi.Location), key.Root())
 			})
 		}
@@ -48,12 +48,11 @@ func (dh *LookupKeyProvider) invokeWithLocation(invocation hieraapi.Invocation, 
 
 func (dh *LookupKeyProvider) lookupKey(ic hieraapi.Invocation, location hieraapi.Location, root string) px.Value {
 	key := ``
-	opts := NoOptions
+	opts := dh.hierarchyEntry.OptionsMap()
 	if location != nil {
 		key = location.Resolved()
-		opts = map[string]px.Value{`path`: types.WrapString(key)}
+		opts = optionsWithLocation(opts, key)
 	}
-
 	cache, _ := dh.hashes.LoadOrStore(key, &sync.Map{})
 	value := dh.providerFunction(ic)(newProviderContext(ic, cache.(*sync.Map)), root, opts)
 	if value != nil {
@@ -66,7 +65,7 @@ func (dh *LookupKeyProvider) lookupKey(ic hieraapi.Invocation, location hieraapi
 
 func (dh *LookupKeyProvider) providerFunction(ic hieraapi.Invocation) (pf hieraapi.LookupKey) {
 	if dh.providerFunc == nil {
-		n := dh.function.Name()
+		n := dh.hierarchyEntry.Function().Name()
 		if n == `environment` {
 			dh.providerFunc = provider.Environment
 		} else if n == `scope` {
@@ -90,14 +89,9 @@ func (dh *LookupKeyProvider) providerFunction(ic hieraapi.Invocation) (pf hieraa
 }
 
 func (dh *LookupKeyProvider) FullName() string {
-	return fmt.Sprintf(`lookup_key function '%s'`, dh.function.Name())
+	return fmt.Sprintf(`lookup_key function '%s'`, dh.hierarchyEntry.Function().Name())
 }
 
 func newLookupKeyProvider(he hieraapi.Entry) hieraapi.DataProvider {
-	ls := he.Locations()
-	return &LookupKeyProvider{
-		function:  he.Function(),
-		locations: ls,
-		hashes:    &sync.Map{},
-	}
+	return &LookupKeyProvider{hierarchyEntry: he, hashes: &sync.Map{}}
 }
