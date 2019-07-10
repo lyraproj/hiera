@@ -2,7 +2,10 @@ package hiera
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
+
+	"github.com/lyraproj/pcore/serialization"
 
 	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
@@ -10,12 +13,25 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func Render(c px.Context, renderAs string, value px.Value, out io.Writer) {
+type RenderName string
+
+const (
+	YAML   = RenderName(`yaml`)
+	JSON   = RenderName(`json`)
+	Binary = RenderName(`binary`)
+	Text   = RenderName(`s`)
+)
+
+func Render(c px.Context, renderAs RenderName, value px.Value, out io.Writer) {
 	switch renderAs {
-	case `yaml`, `json`:
+	case YAML, JSON:
 		var v interface{}
 		if !value.Equals(px.Undef, nil) {
-			rf := c.Reflector().Reflect(value)
+			// Convert value to rich data format
+			ser := serialization.NewSerializer(c, px.EmptyMap)
+			dc := px.NewCollector()
+			ser.Convert(value, dc)
+			rf := c.Reflector().Reflect(dc.Value())
 			if rf.IsValid() && rf.CanInterface() {
 				v = rf.Interface()
 			} else {
@@ -33,13 +49,15 @@ func Render(c px.Context, renderAs string, value px.Value, out io.Writer) {
 			panic(err)
 		}
 		utils.WriteString(out, string(bs))
-	case `binary`:
+	case Binary:
 		bi := types.CoerceTo(c, `lookup value`, types.DefaultBinaryType(), value).(*types.Binary)
 		_, err := out.Write(bi.Bytes())
 		if err != nil {
 			panic(err)
 		}
-	case `s`:
+	case Text:
 		utils.Fprintln(out, value)
+	default:
+		panic(fmt.Errorf(`unknown rendering '%s'`, renderAs))
 	}
 }

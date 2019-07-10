@@ -1,0 +1,5 @@
+a: value of a
+b: value of b
+c:
+  a: value of c.a
+  b: value of c.b

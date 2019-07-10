@@ -23,6 +23,12 @@ func TestLookup_defaultString(t *testing.T) {
 	require.Equal(t, "\"23\"\n", string(result))
 }
 
+func TestLookup_defaultEmptyString(t *testing.T) {
+	result, err := executeLookup(`--default`, ``, `foo`)
+	require.NoError(t, err)
+	require.Equal(t, "\"\"\n", string(result))
+}
+
 func TestLookup_defaultHash(t *testing.T) {
 	result, err := executeLookup(`--default`, `{ x => 'a', y => 9 }`, `--type`, `Hash[String,Variant[String,Integer]]`, `foo`)
 	require.NoError(t, err)
