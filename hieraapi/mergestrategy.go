@@ -5,9 +5,18 @@ import (
 	"github.com/lyraproj/pcore/px"
 )
 
+type MergeStrategyName string
+
+const (
+	First  = MergeStrategyName(`first`)
+	Unique = MergeStrategyName(`unique`)
+	Hash   = MergeStrategyName(`hash`)
+	Deep   = MergeStrategyName(`deep`)
+)
+
 // GetMergeStrategy returns the MergeStrategy that corresponds to the given name. The
 // options argument is only applicable to deep merge
-var GetMergeStrategy func(name string, options map[string]px.Value) MergeStrategy
+var GetMergeStrategy func(name MergeStrategyName, options map[string]px.Value) MergeStrategy
 
 // MergeStrategy is responsible for merging or prioritizing the result of several lookups into one.
 type MergeStrategy interface {

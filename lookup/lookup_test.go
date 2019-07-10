@@ -5,6 +5,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/lyraproj/hiera/hieraapi"
+	"github.com/lyraproj/pcore/px"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,6 +21,12 @@ func TestLookup_defaultString(t *testing.T) {
 	result, err := executeLookup(`--default`, `23`, `--type`, `String`, `foo`)
 	require.NoError(t, err)
 	require.Equal(t, "\"23\"\n", string(result))
+}
+
+func TestLookup_defaultEmptyString(t *testing.T) {
+	result, err := executeLookup(`--default`, ``, `foo`)
+	require.NoError(t, err)
+	require.Equal(t, "\"\"\n", string(result))
 }
 
 func TestLookup_defaultHash(t *testing.T) {
@@ -199,6 +208,36 @@ Searching for "hash"
         \}
       \}
 \z`, string(result))
+	})
+}
+
+func customLK(hc hieraapi.ProviderContext, key string, options map[string]px.Value) px.Value {
+	if v, ok := options[key]; ok {
+		return v
+	}
+	hc.NotFound()
+	return nil // Not reached
+}
+
+func init() {
+	px.NewGoFunction(`customLK`,
+		func(d px.Dispatch) {
+			d.Param(`Hiera::Context`)
+			d.Param(`String`)
+			d.Param(`Hash[String,Any]`)
+			d.Function(func(c px.Context, args []px.Value) px.Value {
+				return customLK(args[0].(hieraapi.ProviderContext), args[1].String(), args[2].(px.OrderedMap).ToStringMap())
+			})
+		},
+	)
+}
+
+func TestLookup_withCustomLK(t *testing.T) {
+
+	inTestdata(func() {
+		result, err := executeLookup(`--config`, `with_custom_provider.yaml`, `a`)
+		require.NoError(t, err)
+		require.Equal(t, "option a\n", string(result))
 	})
 }
 

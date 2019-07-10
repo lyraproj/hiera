@@ -39,6 +39,7 @@ type entry struct {
 	cfg       *hieraCfg
 	dataDir   string
 	options   px.OrderedMap
+	optsMap   map[string]px.Value
 	function  hieraapi.Function
 	name      string
 	locations []hieraapi.Location
@@ -46,6 +47,10 @@ type entry struct {
 
 func (e *entry) Options() px.OrderedMap {
 	return e.options
+}
+
+func (e *entry) OptionsMap() map[string]px.Value {
+	return e.optsMap
 }
 
 func (e *entry) DataDir() string {
@@ -133,11 +138,13 @@ func (e *entry) Resolve(ic hieraapi.Invocation, defaults hieraapi.Entry) hieraap
 	if ce.options == nil {
 		if defaults != nil {
 			ce.options = defaults.Options()
+			ce.optsMap = defaults.OptionsMap()
 		}
 	} else if ce.options.Len() > 0 {
 		if o, oc := doInterpolate(ic, ce.options, false); oc {
 			ce.options = o.(*types.Hash)
 		}
+		ce.optsMap = ce.options.ToStringMap()
 	}
 
 	var dataRoot string
@@ -225,7 +232,7 @@ func (hc *hieraCfg) Resolve(ic hieraapi.Invocation) (cfg hieraapi.ResolvedConfig
 	r.Resolve(ic.ForConfig())
 	cfg = r
 
-	ms := hieraapi.GetMergeStrategy(`deep`, nil)
+	ms := hieraapi.GetMergeStrategy(hieraapi.Deep, nil)
 	k := newKey(`lookup_options`)
 	ic = ic.ForLookupOptions()
 	v := ic.WithLookup(k, func() px.Value {

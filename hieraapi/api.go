@@ -40,6 +40,7 @@ type Function interface {
 type Entry interface {
 	Copy(Config) Entry
 	Options() px.OrderedMap
+	OptionsMap() map[string]px.Value
 	DataDir() string
 	Function() Function
 	Name() string
