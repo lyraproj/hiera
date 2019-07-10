@@ -70,8 +70,6 @@ func (dh *LookupKeyProvider) providerFunction(ic hieraapi.Invocation) (pf hieraa
 			dh.providerFunc = provider.Environment
 		} else if n == `scope` {
 			dh.providerFunc = provider.ScopeLookupKey
-		} else if n == `azure_key_vault` {
-			dh.providerFunc = provider.AzureKeyVaultLookupKey
 		} else if f, ok := px.Load(ic, px.NewTypedName(px.NsFunction, n)); ok {
 			// Load lookup provider function using the standard loader
 			dh.providerFunc = func(pc hieraapi.ProviderContext, key string, options map[string]px.Value) px.Value {
