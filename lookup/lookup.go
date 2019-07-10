@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/lyraproj/hiera/hieraapi"
-	"github.com/lyraproj/hiera/provider"
-	"github.com/lyraproj/pcore/px"
-	"github.com/lyraproj/pcore/types"
-
 	"github.com/hashicorp/go-hclog"
 	"github.com/lyraproj/hiera/hiera"
+	"github.com/lyraproj/hiera/hieraapi"
+	"github.com/lyraproj/hiera/provider"
 	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/pcore/px"
+	"github.com/lyraproj/pcore/types"
 	"github.com/spf13/cobra"
 )
 
@@ -70,6 +69,7 @@ var (
 	dflt     OptString
 	logLevel string
 	config   string
+	facts    []string
 )
 
 func main() {
@@ -95,12 +95,14 @@ func newCommand() *cobra.Command {
 	flags.StringVar(&logLevel, `loglevel`, `error`, `error/warn/info/debug`)
 	flags.StringVar(&cmdOpts.Merge, `merge`, `first`, `first/unique/hash/deep`)
 	flags.StringVar(&config, `config`, ``, `path to the hiera config file. Overrides <current directory>/hiera.yaml`)
-	flags.StringVar(&cmdOpts.Variables, `facts`, ``, `path to a JSON or YAML file that contains key-value mappings to become facts for this lookup`)
 	flags.Var(&dflt, `default`, `a value to return if Hiera can't find a value in data`)
 	flags.StringVar(&cmdOpts.Type, `type`, `Any`, `assert that the value has the specified type`)
 	flags.StringVar(&cmdOpts.RenderAs, `render-as`, ``, `s/json/yaml/binary: Specify the output format of the results; s means plain text`)
 	flags.BoolVar(&cmdOpts.ExplainData, `explain`, false, `Explain the details of how the lookup was performed and where the final value came from (or the reason no value was found)`)
 	flags.BoolVar(&cmdOpts.ExplainOptions, `explain-options`, false, `Explain whether a lookup_options hash affects this lookup, and how that hash was assembled`)
+	flags.StringArrayVar(&cmdOpts.VarPaths, `vars`, nil, `path to a JSON or YAML file that contains key-value mappings to become variables for this lookup`)
+	flags.StringArrayVar(&cmdOpts.Variables, `var`, nil, `a key:value or key=value where value is literal expressed using Puppet DSL`)
+	flags.StringArrayVar(&facts, `facts`, nil, `alias for --vars for compatibility with Puppet's ruby version of Hiera`)
 
 	cmd.SetHelpTemplate(helpTemplate)
 	return cmd
@@ -121,6 +123,9 @@ func cmdLookup(cmd *cobra.Command, args []string) {
 
 	if config != `` {
 		configOptions[hieraapi.HieraConfig] = types.WrapString(config)
+	}
+	if len(facts) > 0 {
+		cmdOpts.VarPaths = append(cmdOpts.VarPaths, facts...)
 	}
 
 	err := hiera.TryWithParent(context.Background(), provider.MuxLookupKey, configOptions, func(c px.Context) error {

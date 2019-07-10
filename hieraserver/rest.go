@@ -48,7 +48,8 @@ func newCommand() *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringVar(&logLevel, `loglevel`, `error`, `error/warn/info/debug`)
 	flags.StringVar(&config, `config`, ``, `path to the hiera config file. Overrides <current directory>/hiera.yaml`)
-	flags.StringVar(&cmdOpts.Variables, `variables`, ``, `path to a JSON or YAML file that contains key-value mappings to become scope variables`)
+	flags.StringArrayVar(&cmdOpts.VarPaths, `vars`, nil, `path to a JSON or YAML file that contains key-value mappings to become variables for this lookup`)
+	flags.StringArrayVar(&cmdOpts.Variables, `var`, nil, `variable as a key:value or key=value where value is a literal expressed in Puppet DSL`)
 	flags.IntVar(&port, `port`, 80, `port number to listen to`)
 	return cmd
 }
