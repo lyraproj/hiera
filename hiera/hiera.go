@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"io"
-
-	"github.com/lyraproj/pcore/utils"
+	"io/ioutil"
+	"os"
+	"regexp"
+	"strings"
 
 	"github.com/lyraproj/hiera/explain"
 	"github.com/lyraproj/hiera/hieraapi"
@@ -14,6 +16,7 @@ import (
 	"github.com/lyraproj/pcore/pcore"
 	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
+	"github.com/lyraproj/pcore/utils"
 	"github.com/lyraproj/pcore/yaml"
 )
 
@@ -29,8 +32,11 @@ type CommandOptions struct {
 	// Default is a pointer to the string representation of a default value or nil if no default value exists
 	Default *string
 
-	// Variables is an optional path to a file containing extra variables to add to the lookup scope
-	Variables string
+	// VarPaths are an optional paths to a files containing extra variables to add to the lookup scope
+	VarPaths []string
+
+	// Variables are an optional paths to a files containing extra variables to add to the lookup scope
+	Variables []string
 
 	// RenderAs is the name of the desired rendering
 	RenderAs string
@@ -78,6 +84,10 @@ func Lookup2(
 	return internal.Lookup2(ic, names, valueType, defaultValue, override, defaultValuesHash, options, block)
 }
 
+// varSplit splits on either ':' or '=' but not on '::', ':=', '=:' or '=='
+var varSplit = regexp.MustCompile(`\A(.*?[^:=])[:=]([^:=].*)\z`)
+var needParsePrefix = []string{`{`, `[`, `"`, `'`}
+
 // LookupAndRender performs a lookup using the given command options and arguments and renders the result on the given
 // io.Writer in accordance with the `RenderAs` option.
 func LookupAndRender(c px.Context, opts *CommandOptions, args []string, out io.Writer) bool {
@@ -101,13 +111,39 @@ func LookupAndRender(c px.Context, opts *CommandOptions, args []string, out io.W
 	}
 
 	scope := px.EmptyMap
-	if opts.Variables != `` {
-		content := types.BinaryFromFile(opts.Variables)
-		yv := yaml.Unmarshal(c, content.Bytes())
-		if data, ok := yv.(px.OrderedMap); ok {
-			scope = data
+	if vl := len(opts.Variables); vl > 0 {
+		ve := make([]*types.HashEntry, vl)
+		for i, e := range opts.Variables {
+			if m := varSplit.FindStringSubmatch(e); m != nil {
+				key := strings.TrimSpace(m[1])
+				ve[i] = types.WrapHashEntry2(key, parseCommandLineValue(c, key, m[2]))
+			} else {
+				panic(fmt.Errorf("unable to parse variable '%s'", e))
+			}
+		}
+		scope = types.WrapHash(ve)
+	}
+
+	for _, vars := range opts.VarPaths {
+		var content *types.Binary
+		if vars == `-` {
+			data, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				panic(err)
+			}
+			content = types.WrapBinary(data)
 		} else {
-			panic(px.Error(hieraapi.YamlNotHash, issue.H{`path`: opts.Variables}))
+			content = types.BinaryFromFile(vars)
+		}
+		bs := content.Bytes()
+		if len(bs) == 0 {
+			continue
+		}
+		yv := yaml.Unmarshal(c, bs)
+		if data, ok := yv.(px.OrderedMap); ok {
+			scope = scope.Merge(data)
+		} else {
+			panic(px.Error(hieraapi.YamlNotHash, issue.H{`path`: vars}))
 		}
 	}
 
@@ -141,4 +177,14 @@ func LookupAndRender(c px.Context, opts *CommandOptions, args []string, out io.W
 	}
 	Render(c, renderAs, found, out)
 	return true
+}
+
+func parseCommandLineValue(c px.Context, key, vs string) px.Value {
+	vs = strings.TrimSpace(vs)
+	for _, pfx := range needParsePrefix {
+		if strings.HasPrefix(vs, pfx) {
+			return types.ResolveDeferred(c, types.ParseFile(`var `+key, vs), c.Scope())
+		}
+	}
+	return types.WrapString(vs)
 }

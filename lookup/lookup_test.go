@@ -75,6 +75,22 @@ func TestLookup_fact_interpolated_config(t *testing.T) {
 	})
 }
 
+func TestLookup_vars_interpolated_config(t *testing.T) {
+	inTestdata(func() {
+		result, err := executeLookup(`--vars`, `facts.yaml`, `interpolate_ca`)
+		require.NoError(t, err)
+		require.Equal(t, "This is value of c.a\n", string(result))
+	})
+}
+
+func TestLookup_var_interpolated_config(t *testing.T) {
+	inTestdata(func() {
+		result, err := executeLookup(`--var`, `c={a=>'the option value'}`, `--var`, `data_file: by_fact`, `interpolate_ca`)
+		require.NoError(t, err)
+		require.Equal(t, "This is the option value\n", string(result))
+	})
+}
+
 func TestLookup_fact_directly(t *testing.T) {
 	inTestdata(func() {
 		result, err := executeLookup(`--facts`, `facts.yaml`, `--config`, `fact_directly.yaml`, `the_fact`)
