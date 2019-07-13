@@ -10,4 +10,11 @@ RUN go install ./...
 # copy the executable over
 FROM alpine
 COPY --from=build_base /go/bin/hieraserver /bin/hieraserver
-CMD ["/bin/hieraserver", "--port", "8080"]
+RUN mkdir /hiera
+
+# Configurable values for runtime overrides
+ENV port 8080
+ENV loglevel error
+ENV config /hiera/hiera.yaml
+
+CMD /bin/hieraserver --port ${port} --loglevel ${loglevel} --config ${config}
