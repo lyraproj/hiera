@@ -40,17 +40,17 @@ func newCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:    "server",
 		Short:  `Server - Start a Hiera REST server`,
-		Long:   "Lookup - Start a REST server that performs lookups in a Hiera data storage.\n  Find more information at: https://github.com/lyraproj/hiera",
+		Long:   "Server - Start a REST server that performs lookups in a Hiera data storage.\n  Responds to key lookups under the /lookup endpoint",
 		PreRun: initialize,
 		Run:    startServer,
 		Args:   cobra.NoArgs}
 
 	flags := cmd.Flags()
 	flags.StringVar(&logLevel, `loglevel`, `error`, `error/warn/info/debug`)
-	flags.StringVar(&config, `config`, ``, `path to the hiera config file. Overrides <current directory>/hiera.yaml`)
+	flags.StringVar(&config, `config`, `/hiera/hiera.yaml`, `path to the hiera config file. Overrides /hiera/hiera.yaml`)
 	flags.StringArrayVar(&cmdOpts.VarPaths, `vars`, nil, `path to a JSON or YAML file that contains key-value mappings to become variables for this lookup`)
 	flags.StringArrayVar(&cmdOpts.Variables, `var`, nil, `variable as a key:value or key=value where value is a literal expressed in Puppet DSL`)
-	flags.IntVar(&port, `port`, 80, `port number to listen to`)
+	flags.IntVar(&port, `port`, 8080, `port number to listen to`)
 	return cmd
 }
 
@@ -68,9 +68,7 @@ func startServer(cmd *cobra.Command, _ []string) {
 	configOptions := map[string]px.Value{
 		provider.LookupProvidersKey: types.WrapRuntime([]hieraapi.LookupKey{provider.ConfigLookupKey, provider.Environment})}
 
-	if config != `` {
-		configOptions[hieraapi.HieraConfig] = types.WrapString(config)
-	}
+	configOptions[hieraapi.HieraConfig] = types.WrapString(config)
 
 	hiera.DoWithParent(context.Background(), provider.MuxLookupKey, configOptions, func(ctx px.Context) {
 		doLookup := func(c echo.Context) (err error) {
@@ -94,6 +92,7 @@ func startServer(cmd *cobra.Command, _ []string) {
 			}
 			opts.Merge = params.Get(`merge`)
 			opts.Type = params.Get(`type`)
+			opts.Variables = append(opts.Variables, params[`var`]...)
 			opts.RenderAs = `json`
 			out := bytes.Buffer{}
 			if hiera.LookupAndRender(ctx, &opts, []string{key}, &out) {
