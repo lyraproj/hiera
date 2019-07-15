@@ -48,9 +48,10 @@ The docker repository with previous tags is viewable at https://hub.docker.com/r
 #### Run the container
 
 The docker image accepts environment variables to override default behaviour:
-    *port* - which port to listen on inside the container (default: 8080)
-    *loglevel* - how much logging to do (default: error, possible values: error, warn, info, debug)
-    *config* - path to a hiera.yaml configuration (default: /hiera/hiera.yaml)
+
+* *port* - which port to listen on inside the container (default: 8080)
+* *loglevel* - how much logging to do (default: error, possible values: error, warn, info, debug)
+* *config* - path to a hiera.yaml configuration (default: /hiera/hiera.yaml)
 
 Make sure to pass the port on your host through to the container. A directory with a hiera configuration and data files (see below) should be mounted under `/hiera` in the image using a bind mount:
 
