@@ -35,7 +35,7 @@ func (dh *DataDigProvider) invokeWithLocation(invocation hieraapi.Invocation, lo
 		return dh.lookupKey(invocation, nil, key)
 	}
 	result := invocation.WithLocation(location, func() px.Value {
-		if location.Exist() {
+		if location.Exists() {
 			return dh.lookupKey(invocation, location, key)
 		}
 		invocation.ReportLocationNotFound()

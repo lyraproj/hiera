@@ -113,12 +113,66 @@ func TestLookup_explain(t *testing.T) {
         No such key: "interpolate_ca"
     data_hash function 'yaml_data'
       Path "[^"]*/testdata/hiera/named_by_fact\.yaml"
-        Original path: "named_%{data_file}.yaml"
+        Original path: "named_%\{data_file\}.yaml"
         Interpolation on "This is %\{c\.a\}"
           Sub key: "a"
             Found key: "a" value: 'value of c.a'
         Found key: "interpolate_ca" value: 'This is value of c\.a'
     Merged result: 'This is value of c\.a'
+\z`, string(result))
+	})
+}
+
+func TestLookup_explain_yaml(t *testing.T) {
+	inTestdata(func() {
+		result, err := executeLookup(`--explain`, `--facts`, `facts.yaml`, `--render-as`, `yaml`, `interpolate_ca`)
+		require.NoError(t, err)
+		require.Regexp(t,
+			`\A__ptype: Hiera::Explainer
+branches:
+  - __ptype: Hiera::ExplainLookup
+    branches:
+      - __ptype: Hiera::ExplainMerge
+        branches:
+          - __ptype: Hiera::ExplainProvider
+            branches:
+              - __ptype: Hiera::ExplainLocation
+                event: 5
+                key: interpolate_ca
+                location:
+                    __ptype: Hiera::Path
+                    exists: true
+                    original: common\.yaml
+                    resolved: /home/thhal/go/src/github.com/lyraproj/hiera/lookup/testdata/hiera/common\.yaml
+            providerName: data_hash function 'yaml_data'
+          - __ptype: Hiera::ExplainProvider
+            branches:
+              - __ptype: Hiera::ExplainLocation
+                branches:
+                  - __ptype: Hiera::ExplainInterpolate
+                    branches:
+                      - __ptype: Hiera::ExplainSubLookup
+                        branches:
+                          - __ptype: Hiera::ExplainKeySegment
+                            event: 1
+                            key: a
+                            segment: a
+                            value: value of c\.a
+                        subKey: c\.a
+                    expression: This is %\{c\.a\}
+                event: 1
+                key: interpolate_ca
+                location:
+                    __ptype: Hiera::Path
+                    exists: true
+                    original: named_%\{data_file\}\.yaml
+                    resolved: /home/thhal/go/src/github.com/lyraproj/hiera/lookup/testdata/hiera/named_by_fact\.yaml
+                value: This is value of c\.a
+            providerName: data_hash function 'yaml_data'
+        event: 6
+        strategy: first
+        value: This is value of c\.a
+    key: interpolate_ca
 \z`, string(result))
 	})
 }

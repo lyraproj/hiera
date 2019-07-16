@@ -87,6 +87,10 @@ func variantLookup(v reflect.Value, vf func(l interface{}) px.Value) px.Value {
 	return nil
 }
 
+func (d *firstFound) Name() hieraapi.MergeStrategyName {
+	return hieraapi.First
+}
+
 func (d *firstFound) Label() string {
 	return `first found strategy`
 }
@@ -135,6 +139,10 @@ func (d *firstFound) merge(a, b px.Value) px.Value {
 	return a
 }
 
+func (d *unique) Name() hieraapi.MergeStrategyName {
+	return hieraapi.Unique
+}
+
 func (d *unique) Label() string {
 	return `unique merge strategy`
 }
@@ -166,6 +174,10 @@ func (d *unique) merge(a, b px.Value) px.Value {
 	return d.convertValue(a).(px.List).AddAll(d.convertValue(b).(px.List)).Unique()
 }
 
+func (d *deepMerge) Name() hieraapi.MergeStrategyName {
+	return hieraapi.Deep
+}
+
 func (d *deepMerge) Label() string {
 	return `deep merge strategy`
 }
@@ -192,6 +204,10 @@ func (d *deepMerge) convertValue(v px.Value) px.Value {
 func (d *deepMerge) merge(a, b px.Value) px.Value {
 	v, _ := DeepMerge(a, b, d.opts)
 	return v
+}
+
+func (d *hashMerge) Name() hieraapi.MergeStrategyName {
+	return hieraapi.Hash
 }
 
 func (d *hashMerge) Label() string {

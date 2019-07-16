@@ -12,7 +12,7 @@ const LcMappedPaths = LocationKind(`mapped_paths`)
 type Location interface {
 	fmt.Stringer
 	Kind() LocationKind
-	Exist() bool
+	Exists() bool
 	Resolve(ic Invocation, dataDir string) []Location
 	Original() string
 	Resolved() string

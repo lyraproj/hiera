@@ -1,15 +1,15 @@
 package explain
 
 import (
-	"github.com/lyraproj/pcore/utils"
-
 	"github.com/lyraproj/hiera/hieraapi"
 	"github.com/lyraproj/pcore/px"
+	"github.com/lyraproj/pcore/utils"
 )
 
 type Context int
 
 type Explainer interface {
+	px.Value
 	utils.Indentable
 
 	// AcceptFound accepts information that a value was found for a given key
