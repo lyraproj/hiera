@@ -143,7 +143,7 @@ branches:
                     __ptype: Hiera::Path
                     exists: true
                     original: common\.yaml
-                    resolved: /home/thhal/go/src/github.com/lyraproj/hiera/lookup/testdata/hiera/common\.yaml
+                    resolved: .*/testdata/hiera/common\.yaml
             providerName: data_hash function 'yaml_data'
           - __ptype: Hiera::ExplainProvider
             branches:
@@ -166,7 +166,7 @@ branches:
                     __ptype: Hiera::Path
                     exists: true
                     original: named_%\{data_file\}\.yaml
-                    resolved: /home/thhal/go/src/github.com/lyraproj/hiera/lookup/testdata/hiera/named_by_fact\.yaml
+                    resolved: .*/testdata/hiera/named_by_fact\.yaml
                 value: This is value of c\.a
             providerName: data_hash function 'yaml_data'
         event: 6
