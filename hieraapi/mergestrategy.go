@@ -22,6 +22,8 @@ var GetMergeStrategy func(name MergeStrategyName, options map[string]px.Value) M
 type MergeStrategy interface {
 	issue.Labeled
 
+	Name() MergeStrategyName
+
 	// Lookup performs a series of lookups for each variant found in the given variants slice. The actual
 	// lookup value is returned by the given value function which will be called at least once. The argument to
 	// the value function will be an element of the variants slice.

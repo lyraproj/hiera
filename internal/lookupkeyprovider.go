@@ -38,7 +38,7 @@ func (dh *LookupKeyProvider) invokeWithLocation(invocation hieraapi.Invocation, 
 		return dh.lookupKey(invocation, nil, root)
 	}
 	return invocation.WithLocation(location, func() px.Value {
-		if location.Exist() {
+		if location.Exists() {
 			return dh.lookupKey(invocation, location, root)
 		}
 		invocation.ReportLocationNotFound()

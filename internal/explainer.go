@@ -2,14 +2,15 @@ package internal
 
 import (
 	"fmt"
+	"io"
 	"strconv"
 
+	"github.com/lyraproj/pcore/types"
+
 	"github.com/lyraproj/hiera/explain"
-
-	"github.com/lyraproj/pcore/utils"
-
 	"github.com/lyraproj/hiera/hieraapi"
 	"github.com/lyraproj/pcore/px"
+	"github.com/lyraproj/pcore/utils"
 )
 
 func init() {
@@ -28,6 +29,7 @@ const (
 )
 
 type explainNode interface {
+	px.Value
 	utils.Indentable
 	appendBranch(branch explainNode)
 	appendText(text string)
@@ -52,6 +54,226 @@ type explainTreeNode struct {
 	e  event
 	v  px.Value
 	k  string
+}
+
+var explainNodeMetaType px.ObjectType
+var explainDataProviderMetaType px.ObjectType
+var explainInterpolateMetaType px.ObjectType
+var explainInvalidKeyMetaType px.ObjectType
+var explainKeySegmentMetaType px.ObjectType
+var explainLocationMetaType px.ObjectType
+var explainLookupMetaType px.ObjectType
+var explainMergeMetaType px.ObjectType
+var explainMergeSourceMetaType px.ObjectType
+var explainSubLookupMetaType px.ObjectType
+var explainerMetaType px.ObjectType
+
+func init() {
+	explainNodeMetaType = px.NewObjectType(`Hiera::ExplainNode`, `{
+		attributes => {
+      branches => Optional[Array[Hiera::ExplainNode]],
+      texts => Optional[Array[String]],
+      event => Optional[Integer[1,6]],
+      value => { type => RichData, value => undef },
+      key => Optional[String]
+    }
+	}`)
+
+	explainDataProviderMetaType = px.NewObjectType(`Hiera::ExplainProvider`, `Hiera::ExplainNode{
+		attributes => {
+      providerName => String
+    }
+	}`,
+		types.NoPositionalConstructor,
+		func(c px.Context, args []px.Value) px.Value {
+			en := &explainDataProvider{}
+			en.initialize(args[0].(px.OrderedMap))
+			return en
+		})
+
+	explainInterpolateMetaType = px.NewObjectType(`Hiera::ExplainInterpolate`, `Hiera::ExplainNode{
+		attributes => {
+      expression => String
+    }
+	}`,
+		types.NoPositionalConstructor,
+		func(c px.Context, args []px.Value) px.Value {
+			en := &explainInterpolate{}
+			en.initialize(args[0].(px.OrderedMap))
+			return en
+		})
+
+	explainInvalidKeyMetaType = px.NewObjectType(`Hiera::ExplainInvalidKey`, `Hiera::ExplainNode{}`,
+		types.NoPositionalConstructor,
+		func(c px.Context, args []px.Value) px.Value {
+			en := &explainInvalidKey{}
+			en.initialize(args[0].(px.OrderedMap))
+			return en
+		})
+
+	explainKeySegmentMetaType = px.NewObjectType(`Hiera::ExplainKeySegment`, `Hiera::ExplainNode{
+		attributes => {
+			segment => Variant[String,Integer]
+		}
+	}`,
+		types.NoPositionalConstructor,
+		func(c px.Context, args []px.Value) px.Value {
+			en := &explainKeySegment{}
+			en.initialize(args[0].(px.OrderedMap))
+			return en
+		})
+
+	explainLocationMetaType = px.NewObjectType(`Hiera::ExplainLocation`, `Hiera::ExplainNode{
+		attributes => {
+			location => Hiera::Location
+		}
+	}`,
+		types.NoPositionalConstructor,
+		func(c px.Context, args []px.Value) px.Value {
+			en := &explainLocation{}
+			en.initialize(args[0].(px.OrderedMap))
+			return en
+		})
+
+	explainLookupMetaType = px.NewObjectType(`Hiera::ExplainLookup`, `Hiera::ExplainNode{}`,
+		types.NoPositionalConstructor,
+		func(c px.Context, args []px.Value) px.Value {
+			en := &explainLookup{}
+			en.initialize(args[0].(px.OrderedMap))
+			return en
+		})
+
+	explainMergeMetaType = px.NewObjectType(`Hiera::ExplainMerge`, `Hiera::ExplainNode{
+		attributes => {
+			strategy => String,
+      options => { type => Hash[String,Data], value => {} }
+		}
+	}`,
+		types.NoPositionalConstructor,
+		func(c px.Context, args []px.Value) px.Value {
+			en := &explainMerge{}
+			en.initialize(args[0].(px.OrderedMap))
+			return en
+		})
+
+	explainMergeSourceMetaType = px.NewObjectType(`Hiera::ExplainMergeSource`, `Hiera::ExplainNode{
+		attributes => {
+			mergeSource => String
+		}
+	}`,
+		types.NoPositionalConstructor,
+		func(c px.Context, args []px.Value) px.Value {
+			en := &explainMergeSource{}
+			en.initialize(args[0].(px.OrderedMap))
+			return en
+		})
+
+	explainSubLookupMetaType = px.NewObjectType(`Hiera::ExplainSubLookup`, `Hiera::ExplainNode{
+		attributes => {
+			subKey => String
+		}
+	}`,
+		types.NoPositionalConstructor,
+		func(c px.Context, args []px.Value) px.Value {
+			en := &explainSubLookup{}
+			en.initialize(args[0].(px.OrderedMap))
+			return en
+		})
+
+	explainerMetaType = px.NewObjectType(`Hiera::Explainer`, `Hiera::ExplainNode{
+		attributes => {
+			current => Optional[Hiera::ExplainNode],
+			options => { type => Boolean, value => false },
+      onlyOptions => { type => Boolean, value => false },
+		}
+	}`,
+		types.NoPositionalConstructor,
+		func(c px.Context, args []px.Value) px.Value {
+			en := &explainer{}
+			en.initialize(args[0].(px.OrderedMap))
+			return en
+		})
+}
+
+func (en *explainTreeNode) initialize(ih px.OrderedMap) {
+	if v, ok := ih.Get4(`branches`); ok {
+		ba := v.(px.List)
+		bs := make([]explainNode, ba.Len())
+		ba.EachWithIndex(func(b px.Value, i int) {
+			bx := b.(*explainTreeNode)
+			bx.p = en
+			bs[i] = bx
+		})
+		en.bs = bs
+	}
+	if v, ok := ih.Get4(`texts`); ok {
+		ta := v.(px.List)
+		ts := make([]string, ta.Len())
+		ta.EachWithIndex(func(t px.Value, i int) {
+			ts[i] = t.String()
+		})
+		en.ts = ts
+	}
+	if v, ok := ih.Get4(`event`); ok {
+		en.e = event(v.(px.Integer).Int())
+	}
+	if v, ok := ih.Get4(`value`); ok {
+		en.v = v
+	}
+	if v, ok := ih.Get4(`key`); ok {
+		en.k = v.String()
+	}
+}
+
+func (en *explainTreeNode) String() string {
+	return px.ToString(en)
+}
+
+func (en *explainTreeNode) Equals(value interface{}, guard px.Guard) bool {
+	return en == value
+}
+
+func (en *explainTreeNode) ToString(bld io.Writer, format px.FormatContext, g px.RDetect) {
+	types.ObjectToString(en, format, bld, g)
+}
+
+func (en *explainTreeNode) PType() px.Type {
+	return explainNodeMetaType
+}
+
+func (en *explainTreeNode) Get(key string) (value px.Value, ok bool) {
+	switch key {
+	case `branches`:
+		if len(en.bs) > 0 {
+			return px.Wrap(nil, en.bs), true
+		}
+		return px.Undef, true
+	case `texts`:
+		if len(en.ts) > 0 {
+			return px.Wrap(nil, en.ts), true
+		}
+		return px.Undef, true
+	case `event`:
+		if en.e > 0 {
+			return types.WrapInteger(int64(en.e)), true
+		}
+		return px.Undef, true
+	case `value`:
+		if en.v != nil {
+			return en.v, true
+		}
+		return px.Undef, true
+	case `key`:
+		if en.k != `` {
+			return types.WrapString(en.k), true
+		}
+		return px.Undef, true
+	}
+	return nil, false
+}
+
+func (en *explainTreeNode) InitHash() px.OrderedMap {
+	return explainNodeMetaType.InstanceHash(en)
 }
 
 func keyToString(k interface{}) string {
@@ -176,12 +398,17 @@ func (en *explainTreeNode) value() px.Value {
 
 type explainDataProvider struct {
 	explainTreeNode
-	provider hieraapi.DataProvider
+	providerName string
+}
+
+func (en *explainDataProvider) initialize(ih px.OrderedMap) {
+	en.explainTreeNode.initialize(ih)
+	en.providerName = ih.Get5(`providerName`, px.EmptyString).String()
 }
 
 func (en *explainDataProvider) AppendTo(w *utils.Indenter) {
 	w.NewLine()
-	w.Append(en.provider.FullName())
+	w.Append(en.providerName)
 	w = w.Indent()
 	en.dumpBranches(w)
 	en.dumpOutcome(w)
@@ -191,9 +418,60 @@ func (en *explainDataProvider) String() string {
 	return utils.IndentedString(en)
 }
 
+func (en *explainDataProvider) Equals(value interface{}, guard px.Guard) bool {
+	return en == value
+}
+
+func (en *explainDataProvider) ToString(bld io.Writer, format px.FormatContext, g px.RDetect) {
+	types.ObjectToString(en, format, bld, g)
+}
+
+func (en *explainDataProvider) PType() px.Type {
+	return explainDataProviderMetaType
+}
+
+func (en *explainDataProvider) Get(key string) (value px.Value, ok bool) {
+	if key == `providerName` {
+		return types.WrapString(en.providerName), true
+	}
+	return en.explainTreeNode.Get(key)
+}
+
+func (en *explainDataProvider) InitHash() px.OrderedMap {
+	return explainDataProviderMetaType.InstanceHash(en)
+}
+
 type explainInterpolate struct {
 	explainTreeNode
 	expression string
+}
+
+func (en *explainInterpolate) initialize(ih px.OrderedMap) {
+	en.explainTreeNode.initialize(ih)
+	en.expression = ih.Get5(`expression`, px.EmptyString).String()
+}
+
+func (en *explainInterpolate) Equals(value interface{}, guard px.Guard) bool {
+	return en == value
+}
+
+func (en *explainInterpolate) ToString(bld io.Writer, format px.FormatContext, g px.RDetect) {
+	types.ObjectToString(en, format, bld, g)
+}
+
+func (en *explainInterpolate) PType() px.Type {
+	return explainInterpolateMetaType
+}
+
+func (en *explainInterpolate) Get(key string) (value px.Value, ok bool) {
+	if key == `expression` {
+		return types.WrapString(en.expression), true
+	}
+	return en.explainTreeNode.Get(key)
+}
+
+func (en *explainInterpolate) InitHash() px.OrderedMap {
+	return explainInterpolateMetaType.InstanceHash(en)
 }
 
 func (en *explainInterpolate) AppendTo(w *utils.Indenter) {
@@ -212,6 +490,26 @@ type explainInvalidKey struct {
 	explainTreeNode
 }
 
+func (en *explainInvalidKey) Equals(value interface{}, guard px.Guard) bool {
+	return en == value
+}
+
+func (en *explainInvalidKey) ToString(bld io.Writer, format px.FormatContext, g px.RDetect) {
+	types.ObjectToString(en, format, bld, g)
+}
+
+func (en *explainInvalidKey) String() string {
+	return utils.IndentedString(en)
+}
+
+func (en *explainInvalidKey) PType() px.Type {
+	return explainInvalidKeyMetaType
+}
+
+func (en *explainInvalidKey) InitHash() px.OrderedMap {
+	return explainInvalidKeyMetaType.InstanceHash(en)
+}
+
 func (en *explainInvalidKey) AppendTo(w *utils.Indenter) {
 	w.NewLine()
 	w.Append(`Invalid key "`)
@@ -219,13 +517,42 @@ func (en *explainInvalidKey) AppendTo(w *utils.Indenter) {
 	w.AppendRune('"')
 }
 
-func (en *explainInvalidKey) String() string {
-	return utils.IndentedString(en)
-}
-
 type explainKeySegment struct {
 	explainTreeNode
 	segment interface{}
+}
+
+func (en *explainKeySegment) initialize(ih px.OrderedMap) {
+	en.explainTreeNode.initialize(ih)
+	sg := ih.Get5(`expression`, px.EmptyString)
+	if i, ok := sg.(px.Integer); ok {
+		en.segment = i.Int()
+	} else {
+		en.segment = sg.String()
+	}
+}
+
+func (en *explainKeySegment) Equals(value interface{}, guard px.Guard) bool {
+	return en == value
+}
+
+func (en *explainKeySegment) ToString(bld io.Writer, format px.FormatContext, g px.RDetect) {
+	types.ObjectToString(en, format, bld, g)
+}
+
+func (en *explainKeySegment) PType() px.Type {
+	return explainKeySegmentMetaType
+}
+
+func (en *explainKeySegment) Get(key string) (value px.Value, ok bool) {
+	if key == `segment` {
+		return px.Wrap(nil, en.segment), true
+	}
+	return en.explainTreeNode.Get(key)
+}
+
+func (en *explainKeySegment) InitHash() px.OrderedMap {
+	return explainKeySegmentMetaType.InstanceHash(en)
 }
 
 func (en *explainKeySegment) AppendTo(w *utils.Indenter) {
@@ -239,6 +566,36 @@ func (en *explainKeySegment) String() string {
 type explainLocation struct {
 	explainTreeNode
 	location hieraapi.Location
+}
+
+func (en *explainLocation) initialize(ih px.OrderedMap) {
+	en.explainTreeNode.initialize(ih)
+	if loc, ok := ih.Get4(`location`); ok {
+		en.location = loc.(hieraapi.Location)
+	}
+}
+
+func (en *explainLocation) Equals(value interface{}, guard px.Guard) bool {
+	return en == value
+}
+
+func (en *explainLocation) ToString(bld io.Writer, format px.FormatContext, g px.RDetect) {
+	types.ObjectToString(en, format, bld, g)
+}
+
+func (en *explainLocation) PType() px.Type {
+	return explainLocationMetaType
+}
+
+func (en *explainLocation) Get(key string) (value px.Value, ok bool) {
+	if key == `location` {
+		return en.location.(px.Value), true
+	}
+	return en.explainTreeNode.Get(key)
+}
+
+func (en *explainLocation) InitHash() px.OrderedMap {
+	return explainLocationMetaType.InstanceHash(en)
 }
 
 func (en *explainLocation) AppendTo(w *utils.Indenter) {
@@ -276,6 +633,22 @@ type explainLookup struct {
 	explainTreeNode
 }
 
+func (en *explainLookup) Equals(value interface{}, guard px.Guard) bool {
+	return en == value
+}
+
+func (en *explainLookup) ToString(bld io.Writer, format px.FormatContext, g px.RDetect) {
+	types.ObjectToString(en, format, bld, g)
+}
+
+func (en *explainLookup) PType() px.Type {
+	return explainLookupMetaType
+}
+
+func (en *explainLookup) InitHash() px.OrderedMap {
+	return explainLookupMetaType.InstanceHash(en)
+}
+
 func (en *explainLookup) AppendTo(w *utils.Indenter) {
 	if w.Len() > 0 || w.Level() > 0 {
 		w.NewLine()
@@ -293,6 +666,45 @@ func (en *explainLookup) String() string {
 type explainMerge struct {
 	explainTreeNode
 	merge hieraapi.MergeStrategy
+}
+
+func (en *explainMerge) initialize(ih px.OrderedMap) {
+	en.explainTreeNode.initialize(ih)
+	name := hieraapi.First
+	var opts map[string]px.Value
+	if v, ok := ih.Get4(`strategy`); ok {
+		name = hieraapi.MergeStrategyName(v.String())
+	}
+	if v, ok := ih.Get4(`options`); ok {
+		opts = v.(px.OrderedMap).ToStringMap()
+	}
+	en.merge = getMergeStrategy(name, opts)
+}
+
+func (en *explainMerge) Equals(value interface{}, guard px.Guard) bool {
+	return en == value
+}
+
+func (en *explainMerge) ToString(bld io.Writer, format px.FormatContext, g px.RDetect) {
+	types.ObjectToString(en, format, bld, g)
+}
+
+func (en *explainMerge) PType() px.Type {
+	return explainMergeMetaType
+}
+
+func (en *explainMerge) Get(key string) (value px.Value, ok bool) {
+	switch key {
+	case `strategy`:
+		return types.WrapString(string(en.merge.Name())), true
+	case `options`:
+		return en.merge.Options(), true
+	}
+	return en.explainTreeNode.Get(key)
+}
+
+func (en *explainMerge) InitHash() px.OrderedMap {
+	return explainMergeMetaType.InstanceHash(en)
 }
 
 func (en *explainMerge) AppendTo(w *utils.Indenter) {
@@ -331,6 +743,36 @@ type explainMergeSource struct {
 	mergeSource string
 }
 
+func (en *explainMergeSource) initialize(ih px.OrderedMap) {
+	en.explainTreeNode.initialize(ih)
+	if ms, ok := ih.Get4(`mergeSource`); ok {
+		en.mergeSource = ms.String()
+	}
+}
+
+func (en *explainMergeSource) Equals(value interface{}, guard px.Guard) bool {
+	return en == value
+}
+
+func (en *explainMergeSource) ToString(bld io.Writer, format px.FormatContext, g px.RDetect) {
+	types.ObjectToString(en, format, bld, g)
+}
+
+func (en *explainMergeSource) PType() px.Type {
+	return explainMergeSourceMetaType
+}
+
+func (en *explainMergeSource) Get(key string) (value px.Value, ok bool) {
+	if key == `mergeSource` {
+		return types.WrapString(en.mergeSource), true
+	}
+	return en.explainTreeNode.Get(key)
+}
+
+func (en *explainMergeSource) InitHash() px.OrderedMap {
+	return explainMergeSourceMetaType.InstanceHash(en)
+}
+
 func (en *explainMergeSource) AppendTo(w *utils.Indenter) {
 	w.NewLine()
 	w.Append(`Using merge options from `)
@@ -344,6 +786,36 @@ func (en *explainMergeSource) String() string {
 type explainSubLookup struct {
 	explainTreeNode
 	subKey hieraapi.Key
+}
+
+func (en *explainSubLookup) initialize(ih px.OrderedMap) {
+	en.explainTreeNode.initialize(ih)
+	if ms, ok := ih.Get4(`subKey`); ok {
+		en.subKey = newKey(ms.String())
+	}
+}
+
+func (en *explainSubLookup) Equals(value interface{}, guard px.Guard) bool {
+	return en == value
+}
+
+func (en *explainSubLookup) ToString(bld io.Writer, format px.FormatContext, g px.RDetect) {
+	types.ObjectToString(en, format, bld, g)
+}
+
+func (en *explainSubLookup) PType() px.Type {
+	return explainSubLookupMetaType
+}
+
+func (en *explainSubLookup) Get(key string) (value px.Value, ok bool) {
+	if key == `subKey` {
+		return types.WrapString(en.subKey.String()), true
+	}
+	return en.explainTreeNode.Get(key)
+}
+
+func (en *explainSubLookup) InitHash() px.OrderedMap {
+	return explainSubLookupMetaType.InstanceHash(en)
 }
 
 func (en *explainSubLookup) AppendTo(w *utils.Indenter) {
@@ -376,6 +848,54 @@ func newExplainer(options, onlyOptions bool) explain.Explainer {
 	ex := &explainer{options: options, onlyOptions: onlyOptions}
 	ex.current = ex
 	return ex
+}
+
+func (en *explainer) initialize(ih px.OrderedMap) {
+	en.explainTreeNode.initialize(ih)
+	if v, ok := ih.Get4(`current`); ok {
+		if en.current != en {
+			en.current = v.(explainNode)
+		}
+	} else {
+		en.current = en
+	}
+	if v, ok := ih.Get4(`options`); ok {
+		en.options = v.(px.Boolean).Bool()
+	}
+	if v, ok := ih.Get4(`onlyOptions`); ok {
+		en.onlyOptions = v.(px.Boolean).Bool()
+	}
+}
+
+func (en *explainer) Equals(value interface{}, guard px.Guard) bool {
+	return en == value
+}
+
+func (en *explainer) ToString(bld io.Writer, format px.FormatContext, g px.RDetect) {
+	types.ObjectToString(en, format, bld, g)
+}
+
+func (en *explainer) PType() px.Type {
+	return explainerMetaType
+}
+
+func (en *explainer) Get(key string) (value px.Value, ok bool) {
+	switch key {
+	case `current`:
+		if en.current != en {
+			return en.current, true
+		}
+		return px.Undef, true
+	case `options`:
+		return types.WrapBoolean(en.options), true
+	case `onlyOptions`:
+		return types.WrapBoolean(en.onlyOptions), true
+	}
+	return en.explainTreeNode.Get(key)
+}
+
+func (en *explainer) InitHash() px.OrderedMap {
+	return explainerMetaType.InstanceHash(en)
 }
 
 func (ex *explainer) AcceptFound(key interface{}, value px.Value) {
@@ -413,7 +933,7 @@ func (ex *explainer) AcceptText(text string) {
 }
 
 func (ex *explainer) PushDataProvider(pvd hieraapi.DataProvider) {
-	en := &explainDataProvider{provider: pvd}
+	en := &explainDataProvider{providerName: pvd.FullName()}
 	en.p = ex.current
 	ex.current.appendBranch(en)
 	ex.current = en
