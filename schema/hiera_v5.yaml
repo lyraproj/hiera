@@ -1,0 +1,164 @@
+---
+title: JSON schema for Hiera configuration
+"$schema": http://json-schema.org/draft-04/schema#
+type: object
+definitions:
+  defaultsBase:
+    description: Default values for the lookup function, datadir, and option keys, when those keys are omitted in the hierarchy levels.
+    type: object
+    properties:
+      datadir:
+        description: Default value for datadir, used for any file-based hierarchy level that doesn't specify its own.
+        type: string
+      options:
+        description: Default value for options, used for any hierarchy level that does not specify its own.
+        type: object
+      data_dig:
+        description: Default name of function that produces values key by key and digs into dotted key notations.
+        type: string
+      data_hash:
+        description: Default name of function that produces a hash of key-value pairs.
+        type: string
+      lookup_key:
+        description: Default name of function that produces values key by key.
+        type: string
+    additionalProperties: false
+  levelBase:
+    description: Hierarchy level.
+    type: object
+    properties:
+      name:
+        description: A name for this level, shown to humans in debug messages and --explain output.
+        type: string
+      datadir:
+        description: The directory where data files are kept; can be omitted if you set a default
+        type: string
+      options:
+        description: Options to pass on to the data provider function
+        type: object
+      path:
+        description: Path to the data file, relative to datadir.
+        type: string
+      paths:
+        description: Paths to data files, relative to datadir.
+        type: array
+        items:
+          type: string
+      glob:
+        description: Glob that expands to paths to data files, relative to datadir.
+        type: string
+      globs:
+        description: Globs that expand to paths to data files, relative to datadir.
+        type: array
+        items:
+          type: string
+      uri:
+        description: URI that appoints data or a lookup service.
+        type: string
+      uris:
+        description: URIs that appoint data or a lookup services.
+        type: array
+        items:
+          type: string
+      mapped_paths:
+        description: Array with exactly three string elements describing how to create
+          paths from the elements of a collection.
+        type: array
+        items:
+          - description: Name of a collection variable.
+            type: string
+          - description: Name of a variable to use in interpolation.
+            type: string
+          - description: Interpolation expression containing the named variable.
+            type: string
+        minItems: 3
+        maxItems: 3
+      data_dig:
+        description: Name of function that produces values key by key and digs into dotted key notations.
+        type: string
+      data_hash:
+        description: Name of function that produces a hash of key-value pairs.
+        type: string
+      lookup_key:
+        description: Name of function that produces values key by key.
+        type: string
+    additionalProperties: false
+    required:
+      - name
+  location:
+    oneOf:
+      - required:
+          - path
+      - required:
+          - paths
+      - required:
+          - glob
+      - required:
+          - globs
+      - required:
+          - uri
+      - required:
+          - uris
+      - required:
+          - mappded_paths
+      - not:
+          anyOf:
+            - required:
+                - path
+            - required:
+                - paths
+            - required:
+                - glob
+            - required:
+                - globs
+            - required:
+                - uri
+            - required:
+                - uris
+            - required:
+                - mappded_paths
+  providerFunction:
+    oneOf:
+      - not:
+          anyOf:
+            - required:
+                - data_dig
+            - required:
+                - data_hash
+            - required:
+                - lookup_key
+      - required:
+          - data_dig
+      - required:
+          - data_hash
+      - required:
+          - lookup_key
+  defaults:
+    allOf:
+      - "$ref": "#/definitions/defaultsBase"
+      - "$ref": "#/definitions/providerFunction"
+  level:
+    allOf:
+      - "$ref": "#/definitions/levelBase"
+      - "$ref": "#/definitions/location"
+      - "$ref": "#/definitions/providerFunction"
+  hierarchy:
+    description: An array of hashes, where each hash configures one level of the hierarchy.
+    type: array
+    items:
+      "$ref": "#/definitions/level"
+properties:
+  version:
+    description: Required, must be the number 5, without quotes
+    type: integer
+    minimum: 5
+    maximum: 5
+  defaults:
+    "$ref": "#/definitions/defaults"
+  hierarchy:
+    "$ref": "#/definitions/hierarchy"
+  default_hierarchy:
+    "$ref": "#/definitions/hierarchy"
+required:
+  - version
+additionalProperties: false
