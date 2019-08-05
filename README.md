@@ -113,6 +113,30 @@ This maps to a directory structure based in the `hiera` subdirectory (due to the
     └── hosts
         └── specialhost.yaml
 
+## Azure Key Vault lookup key
+
+This function allows you to look up single values stored as secrets from an Azure Key Vault.
+A single option `vault_name` should be set in `hiera.yaml`:
+
+    ---
+    version: 5
+    defaults:
+    datadir: hiera
+    data_hash: yaml_data
+
+    hierarchy:
+    - name: common
+      path: common.yaml
+    - name: secrets
+      lookup_key: azure_key_vault
+      options:
+        vault_name: my-key-vault
+
+There are two options for authentication, using a service principal or the Azure CLI
+
+* To use a service principal set the environment variables `AZURE_TENANT_ID`, `AZURE_CLIENT_ID` and `AZURE_CLIENT_SECRET`
+
+* If the above variables are not present the Azure CLI will be used (it must already be logged in)
 
 ## Implementation status
 
