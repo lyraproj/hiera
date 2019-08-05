@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -14,11 +15,82 @@ import (
 type path struct {
 	original string
 	resolved string
-	exist    bool
+	exists   bool
 }
 
-func (p *path) Exist() bool {
-	return p.exist
+var pathMetaType px.ObjectType
+var uriMetaType px.ObjectType
+
+func init() {
+	px.NewObjectType(`Hiera::Location`, `{
+    attributes => {
+      original => String,
+      resolved => String,
+      exists => Boolean
+    }
+  }`)
+	pathMetaType = px.NewObjectType(`Hiera::Path`, `Hiera::Location{
+    constants => {
+      kind => path 
+    }
+  }`,
+		func(c px.Context, args []px.Value) px.Value {
+			return &path{args[0].String(), args[1].String(), args[2].(px.Boolean).Bool()}
+		},
+		func(c px.Context, args []px.Value) px.Value {
+			m, _ := args[0].(px.OrderedMap)
+			return &path{m.Get5(`original`, nil).String(), m.Get5(`resolved`, nil).String(), m.Get5(`exists`, nil).(px.Boolean).Bool()}
+		},
+	)
+	uriMetaType = px.NewObjectType(`Hiera::URI`, `Hiera::Location{
+    constants => {
+      kind => uri 
+    }
+  }`,
+		func(c px.Context, args []px.Value) px.Value {
+			return &uri{args[0].String(), args[1].String()}
+		},
+		func(c px.Context, args []px.Value) px.Value {
+			m, _ := args[0].(px.OrderedMap)
+			return &uri{m.Get5(`original`, nil).String(), m.Get5(`resolved`, nil).String()}
+		},
+	)
+}
+
+func (p *path) Equals(value interface{}, guard px.Guard) bool {
+	op, ok := value.(*path)
+	if ok {
+		ok = *p == *op
+	}
+	return ok
+}
+
+func (p *path) ToString(bld io.Writer, format px.FormatContext, g px.RDetect) {
+	px.ToString(p)
+}
+
+func (p *path) PType() px.Type {
+	return pathMetaType
+}
+
+func (p *path) Get(key string) (value px.Value, ok bool) {
+	switch key {
+	case `original`:
+		return types.WrapString(p.original), true
+	case `resolved`:
+		return types.WrapString(p.resolved), true
+	case `exists`:
+		return types.WrapBoolean(p.exists), true
+	}
+	return nil, false
+}
+
+func (p *path) InitHash() px.OrderedMap {
+	return pathMetaType.InstanceHash(p)
+}
+
+func (p *path) Exists() bool {
+	return p.exists
 }
 
 func (p *path) Kind() hieraapi.LocationKind {
@@ -26,7 +98,7 @@ func (p *path) Kind() hieraapi.LocationKind {
 }
 
 func (p *path) String() string {
-	return fmt.Sprintf("path{ original:%s, resolved:%s, exist:%v}", p.original, p.resolved, p.exist)
+	return fmt.Sprintf("path{ original:%s, resolved:%s, exist:%v}", p.original, p.resolved, p.exists)
 }
 
 func (p *path) Resolve(ic hieraapi.Invocation, dataDir string) []hieraapi.Location {
@@ -48,7 +120,7 @@ type glob struct {
 	pattern string
 }
 
-func (g *glob) Exist() bool {
+func (g *glob) Exists() bool {
 	return false
 }
 
@@ -85,7 +157,37 @@ type uri struct {
 	resolved string
 }
 
-func (u *uri) Exist() bool {
+func (u *uri) Equals(value interface{}, guard px.Guard) bool {
+	ou, ok := value.(*uri)
+	if ok {
+		ok = *u == *ou
+	}
+	return ok
+}
+
+func (u *uri) ToString(bld io.Writer, format px.FormatContext, g px.RDetect) {
+	px.ToString(u)
+}
+
+func (u *uri) PType() px.Type {
+	return uriMetaType
+}
+
+func (u *uri) Get(key string) (value px.Value, ok bool) {
+	switch key {
+	case `original`:
+		return types.WrapString(u.original), true
+	case `resolved`:
+		return types.WrapString(u.resolved), true
+	}
+	return nil, false
+}
+
+func (u *uri) InitHash() px.OrderedMap {
+	return uriMetaType.InstanceHash(u)
+}
+
+func (u *uri) Exists() bool {
 	return true
 }
 
@@ -121,7 +223,7 @@ type mappedPaths struct {
 	template string
 }
 
-func (m *mappedPaths) Exist() bool {
+func (m *mappedPaths) Exists() bool {
 	return false
 }
 

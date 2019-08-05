@@ -14,7 +14,7 @@ type DataDigProvider struct {
 	hashes         *sync.Map
 }
 
-func (dh *DataDigProvider) UncheckedLookup(key hieraapi.Key, invocation hieraapi.Invocation, merge hieraapi.MergeStrategy) px.Value {
+func (dh *DataDigProvider) Lookup(key hieraapi.Key, invocation hieraapi.Invocation, merge hieraapi.MergeStrategy) px.Value {
 	return invocation.WithDataProvider(dh, func() px.Value {
 		locations := dh.hierarchyEntry.Locations()
 		switch len(locations) {
@@ -35,7 +35,7 @@ func (dh *DataDigProvider) invokeWithLocation(invocation hieraapi.Invocation, lo
 		return dh.lookupKey(invocation, nil, key)
 	}
 	result := invocation.WithLocation(location, func() px.Value {
-		if location.Exist() {
+		if location.Exists() {
 			return dh.lookupKey(invocation, location, key)
 		}
 		invocation.ReportLocationNotFound()

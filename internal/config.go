@@ -238,7 +238,7 @@ func (hc *hieraCfg) Resolve(ic hieraapi.Invocation) (cfg hieraapi.ResolvedConfig
 	v := ic.WithLookup(k, func() px.Value {
 		return ms.Lookup(r.Hierarchy(), ic, func(prv interface{}) px.Value {
 			pr := prv.(hieraapi.DataProvider)
-			return pr.UncheckedLookup(k, ic, ms)
+			return pr.Lookup(k, ic, ms)
 		})
 	})
 

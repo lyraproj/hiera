@@ -18,7 +18,7 @@ func ExampleProviderContext_CachedValue() {
 			return v
 		}
 		fmt.Printf("Creating and caching value for %s\n", key)
-		v := ic.Interpolate(types.WrapString(fmt.Sprintf("generated value for %%{%s}", key)))
+		v := ic.Interpolate(types.WrapString(fmt.Sprintf("value for %%{%s}", key)))
 		ic.Cache(key, v)
 		return v
 	}
@@ -36,9 +36,11 @@ func ExampleProviderContext_CachedValue() {
 	})
 	// Output:
 	// Creating and caching value for a
-	// generated value for scope 'a'
+	// value for scope 'a'
 	// Creating and caching value for b
-	// generated value for scope 'b'
-	// generated value for scope 'a'
-	// generated value for scope 'b'
+	// value for scope 'b'
+	// Returning cached value for a
+	// value for scope 'a'
+	// Returning cached value for b
+	// value for scope 'b'
 }

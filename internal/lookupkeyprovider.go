@@ -17,7 +17,7 @@ type LookupKeyProvider struct {
 	hashes         *sync.Map
 }
 
-func (dh *LookupKeyProvider) UncheckedLookup(key hieraapi.Key, invocation hieraapi.Invocation, merge hieraapi.MergeStrategy) px.Value {
+func (dh *LookupKeyProvider) Lookup(key hieraapi.Key, invocation hieraapi.Invocation, merge hieraapi.MergeStrategy) px.Value {
 	return invocation.WithDataProvider(dh, func() px.Value {
 		locations := dh.hierarchyEntry.Locations()
 		switch len(locations) {
@@ -38,7 +38,7 @@ func (dh *LookupKeyProvider) invokeWithLocation(invocation hieraapi.Invocation, 
 		return dh.lookupKey(invocation, nil, root)
 	}
 	return invocation.WithLocation(location, func() px.Value {
-		if location.Exist() {
+		if location.Exists() {
 			return dh.lookupKey(invocation, location, root)
 		}
 		invocation.ReportLocationNotFound()

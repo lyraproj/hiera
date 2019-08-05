@@ -18,7 +18,7 @@ type DataHashProvider struct {
 	hashesLock     sync.RWMutex
 }
 
-func (dh *DataHashProvider) UncheckedLookup(key hieraapi.Key, invocation hieraapi.Invocation, merge hieraapi.MergeStrategy) px.Value {
+func (dh *DataHashProvider) Lookup(key hieraapi.Key, invocation hieraapi.Invocation, merge hieraapi.MergeStrategy) px.Value {
 	return invocation.WithDataProvider(dh, func() px.Value {
 		locations := dh.hierarchyEntry.Locations()
 		switch len(locations) {
@@ -39,7 +39,7 @@ func (dh *DataHashProvider) invokeWithLocation(invocation hieraapi.Invocation, l
 		return dh.lookupKey(invocation, nil, root)
 	}
 	return invocation.WithLocation(location, func() px.Value {
-		if location.Exist() {
+		if location.Exists() {
 			return dh.lookupKey(invocation, location, root)
 		}
 		invocation.ReportLocationNotFound()

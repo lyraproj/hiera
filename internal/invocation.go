@@ -151,50 +151,52 @@ func (ic *invocation) sharedCache() *sync.Map {
 	panic(px.Error(hieraapi.NotInitialized, issue.NoArgs))
 }
 
-func (ic *invocation) Config() (conf hieraapi.ResolvedConfig) {
+func (ic *invocation) Config() hieraapi.ResolvedConfig {
 	sc := ic.sharedCache()
 	cp := hieraConfigsPrefix + ic.configPath
 	if val, ok := sc.Load(cp); ok {
-		conf = val.(hieraapi.ResolvedConfig)
-		return
+		return val.(hieraapi.Config).Resolve(ic)
 	}
 
 	lc := hieraLockPrefix + ic.configPath
+
 	myLock := sync.RWMutex{}
 	myLock.Lock()
-	defer myLock.Unlock()
 
+	var conf hieraapi.Config
 	if lv, loaded := sc.LoadOrStore(lc, &myLock); loaded {
-		// Only the one storing thread should proceed and create the configuration. This thread
-		// awaits the completion of that creation by waiting for the loaded mutex.
-		lock := lv.(*sync.RWMutex)
-		lock.RLock()
-		val, _ := sc.Load(cp)
-		lock.RUnlock()
-		conf = val.(hieraapi.ResolvedConfig)
+		// myLock was not stored so unlock it
+		myLock.Unlock()
+
+		if lock, ok := lv.(*sync.RWMutex); ok {
+			// The loaded value is a lock. Wait for new config to be stored in place of
+			// this lock
+			lock.RLock()
+			val, _ := sc.Load(cp)
+			conf = val.(hieraapi.Config)
+			lock.RUnlock()
+		} else {
+			conf = lv.(hieraapi.Config)
+		}
 	} else {
-		conf = NewConfig(ic, ic.configPath).Resolve(ic)
+		conf = NewConfig(ic, ic.configPath)
 		sc.Store(cp, conf)
+		myLock.Unlock()
 	}
-	return
+	return conf.Resolve(ic)
 }
 
 func (ic *invocation) ExplainMode() bool {
 	return ic.explainer != nil
 }
 
-func (ic *invocation) lookupViaCache(key hieraapi.Key, options map[string]px.Value) px.Value {
+func (ic *invocation) lookup(key hieraapi.Key, options map[string]px.Value) px.Value {
 	rootKey := key.Root()
 	if rootKey == `lookup_options` {
 		return ic.WithInvalidKey(key, func() px.Value {
 			ic.ReportNotFound(key)
 			return nil
 		})
-	}
-
-	sc := ic.sharedCache()
-	if val, ok := sc.Load(rootKey); ok {
-		return key.Dig(ic.ForData(), val.(px.Value))
 	}
 
 	globalOptions := globalOptions(ic)
@@ -214,7 +216,6 @@ func (ic *invocation) lookupViaCache(key hieraapi.Key, options map[string]px.Val
 	if v != nil {
 		dc := ic.ForData()
 		v = Interpolate(dc, v, true)
-		sc.Store(rootKey, v)
 		v = key.Dig(dc, v)
 	}
 	return v

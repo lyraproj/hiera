@@ -16,7 +16,6 @@ import (
 	"github.com/lyraproj/pcore/pcore"
 	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
-	"github.com/lyraproj/pcore/utils"
 	"github.com/lyraproj/pcore/yaml"
 )
 
@@ -149,21 +148,16 @@ func LookupAndRender(c px.Context, opts *CommandOptions, args []string, out io.W
 
 	var explainer explain.Explainer
 	if opts.ExplainData || opts.ExplainOptions {
-		if opts.RenderAs != `` {
-			var ex string
-			if opts.ExplainData {
-				ex = `explain`
-			} else {
-				ex = `explain-options`
-			}
-			panic(fmt.Errorf(`--render-as is mutually exclusive to --%s`, ex))
-		}
 		explainer = explain.NewExplainer(opts.ExplainOptions, opts.ExplainOptions && !opts.ExplainData)
 	}
 
 	found := Lookup2(internal.NewInvocation(c, scope, explainer), args, tp, dv, nil, nil, options, nil)
 	if explainer != nil {
-		utils.Fprintln(out, explainer)
+		renderAs := Text
+		if opts.RenderAs != `` {
+			renderAs = RenderName(opts.RenderAs)
+		}
+		Render(c, renderAs, explainer, out)
 		return found != nil
 	}
 
