@@ -156,3 +156,4 @@ There are two options for authentication, using a service principal or the Azure
 * [ ] pluggable back ends (initially for secrets management)
 * [x] `explain` functionality to show traversal
 * [x] containerized REST-based microservice
+* [x] JSON and YAML schema for the hiera.yaml config file (see schema/hiera_v5.yaml)
