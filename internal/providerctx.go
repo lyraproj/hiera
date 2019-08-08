@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/lyraproj/hiera/hieraapi"
+	"github.com/lyraproj/hiera/provider"
 	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
 )
@@ -37,7 +38,17 @@ func init() {
         Callable[[0, 0], Iterable[Tuple[Scalar, Any]]]],
       cached_file_data => Callable[String,Optional[Callable[1,1]]],
     }
-  }`)
+	}`)
+	px.NewGoFunction(`azure_key_vault`,
+		func(d px.Dispatch) {
+			d.Param(`Hiera::Context`)
+			d.Param(`String`)
+			d.Param(`Hash[String,Any]`)
+			d.Function(func(c px.Context, args []px.Value) px.Value {
+				return provider.AzureKeyVaultLookupKey(args[0].(hieraapi.ProviderContext), args[1].String(), args[2].(px.OrderedMap).ToStringMap())
+			})
+		},
+	)
 }
 
 type providerCtx struct {

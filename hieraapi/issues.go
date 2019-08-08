@@ -19,6 +19,7 @@ const (
 	KeyNotFound                         = `HIERA_KEY_NOT_FOUND`
 	MissingDataProviderFunction         = `HIERA_MISSING_DATA_PROVIDER_FUNCTION`
 	MissingRequiredOption               = `HIERA_MISSING_REQUIRED_OPTION`
+	MissingRequiredEnvironmentVariable  = `HIERA_MISSING_REQUIRED_ENVIRONMENT_VARIABLE`
 	MultipleDataProviderFunctions       = `HIERA_MULTIPLE_DATA_PROVIDER_FUNCTIONS`
 	MultipleLocationSpecs               = `HIERA_MULTIPLE_LOCATION_SPECS`
 	NameNotFound                        = `HIERA_NAME_NOT_FOUND`
@@ -62,6 +63,8 @@ func init() {
 		issue.HF{`keys`: joinNames})
 
 	issue.Hard(MissingRequiredOption, `Missing required provider option '%{option}'`)
+
+	issue.Hard(MissingRequiredEnvironmentVariable, `Missing required environment variable '%{name}'`)
 
 	issue.Hard2(MultipleDataProviderFunctions, `Only one of %{keys} can be defined in hierarchy '%{name}'`,
 		issue.HF{`keys`: joinNames})
