@@ -1,9 +1,0 @@
-version: 5
-
-hierarchy:
-  - name: terraform_remote_state
-    data_hash: terraform_remote_state
-    options:
-      backend: "%{backend}"
-      config:
-        path: "%{path}"

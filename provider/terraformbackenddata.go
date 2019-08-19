@@ -14,7 +14,9 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-func TerraformRemoteStateData(ctx hieraapi.ProviderContext, options map[string]px.Value) px.OrderedMap {
+// TerraformBackendData is a data hash function that returns a Terraform remote state.
+// The config can be any valid Terraform backend configuration.
+func TerraformBackendData(_ hieraapi.ProviderContext, options map[string]px.Value) px.OrderedMap {
 	// Hide Terraform's debug messages
 	log.SetOutput(ioutil.Discard)
 	backendName, ok := options[`backend`]

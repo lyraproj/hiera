@@ -311,33 +311,33 @@ func TestLookup_withCustomLK(t *testing.T) {
 	})
 }
 
-func TestLookup_TerraformRemoteState(t *testing.T) {
+func TestLookup_TerraformBackend(t *testing.T) {
 	inTestdata(func() {
-		result, err := executeLookup(`--var`, `backend:local`, `--var`, `path:terraform.tfstate`, `--config`, `terraform_remote_state.yaml`, `test`)
+		result, err := executeLookup(`--var`, `backend:local`, `--var`, `path:terraform.tfstate`, `--config`, `terraform_backend.yaml`, `test`)
 		require.NoError(t, err)
 		require.Equal(t, "value\n", string(result))
 	})
 	inTestdata(func() {
-		result, err := executeLookup(`--var`, `backend:local`, `--var`, `path:terraform.tfstate`, `--config`, `terraform_remote_state.yaml`, `--render-as`, `json`, `testobject`)
+		result, err := executeLookup(`--var`, `backend:local`, `--var`, `path:terraform.tfstate`, `--config`, `terraform_backend.yaml`, `--render-as`, `json`, `testobject`)
 		require.NoError(t, err)
 		require.Equal(t, `{"key1":"value1","key2":"value2"}`, string(result))
 	})
 }
 
-func TestLookup_TerraformRemoteStateErrors(t *testing.T) {
+func TestLookup_TerraformBackendErrors(t *testing.T) {
 	inTestdata(func() {
 		require.PanicsWithValue(t, `Unknown backend type "something"`, func() {
-			_, _ = executeLookup(`--var`, `backend:something`, `--config`, `terraform_remote_state.yaml`, `test`)
+			_, _ = executeLookup(`--var`, `backend:something`, `--config`, `terraform_backend.yaml`, `test`)
 		})
 	})
 	inTestdata(func() {
 		require.PanicsWithValue(t, `RootModule called on nil State`, func() {
-			_, _ = executeLookup(`--var`, `backend:local`, `--var`, `path:something`, `--config`, `terraform_remote_state.yaml`, `test`)
+			_, _ = executeLookup(`--var`, `backend:local`, `--var`, `path:something`, `--config`, `terraform_backend.yaml`, `test`)
 		})
 	})
 	inTestdata(func() {
 		require.PanicsWithValue(t, `The given configuration is not valid for backend "local"`, func() {
-			_, _ = executeLookup(`--var`, `backend:local`, `--config`, `terraform_remote_state_errors.yaml`, `test`)
+			_, _ = executeLookup(`--var`, `backend:local`, `--config`, `terraform_backend_errors.yaml`, `test`)
 		})
 	})
 }

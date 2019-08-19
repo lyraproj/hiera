@@ -49,12 +49,12 @@ func init() {
 			})
 		},
 	)
-	px.NewGoFunction(`terraform_remote_state`,
+	px.NewGoFunction(`terraform_backend`,
 		func(d px.Dispatch) {
 			d.Param(`Hiera::Context`)
 			d.Param(`Hash[String,Any]`)
 			d.Function(func(c px.Context, args []px.Value) px.Value {
-				return provider.TerraformRemoteStateData(args[0].(hieraapi.ProviderContext), args[1].(px.OrderedMap).ToStringMap())
+				return provider.TerraformBackendData(args[0].(hieraapi.ProviderContext), args[1].(px.OrderedMap).ToStringMap())
 			})
 		},
 	)

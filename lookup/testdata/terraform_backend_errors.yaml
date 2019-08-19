@@ -1,0 +1,9 @@
+version: 5
+
+hierarchy:
+  - name: terraform_backend
+    data_hash: terraform_backend
+    options:
+      backend: "%{backend}"
+      config:
+        something: else
