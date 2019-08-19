@@ -38,6 +38,8 @@ func TerraformRemoteStateData(ctx hieraapi.ProviderContext, options map[string]p
 		cm.EachPair(func(k, v px.Value) {
 			conf[k.String()] = cty.StringVal(v.String())
 		})
+	} else {
+		panic(fmt.Sprintf("%q must be a map", "config"))
 	}
 	config := cty.ObjectVal(conf)
 	backendInit.Init(nil)

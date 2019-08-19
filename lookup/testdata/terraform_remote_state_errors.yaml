@@ -6,4 +6,4 @@ hierarchy:
     options:
       backend: "%{backend}"
       config:
-        path: "%{path}"
+        something: else
