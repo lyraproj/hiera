@@ -14,7 +14,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// TerraformBackendData is a data hash function that returns a Terraform remote state.
+// TerraformBackendData is a data hash function that returns values from a Terraform backend.
 // The config can be any valid Terraform backend configuration.
 func TerraformBackendData(_ hieraapi.ProviderContext, options map[string]px.Value) px.OrderedMap {
 	// Hide Terraform's debug messages
