@@ -1,6 +1,10 @@
 package provider
 
 import (
+	"fmt"
+	"io/ioutil"
+	"log"
+
 	"github.com/lyraproj/hiera/hieraapi"
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/pcore/px"
@@ -11,6 +15,8 @@ import (
 )
 
 func TerraformRemoteStateData(ctx hieraapi.ProviderContext, options map[string]px.Value) px.OrderedMap {
+	// Hide Terraform's debug messages
+	log.SetOutput(ioutil.Discard)
 	backendName, ok := options[`backend`]
 	if !ok {
 		panic(px.Error(hieraapi.MissingRequiredOption, issue.H{`option`: `backend`}))
@@ -37,20 +43,37 @@ func TerraformRemoteStateData(ctx hieraapi.ProviderContext, options map[string]p
 	backendInit.Init(nil)
 	f := backendInit.Backend(backend)
 	if f == nil {
-		panic("unknown backend type")
+		panic(fmt.Sprintf("Unknown backend type %q", backend))
 	}
 	b := f()
-	newVal, _ := b.PrepareConfig(config)
-	config = newVal
-	_ = b.Configure(config)
+	schema := b.ConfigSchema()
+	configVal, err := schema.CoerceValue(config)
+	if err != nil {
+		panic(fmt.Sprintf("The given configuration is not valid for backend %q", backend))
+	}
+	newVal, diags := b.PrepareConfig(configVal)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	configVal = newVal
+	diags = b.Configure(configVal)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
 	state, _ := b.StateMgr(workspace)
-	_ = state.RefreshState()
+	if err != nil {
+		panic(err)
+	}
+	err = state.RefreshState()
+	if err != nil {
+		panic(err)
+	}
 	remoteState := state.State()
 	mod := remoteState.RootModule()
-	outputjson := make(map[string]interface{})
+	output := make(map[string]interface{})
 	for k, os := range mod.OutputValues {
-		outputjson[k] = hcl2shim.ConfigValueFromHCL2(os.Value)
+		output[k] = hcl2shim.ConfigValueFromHCL2(os.Value)
 	}
-	hsh := px.Wrap(nil, outputjson)
+	hsh := px.Wrap(nil, output)
 	return hsh.(px.OrderedMap)
 }
