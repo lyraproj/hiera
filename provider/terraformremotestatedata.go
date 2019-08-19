@@ -1,15 +1,13 @@
 package provider
 
 import (
-	"encoding/json"
-
 	"github.com/lyraproj/hiera/hieraapi"
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/pcore/px"
 
 	backendInit "github.com/hashicorp/terraform/backend/init"
+	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/zclconf/go-cty/cty"
-	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
 func TerraformRemoteStateData(ctx hieraapi.ProviderContext, options map[string]px.Value) px.OrderedMap {
@@ -29,7 +27,7 @@ func TerraformRemoteStateData(ctx hieraapi.ProviderContext, options map[string]p
 	if !ok {
 		panic(px.Error(hieraapi.MissingRequiredOption, issue.H{`option`: `config`}))
 	}
-	var conf map[string]cty.Value
+	conf := make(map[string]cty.Value)
 	if cm, ok := configMap.(px.OrderedMap); ok {
 		cm.EachPair(func(k, v px.Value) {
 			conf[k.String()] = cty.StringVal(v.String())
@@ -51,8 +49,7 @@ func TerraformRemoteStateData(ctx hieraapi.ProviderContext, options map[string]p
 	mod := remoteState.RootModule()
 	outputjson := make(map[string]interface{})
 	for k, os := range mod.OutputValues {
-		ctyjson, _ := ctyjson.Marshal(os.Value, os.Value.Type())
-		outputjson[k] = json.RawMessage(ctyjson)
+		outputjson[k] = hcl2shim.ConfigValueFromHCL2(os.Value)
 	}
 	hsh := px.Wrap(nil, outputjson)
 	return hsh.(px.OrderedMap)
