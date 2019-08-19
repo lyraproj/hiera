@@ -184,6 +184,8 @@ Example using a remote S3 backend:
 
 * `config` - A map of options to configure the backend. See the Terraform documentation for each backend.
 
+* `workspace` - The name of the workspace. If not set the `default` workspace will be used.
+
 If the backend supports reading options from environment variables this will work as well.
 
 ## Implementation status
