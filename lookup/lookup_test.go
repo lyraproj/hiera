@@ -311,6 +311,14 @@ func TestLookup_withCustomLK(t *testing.T) {
 	})
 }
 
+func TestLookup_TerraformRemoteState(t *testing.T) {
+	inTestdata(func() {
+		result, err := executeLookup(`--config`, `terraform_remote_state.yaml`, `test`)
+		require.NoError(t, err)
+		require.Equal(t, "value\n", string(result))
+	})
+}
+
 func inTestdata(f func()) {
 	cw, err := os.Getwd()
 	if err == nil {
