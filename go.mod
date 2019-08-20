@@ -22,5 +22,6 @@ require (
 
 replace (
 	github.com/Azure/go-autorest => github.com/Azure/go-autorest v12.3.0+incompatible
+	github.com/coreos/etcd => github.com/coreos/etcd v3.3.13+incompatible
 	github.com/ugorji/go => github.com/ugorji/go v0.0.0-20181204163529-d75b2dcb6bc8
 )
