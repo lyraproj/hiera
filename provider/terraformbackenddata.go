@@ -64,7 +64,7 @@ func TerraformBackendData(_ hieraapi.ProviderContext, options map[string]px.Valu
 	if diags.HasErrors() {
 		panic(diags.Err())
 	}
-	state, _ := b.StateMgr(workspace)
+	state, err := b.StateMgr(workspace)
 	if err != nil {
 		panic(err)
 	}
