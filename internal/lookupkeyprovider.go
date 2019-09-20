@@ -54,7 +54,7 @@ func (dh *LookupKeyProvider) lookupKey(ic hieraapi.Invocation, location hieraapi
 		opts = optionsWithLocation(opts, key)
 	}
 	cache, _ := dh.hashes.LoadOrStore(key, &sync.Map{})
-	value := dh.providerFunction(ic)(newProviderContext(ic, cache.(*sync.Map)), root, opts)
+	value := dh.providerFunction(ic)(newServerContext(ic, cache.(*sync.Map), opts), root)
 	if value != nil {
 		ic.ReportFound(root, value)
 	} else {
@@ -65,27 +65,27 @@ func (dh *LookupKeyProvider) lookupKey(ic hieraapi.Invocation, location hieraapi
 
 func (dh *LookupKeyProvider) providerFunction(ic hieraapi.Invocation) (pf hieraapi.LookupKey) {
 	if dh.providerFunc == nil {
-		n := dh.hierarchyEntry.Function().Name()
-		if n == `environment` {
-			dh.providerFunc = provider.Environment
-		} else if n == `scope` {
-			dh.providerFunc = provider.ScopeLookupKey
-		} else if f, ok := px.Load(ic, px.NewTypedName(px.NsFunction, n)); ok {
-			// Load lookup provider function using the standard loader
-			dh.providerFunc = func(pc hieraapi.ProviderContext, key string, options map[string]px.Value) px.Value {
-				defer catchNotFound()
-				return f.(px.Function).Call(ic, nil, []px.Value{pc, types.WrapString(key), px.Wrap(ic, options)}...)
-			}
-		} else {
-			ic.ReportText(func() string {
-				return fmt.Sprintf(`unresolved function '%s'`, n)
-			})
-			dh.providerFunc = func(pc hieraapi.ProviderContext, key string, options map[string]px.Value) px.Value {
-				return nil
-			}
-		}
+		dh.providerFunc = dh.loadFunction(ic)
 	}
 	return dh.providerFunc
+}
+
+func (dh *LookupKeyProvider) loadFunction(ic hieraapi.Invocation) (pf hieraapi.LookupKey) {
+	n := dh.hierarchyEntry.Function().Name()
+	switch n {
+	case `environment`:
+		return provider.Environment
+	case `scope`:
+		return provider.ScopeLookupKey
+	}
+	if f, ok := loadPluginFunction(ic, n, dh.hierarchyEntry); ok {
+		return func(pc hieraapi.ServerContext, key string) px.Value {
+			defer catchNotFound()
+			return f.Call(ic, nil, []px.Value{pc.(*serverCtx), types.WrapString(key)}...)
+		}
+	}
+	ic.ReportText(func() string { return fmt.Sprintf(`unresolved function '%s'`, n) })
+	return func(pc hieraapi.ServerContext, key string) px.Value { return nil }
 }
 
 func (dh *LookupKeyProvider) FullName() string {

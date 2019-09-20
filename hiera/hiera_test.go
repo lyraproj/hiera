@@ -209,7 +209,7 @@ func ExampleLookup_mapProvider() {
 		`a`: `value of a`,
 		`b`: `value of b`}
 
-	tp := func(ic hieraapi.ProviderContext, key string, _ map[string]px.Value) px.Value {
+	tp := func(ic hieraapi.ServerContext, key string) px.Value {
 		if v, ok := sampleData[key]; ok {
 			return types.WrapString(v)
 		}

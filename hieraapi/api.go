@@ -42,6 +42,8 @@ type Entry interface {
 	Options() px.OrderedMap
 	OptionsMap() map[string]px.Value
 	DataDir() string
+	PluginDir() string
+	PluginFile() string
 	Function() Function
 	Name() string
 	Resolve(ic Invocation, defaults Entry) Entry
@@ -142,9 +144,3 @@ type Invocation interface {
 // NotFound is the error that Hiera will panic with when a value cannot be found and no default
 // value has been defined
 var NotFound issue.Reported
-
-type DataDig func(ic ProviderContext, key Key, options map[string]px.Value) px.Value
-
-type DataHash func(ic ProviderContext, options map[string]px.Value) px.OrderedMap
-
-type LookupKey func(ic ProviderContext, key string, options map[string]px.Value) px.Value

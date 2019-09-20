@@ -8,15 +8,15 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/lyraproj/hiera/provider"
-	"github.com/lyraproj/pcore/px"
-	"github.com/lyraproj/pcore/types"
+	"github.com/lyraproj/hiera/internal"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/labstack/echo"
 	"github.com/lyraproj/hiera/hiera"
 	"github.com/lyraproj/hiera/hieraapi"
+	"github.com/lyraproj/hiera/provider"
 	"github.com/lyraproj/issue/issue"
+	"github.com/lyraproj/pcore/px"
+	"github.com/lyraproj/pcore/types"
 	"github.com/spf13/cobra"
 )
 
@@ -56,10 +56,6 @@ func newCommand() *cobra.Command {
 
 func initialize(_ *cobra.Command, _ []string) {
 	issue.IncludeStacktrace(logLevel == `debug`)
-	hclog.DefaultOptions = &hclog.LoggerOptions{
-		Name:  `lookup`,
-		Level: hclog.LevelFromString(logLevel),
-	}
 }
 
 func startServer(cmd *cobra.Command, _ []string) {
@@ -71,6 +67,9 @@ func startServer(cmd *cobra.Command, _ []string) {
 	configOptions[hieraapi.HieraConfig] = types.WrapString(config)
 
 	hiera.DoWithParent(context.Background(), provider.MuxLookupKey, configOptions, func(ctx px.Context) {
+		ctx.Set(`logLevel`, px.LogLevelFromString(logLevel))
+		defer internal.KillPlugins()
+
 		doLookup := func(c echo.Context) (err error) {
 			defer func() {
 				if r := recover(); r != nil {

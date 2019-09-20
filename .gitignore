@@ -59,6 +59,7 @@ fabric.properties
 *.dll
 *.so
 *.dylib
+plugin/
 
 # Test binary, build with `go test -c`
 *.test

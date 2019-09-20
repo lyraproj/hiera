@@ -282,6 +282,8 @@ func keyToString(k interface{}) string {
 		return k
 	case int:
 		return strconv.Itoa(k)
+	case hieraapi.Key:
+		return k.Source()
 	case fmt.Stringer:
 		return k.String()
 	default:
@@ -809,7 +811,7 @@ func (en *explainSubLookup) PType() px.Type {
 
 func (en *explainSubLookup) Get(key string) (value px.Value, ok bool) {
 	if key == `subKey` {
-		return types.WrapString(en.subKey.String()), true
+		return types.WrapString(en.subKey.Source()), true
 	}
 	return en.explainTreeNode.Get(key)
 }

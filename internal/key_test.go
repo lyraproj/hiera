@@ -1,4 +1,4 @@
-package hieraapi_test
+package internal_test
 
 import (
 	"context"
@@ -9,20 +9,17 @@ import (
 	"github.com/lyraproj/pcore/pcore"
 	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
-
-	// Ensure internal is initialized
-	_ "github.com/lyraproj/hiera/internal"
 )
 
 func ExampleNewKey_simple() {
 	key := hieraapi.NewKey(`simple`)
-	fmt.Printf(`%s, %d`, key, len(key.Parts()))
+	fmt.Printf(`%s, %d`, key.Source(), len(key.Parts()))
 	// Output: simple, 1
 }
 
 func ExampleNewKey_dotted() {
 	key := hieraapi.NewKey(`a.b.c`)
-	fmt.Printf(`%s, %d`, key, len(key.Parts()))
+	fmt.Printf(`%s, %d`, key.Source(), len(key.Parts()))
 	// Output: a.b.c, 3
 }
 
@@ -34,37 +31,37 @@ func ExampleNewKey_dotted_int() {
 
 func ExampleNewKey_quoted() {
 	key := hieraapi.NewKey(`'a.b.c'`)
-	fmt.Printf(`%s, %d`, key, len(key.Parts()))
+	fmt.Printf(`%s, %d`, key.Source(), len(key.Parts()))
 	// Output: 'a.b.c', 1
 }
 
 func ExampleNewKey_doubleQuoted() {
 	key := hieraapi.NewKey(`"a.b.c"`)
-	fmt.Printf(`%s, %d`, key, len(key.Parts()))
+	fmt.Printf(`%s, %d`, key.Source(), len(key.Parts()))
 	// Output: "a.b.c", 1
 }
 
 func ExampleNewKey_quotedDot() {
 	key := hieraapi.NewKey(`a.'b.c'`)
-	fmt.Printf(`%s, %d, %s`, key, len(key.Parts()), key.Parts()[1])
+	fmt.Printf(`%s, %d, %s`, key.Source(), len(key.Parts()), key.Parts()[1])
 	// Output: a.'b.c', 2, b.c
 }
 
 func ExampleNewKey_quotedDotX() {
 	key := hieraapi.NewKey(`a.'b.c'.d`)
-	fmt.Printf(`%s, %d, %s`, key, len(key.Parts()), key.Parts()[1])
+	fmt.Printf(`%s, %d, %s`, key.Source(), len(key.Parts()), key.Parts()[1])
 	// Output: a.'b.c'.d, 3, b.c
 }
 
 func ExampleNewKey_quotedQuote() {
 	key := hieraapi.NewKey(`a.b.'c"d"e'`)
-	fmt.Printf(`%s, %d, %s`, key, len(key.Parts()), key.Parts()[2])
+	fmt.Printf(`%s, %d, %s`, key.Source(), len(key.Parts()), key.Parts()[2])
 	// Output: a.b.'c"d"e', 3, c"d"e
 }
 
 func ExampleNewKey_doubleQuotedQuote() {
 	key := hieraapi.NewKey(`a.b."c'd'e"`)
-	fmt.Printf(`%s, %d, %s`, key, len(key.Parts()), key.Parts()[2])
+	fmt.Printf(`%s, %d, %s`, key.Source(), len(key.Parts()), key.Parts()[2])
 	// Output: a.b."c'd'e", 3, c'd'e
 }
 

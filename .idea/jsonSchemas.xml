@@ -15,6 +15,11 @@
                     <option name="path" value="hiera.yaml" />
                     <option name="mappingKind" value="Pattern" />
                   </Item>
+                  <Item>
+                    <option name="directory" value="true" />
+                    <option name="path" value="lookup/testdata" />
+                    <option name="mappingKind" value="Directory" />
+                  </Item>
                 </list>
               </option>
             </SchemaInfo>

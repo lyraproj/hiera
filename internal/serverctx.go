@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/lyraproj/hiera/hieraapi"
-	"github.com/lyraproj/hiera/provider"
 	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
 )
@@ -39,43 +38,25 @@ func init() {
       cached_file_data => Callable[String,Optional[Callable[1,1]]],
     }
 	}`)
-	px.NewGoFunction(`azure_key_vault`,
-		func(d px.Dispatch) {
-			d.Param(`Hiera::Context`)
-			d.Param(`String`)
-			d.Param(`Hash[String,Any]`)
-			d.Function(func(c px.Context, args []px.Value) px.Value {
-				return provider.AzureKeyVaultLookupKey(args[0].(hieraapi.ProviderContext), args[1].String(), args[2].(px.OrderedMap).ToStringMap())
-			})
-		},
-	)
-	px.NewGoFunction(`terraform_backend`,
-		func(d px.Dispatch) {
-			d.Param(`Hiera::Context`)
-			d.Param(`Hash[String,Any]`)
-			d.Function(func(c px.Context, args []px.Value) px.Value {
-				return provider.TerraformBackendData(args[0].(hieraapi.ProviderContext), args[1].(px.OrderedMap).ToStringMap())
-			})
-		},
-	)
 }
 
-type providerCtx struct {
+type serverCtx struct {
 	invocation hieraapi.Invocation
 	cache      *sync.Map
+	options    map[string]px.Value
 }
 
-func (c *providerCtx) Interpolate(value px.Value) px.Value {
+func (c *serverCtx) Interpolate(value px.Value) px.Value {
 	return Interpolate(c.invocation, value, true)
 }
 
-func newProviderContext(c hieraapi.Invocation, cache *sync.Map) hieraapi.ProviderContext {
+func newServerContext(c hieraapi.Invocation, cache *sync.Map, opts map[string]px.Value) hieraapi.ServerContext {
 	// TODO: Cache should be specific to a provider identity determined by the providers position in
 	//  the configured hierarchy
-	return &providerCtx{invocation: c, cache: cache}
+	return &serverCtx{invocation: c, cache: cache, options: opts}
 }
 
-func (c *providerCtx) Call(ctx px.Context, method px.ObjFunc, args []px.Value, block px.Lambda) (result px.Value, ok bool) {
+func (c *serverCtx) Call(ctx px.Context, method px.ObjFunc, args []px.Value, block px.Lambda) (result px.Value, ok bool) {
 	result = px.Undef
 	ok = true
 	switch method.Name() {
@@ -100,23 +81,23 @@ func (c *providerCtx) Call(ctx px.Context, method px.ObjFunc, args []px.Value, b
 	return result, ok
 }
 
-func (c *providerCtx) String() string {
+func (c *serverCtx) String() string {
 	return px.ToString(c)
 }
 
-func (c *providerCtx) Equals(other interface{}, guard px.Guard) bool {
+func (c *serverCtx) Equals(other interface{}, guard px.Guard) bool {
 	return c == other
 }
 
-func (c *providerCtx) ToString(b io.Writer, s px.FormatContext, g px.RDetect) {
+func (c *serverCtx) ToString(b io.Writer, s px.FormatContext, g px.RDetect) {
 	types.ObjectToString(c, s, b, g)
 }
 
-func (c *providerCtx) PType() px.Type {
+func (c *serverCtx) PType() px.Type {
 	return ContextType
 }
 
-func (c *providerCtx) Get(key string) (value px.Value, ok bool) {
+func (c *serverCtx) Get(key string) (value px.Value, ok bool) {
 	switch key {
 	case `environment_name`, `module_name`:
 		return px.Undef, true
@@ -124,19 +105,19 @@ func (c *providerCtx) Get(key string) (value px.Value, ok bool) {
 	return nil, false
 }
 
-func (c *providerCtx) InitHash() px.OrderedMap {
+func (c *serverCtx) InitHash() px.OrderedMap {
 	return px.EmptyMap
 }
 
-func (c *providerCtx) NotFound() {
+func (c *serverCtx) NotFound() {
 	panic(hieraapi.NotFound)
 }
 
-func (c *providerCtx) Explain(messageProducer func() string) {
+func (c *serverCtx) Explain(messageProducer func() string) {
 	c.invocation.ReportText(messageProducer)
 }
 
-func (c *providerCtx) Cache(key string, value px.Value) px.Value {
+func (c *serverCtx) Cache(key string, value px.Value) px.Value {
 	old, loaded := c.cache.LoadOrStore(key, value)
 	if loaded {
 		// Replace old value
@@ -147,20 +128,20 @@ func (c *providerCtx) Cache(key string, value px.Value) px.Value {
 	return old.(px.Value)
 }
 
-func (c *providerCtx) CacheAll(hash px.OrderedMap) {
+func (c *serverCtx) CacheAll(hash px.OrderedMap) {
 	hash.EachPair(func(k, v px.Value) {
 		c.cache.Store(k.String(), v)
 	})
 }
 
-func (c *providerCtx) CachedValue(key string) (px.Value, bool) {
+func (c *serverCtx) CachedValue(key string) (px.Value, bool) {
 	if v, ok := c.cache.Load(key); ok {
 		return v.(px.Value), true
 	}
 	return nil, false
 }
 
-func (c *providerCtx) CachedEntries(consumer px.BiConsumer) {
+func (c *serverCtx) CachedEntries(consumer px.BiConsumer) {
 	ic := c.invocation
 	c.cache.Range(func(k, v interface{}) bool {
 		consumer(px.Wrap(ic, k), px.Wrap(ic, v))
@@ -168,8 +149,18 @@ func (c *providerCtx) CachedEntries(consumer px.BiConsumer) {
 	})
 }
 
-func (c *providerCtx) Invocation() hieraapi.Invocation {
+func (c *serverCtx) Invocation() hieraapi.Invocation {
 	return c.invocation
+}
+
+func (c *serverCtx) Option(key string) px.Value {
+	return c.options[key]
+}
+
+func (c *serverCtx) EachOption(f func(key string, value px.Value)) {
+	for k, v := range c.options {
+		f(k, v)
+	}
 }
 
 func catchNotFound() {

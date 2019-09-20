@@ -7,7 +7,7 @@ import (
 )
 
 // ScopeLookupKey is a function that performs a lookup in the current scope.
-func ScopeLookupKey(c hieraapi.ProviderContext, key string, _ map[string]px.Value) px.Value {
+func ScopeLookupKey(c hieraapi.ServerContext, key string) px.Value {
 	if v, ok := c.Invocation().Scope().Get(types.WrapString(key)); ok {
 		return v
 	}

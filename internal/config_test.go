@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/lyraproj/hiera/hiera"
 	"github.com/lyraproj/hiera/hieraapi"
 	"github.com/lyraproj/pcore/px"
@@ -15,7 +14,6 @@ import (
 )
 
 func TestConfigLookup_default(t *testing.T) {
-	hclog.DefaultOptions.Level = hclog.Debug
 	wd, err := os.Getwd()
 	require.NoError(t, err)
 	options := map[string]px.Value{hieraapi.HieraRoot: types.WrapString(filepath.Join(wd, `testdata`, `defaultconfig`))}
@@ -25,7 +23,6 @@ func TestConfigLookup_default(t *testing.T) {
 }
 
 func TestConfigLookup_lyra_default(t *testing.T) {
-	hclog.DefaultOptions.Level = hclog.Debug
 	wd, err := os.Getwd()
 	require.NoError(t, err)
 	options := map[string]px.Value{hieraapi.HieraRoot: types.WrapString(filepath.Join(wd, `testdata`, `defaultlyraconfig`))}
@@ -60,7 +57,6 @@ func TestConfigLookup_sensitive(t *testing.T) {
 
 func testExplicit(t *testing.T, key, merge, expected string) {
 	t.Helper()
-	hclog.DefaultOptions.Level = hclog.Debug
 	wd, err := os.Getwd()
 	require.NoError(t, err)
 	options := map[string]px.Value{hieraapi.HieraRoot: types.WrapString(filepath.Join(wd, `testdata`, `explicit`))}

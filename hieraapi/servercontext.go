@@ -4,18 +4,12 @@ import (
 	"github.com/lyraproj/pcore/px"
 )
 
-// A Context provides a local cache and utility functions to a provider function
-type ProviderContext interface {
-	px.PuppetObject
-	px.CallableObject
+type ServerContext interface {
+	px.Value
 
-	// NotFound should be called by a function to indicate that a specified key
-	// was not found. This is different from returning an Undef since undef is
-	// a valid value for a key.
-	//
-	// This method will panic with an internal value that is recovered by the
-	// Lookup logic. There is no return from this method.
-	NotFound()
+	Option(key string) px.Value
+
+	EachOption(func(key string, value px.Value))
 
 	// ReportText will add the message returned by the given function to the
 	// lookup explainer. The method will only get called when the explanation

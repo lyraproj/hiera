@@ -14,15 +14,14 @@ const LookupProvidersKey = `hiera::lookup::providers`
 //
 // The intended use for this function is when a very simplistic way of configuring Hiera is desired that
 // requires no configuration files.
-func MuxLookupKey(c hieraapi.ProviderContext, key string, options map[string]px.Value) px.Value {
-	if pv, ok := options[LookupProvidersKey]; ok {
-		var rpv *types.RuntimeValue
-		if rpv, ok = pv.(*types.RuntimeValue); ok {
+func MuxLookupKey(c hieraapi.ServerContext, key string) px.Value {
+	if pv := c.Option(LookupProvidersKey); pv != nil {
+		if rpv, ok := pv.(*types.RuntimeValue); ok {
 			var pvs []hieraapi.LookupKey
 			if pvs, ok = rpv.Interface().([]hieraapi.LookupKey); ok {
 				for _, lk := range pvs {
 					var result px.Value
-					if result = lk(c, key, options); result != nil {
+					if result = lk(c, key); result != nil {
 						return result
 					}
 				}

@@ -212,7 +212,7 @@ func (ic *invocation) lookup(key hieraapi.Key, options map[string]px.Value) px.V
 		}
 		options = no
 	}
-	v := ic.topProvider()(newProviderContext(ic, ic.topProviderCache()), rootKey, options)
+	v := ic.topProvider()(newServerContext(ic, ic.topProviderCache(), options), rootKey)
 	if v != nil {
 		dc := ic.ForData()
 		v = Interpolate(dc, v, true)
@@ -222,10 +222,10 @@ func (ic *invocation) lookup(key hieraapi.Key, options map[string]px.Value) px.V
 }
 
 func (ic *invocation) WithKey(key hieraapi.Key, actor px.Producer) px.Value {
-	if utils.ContainsString(ic.nameStack, key.String()) {
+	if utils.ContainsString(ic.nameStack, key.Source()) {
 		panic(px.Error(hieraapi.EndlessRecursion, issue.H{`name_stack`: ic.nameStack}))
 	}
-	ic.nameStack = append(ic.nameStack, key.String())
+	ic.nameStack = append(ic.nameStack, key.Source())
 	defer func() {
 		ic.nameStack = ic.nameStack[:len(ic.nameStack)-1]
 	}()

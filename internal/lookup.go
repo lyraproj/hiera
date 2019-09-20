@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"github.com/hashicorp/go-hclog"
 	"github.com/lyraproj/hiera/explain"
 	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
@@ -29,13 +28,6 @@ func mergeType(nameOrHash px.Value) (merge map[string]px.Value) {
 		merge = map[string]px.Value{`merge`: nameOrHash}
 	}
 	return
-}
-
-func debugExplainer() explain.Explainer {
-	if hclog.Default().IsDebug() {
-		return explain.NewExplainer(false, false)
-	}
-	return nil
 }
 
 func init() {
@@ -141,10 +133,18 @@ func init() {
 }
 
 func invokeLookup(c px.Context, names []string, vt px.Type, dflt px.Value, override, dfltHash px.OrderedMap, options px.Value, block px.Lambda) px.Value {
-	ex := debugExplainer()
+	ll := px.ERR
+	if li, ok := c.Get(`logLevel`); ok {
+		ll = li.(px.LogLevel)
+	}
+	var ex explain.Explainer
+	if ll == px.DEBUG {
+		ex = explain.NewExplainer(false, false)
+	}
+
 	v := Lookup2(NewInvocation(c, c.Scope(), ex), names, vt, dflt, override, dfltHash, mergeType(options), block)
 	if ex != nil {
-		hclog.Default().Debug(ex.String())
+		c.Logger().Log(px.DEBUG, ex)
 	}
 	return v
 }

@@ -1,4 +1,4 @@
-package hieraapi_test
+package internal_test
 
 import (
 	"context"
@@ -10,9 +10,9 @@ import (
 	"github.com/lyraproj/pcore/types"
 )
 
-func ExampleProviderContext_CachedValue() {
+func ExampleServerContext_CachedValue() {
 
-	cachingProvider := func(ic hieraapi.ProviderContext, key string, options map[string]px.Value) px.Value {
+	cachingProvider := func(ic hieraapi.ServerContext, key string) px.Value {
 		if v, ok := ic.CachedValue(key); ok {
 			fmt.Printf("Returning cached value for %s\n", key)
 			return v

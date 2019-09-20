@@ -10,10 +10,10 @@ var YamlDataKey = `yaml::data`
 // YamlLookupKey is a LookupKey function that uses the YamlData DataHash function to find the data and caches the result.
 // It is mainly intended for testing purposes but can also be used as a complete replacement of a Configured hiera
 // setup.
-func YamlLookupKey(c hieraapi.ProviderContext, key string, options map[string]px.Value) px.Value {
+func YamlLookupKey(c hieraapi.ServerContext, key string) px.Value {
 	data, ok := c.CachedValue(YamlDataKey)
 	if !ok {
-		data = YamlData(c, options)
+		data = YamlData(c)
 		c.Cache(YamlDataKey, data)
 	}
 	hash, _ := data.(px.OrderedMap)

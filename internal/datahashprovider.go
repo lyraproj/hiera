@@ -77,39 +77,36 @@ func (dh *DataHashProvider) dataValue(ic hieraapi.Invocation, location hieraapi.
 
 func (dh *DataHashProvider) providerFunction(ic hieraapi.Invocation) (pf hieraapi.DataHash) {
 	if dh.providerFunc == nil {
-		n := dh.hierarchyEntry.Function().Name()
-		if n == `yaml_data` {
-			// Shortcut. No need to go through pcore calling mechanism
-			dh.providerFunc = provider.YamlData
-			return dh.providerFunc
-		}
-		if n == `json_data` {
-			// Shortcut. No need to go through pcore calling mechanism
-			dh.providerFunc = provider.JsonData
-			return dh.providerFunc
-		}
-
-		// Load lookup provider function using the standard loader
-		if f, ok := px.Load(ic, px.NewTypedName(px.NsFunction, n)); ok {
-			dh.providerFunc = func(pc hieraapi.ProviderContext, options map[string]px.Value) (value px.OrderedMap) {
-				value = px.EmptyMap
-				defer catchNotFound()
-				v := f.(px.Function).Call(ic, nil, []px.Value{pc, px.Wrap(ic, options)}...)
-				if dv, ok := v.(px.OrderedMap); ok {
-					value = dv
-				}
-				return
-			}
-		} else {
-			ic.ReportText(func() string {
-				return fmt.Sprintf(`unresolved function '%s'`, n)
-			})
-			dh.providerFunc = func(pc hieraapi.ProviderContext, options map[string]px.Value) px.OrderedMap {
-				return px.EmptyMap
-			}
-		}
+		dh.providerFunc = dh.loadFunction(ic)
 	}
 	return dh.providerFunc
+}
+
+func (dh *DataHashProvider) loadFunction(ic hieraapi.Invocation) hieraapi.DataHash {
+	n := dh.hierarchyEntry.Function().Name()
+	switch n {
+	case `yaml_data`:
+		return provider.YamlData
+	case `json_data`:
+		return provider.JsonData
+	}
+
+	if fn, ok := loadPluginFunction(ic, n, dh.hierarchyEntry); ok {
+		return func(pc hieraapi.ServerContext) (value px.OrderedMap) {
+			value = px.EmptyMap
+			defer catchNotFound()
+			v := fn.Call(ic, nil, []px.Value{pc.(*serverCtx)}...)
+			if dv, ok := v.(px.OrderedMap); ok {
+				value = dv
+			}
+			return
+		}
+	}
+
+	ic.ReportText(func() string { return fmt.Sprintf(`unresolved function '%s'`, n) })
+	return func(pc hieraapi.ServerContext) px.OrderedMap {
+		return px.EmptyMap
+	}
 }
 
 func (dh *DataHashProvider) dataHash(ic hieraapi.Invocation, location hieraapi.Location) (hash px.OrderedMap) {
@@ -134,7 +131,7 @@ func (dh *DataHashProvider) dataHash(ic hieraapi.Invocation, location hieraapi.L
 	if hash, ok = dh.hashes[key]; ok {
 		return hash
 	}
-	hash = dh.providerFunction(ic)(newProviderContext(ic, &sync.Map{}), opts)
+	hash = dh.providerFunction(ic)(newServerContext(ic, &sync.Map{}, opts))
 	dh.hashes[key] = hash
 	return
 }

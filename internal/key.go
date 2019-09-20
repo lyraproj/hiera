@@ -2,7 +2,10 @@ package internal
 
 import (
 	"bytes"
+	"io"
 	"strconv"
+
+	"github.com/lyraproj/pcore/utils"
 
 	"github.com/lyraproj/hiera/hieraapi"
 	"github.com/lyraproj/issue/issue"
@@ -11,13 +14,50 @@ import (
 )
 
 type key struct {
-	orig  string
-	parts []interface{}
+	source string
+	parts  []interface{}
 }
+
+func init() {
+	keyMetaType = px.NewObjectType(`Hiera::Key`, `{
+		attributes => {
+			source => String,
+			parts => Array[Variant[String,Integer]]
+    }
+	}`,
+		func(c px.Context, args []px.Value) px.Value {
+			parts := args[1].(px.List)
+			is := make([]interface{}, parts.Len())
+			parts.EachWithIndex(func(v px.Value, i int) {
+				if s, ok := v.(px.StringValue); ok {
+					is[i] = s.String()
+				} else {
+					is[i] = v.(px.Integer).Int()
+				}
+			})
+			return &key{args[0].String(), is}
+		})
+}
+
+var keyMetaType px.ObjectType
 
 func newKey(str string) hieraapi.Key {
 	b := bytes.NewBufferString(``)
 	return &key{str, parseUnquoted(b, str, str, []interface{}{})}
+}
+
+func (k *key) Bury(value px.Value) px.Value {
+	for i := len(k.parts) - 1; i > 0; i-- {
+		p := k.parts[i]
+		var kx px.Value
+		if ix, ok := p.(int); ok {
+			kx = types.WrapInteger(int64(ix))
+		} else {
+			kx = types.WrapString(p.(string))
+		}
+		value = types.WrapHash([]*types.HashEntry{types.WrapHashEntry(kx, value)})
+	}
+	return value
 }
 
 func (k *key) Dig(ic hieraapi.Invocation, v px.Value) px.Value {
@@ -62,30 +102,52 @@ func (k *key) Dig(ic hieraapi.Invocation, v px.Value) px.Value {
 	})
 }
 
-func (k *key) Bury(value px.Value) px.Value {
-	for i := len(k.parts) - 1; i > 0; i-- {
-		p := k.parts[i]
-		var kx px.Value
-		if ix, ok := p.(int); ok {
-			kx = types.WrapInteger(int64(ix))
-		} else {
-			kx = types.WrapString(p.(string))
-		}
-		value = types.WrapHash([]*types.HashEntry{types.WrapHashEntry(kx, value)})
+func (k *key) Equals(value interface{}, guard px.Guard) bool {
+	if ov, ok := value.(*key); ok {
+		return k.source == ov.source
 	}
-	return value
+	return false
+}
+
+func (k *key) Get(key string) (value px.Value, ok bool) {
+	switch key {
+	case `source`:
+		return types.WrapString(k.source), true
+	case `parts`:
+		return px.Wrap(nil, k.parts), true
+	}
+	return nil, false
+}
+
+func (k *key) InitHash() px.OrderedMap {
+	return keyMetaType.InstanceHash(k)
 }
 
 func (k *key) Parts() []interface{} {
 	return k.parts
 }
 
-func (k *key) String() string {
-	return k.orig
+func (k *key) PType() px.Type {
+	return keyMetaType
 }
 
 func (k *key) Root() string {
 	return k.parts[0].(string)
+}
+
+func (k *key) Source() string {
+	return k.source
+}
+
+func (k *key) String() string {
+	return px.ToString(k)
+}
+
+func (k *key) ToString(bld io.Writer, format px.FormatContext, g px.RDetect) {
+	utils.WriteString(bld, k.PType().Name())
+	utils.WriteByte(bld, '(')
+	utils.PuppetQuote(bld, k.source)
+	utils.WriteByte(bld, ')')
 }
 
 func parseUnquoted(b *bytes.Buffer, key, part string, parts []interface{}) []interface{} {
