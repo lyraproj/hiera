@@ -99,6 +99,14 @@ func TestLookup_fact_directly(t *testing.T) {
 	})
 }
 
+func TestLookup_nullentry(t *testing.T) {
+	inTestdata(func() {
+		result, err := executeLookup(`nullentry`)
+		require.NoError(t, err)
+		require.Equal(t, "nv: null\n", string(result))
+	})
+}
+
 func TestLookup_explain(t *testing.T) {
 	inTestdata(func() {
 		result, err := executeLookup(`--explain`, `--facts`, `facts.yaml`, `interpolate_ca`)

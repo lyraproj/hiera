@@ -14,6 +14,9 @@ array:
 
 sense: Don't reveal this
 
+nullentry:
+  nv: null
+
 lookup_options:
   hash:
     merge: deep
