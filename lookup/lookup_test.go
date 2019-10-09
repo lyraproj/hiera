@@ -7,7 +7,7 @@ import (
 
 	"github.com/lyraproj/hiera/hieraapi"
 	"github.com/lyraproj/pcore/px"
-
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -326,19 +326,22 @@ func TestLookup_TerraformBackend(t *testing.T) {
 
 func TestLookup_TerraformBackendErrors(t *testing.T) {
 	inTestdata(func() {
-		require.PanicsWithValue(t, `Unknown backend type "something"`, func() {
-			_, _ = executeLookup(`--var`, `backend:something`, `--config`, `terraform_backend.yaml`, `test`)
-		})
+		_, err := executeLookup(`--var`, `backend:something`, `--config`, `terraform_backend.yaml`, `test`)
+		if assert.Error(t, err) {
+			require.Regexp(t, `Unknown backend type "something"`, err.Error())
+		}
 	})
 	inTestdata(func() {
-		require.PanicsWithValue(t, `RootModule called on nil State`, func() {
-			_, _ = executeLookup(`--var`, `backend:local`, `--var`, `path:something`, `--config`, `terraform_backend.yaml`, `test`)
-		})
+		_, err := executeLookup(`--var`, `backend:local`, `--var`, `path:something`, `--config`, `terraform_backend.yaml`, `test`)
+		if assert.Error(t, err) {
+			require.Regexp(t, `RootModule called on nil State`, err.Error())
+		}
 	})
 	inTestdata(func() {
-		require.PanicsWithValue(t, `The given configuration is not valid for backend "local"`, func() {
-			_, _ = executeLookup(`--var`, `backend:local`, `--config`, `terraform_backend_errors.yaml`, `test`)
-		})
+		_, err := executeLookup(`--var`, `backend:local`, `--config`, `terraform_backend_errors.yaml`, `test`)
+		if assert.Error(t, err) {
+			require.Regexp(t, `The given configuration is not valid for backend "local"`, err.Error())
+		}
 	})
 }
 

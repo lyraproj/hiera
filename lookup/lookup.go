@@ -88,7 +88,7 @@ func newCommand() *cobra.Command {
 		Long:    "Lookup - Perform lookups in Hiera data storage.\n  Find more information at: https://github.com/lyraproj/hiera",
 		Version: fmt.Sprintf("%v", getVersion()),
 		PreRun:  initialize,
-		Run:     cmdLookup,
+		RunE:    cmdLookup,
 		Args:    cobra.MinimumNArgs(1)}
 
 	flags := cmd.Flags()
@@ -116,7 +116,7 @@ func initialize(_ *cobra.Command, _ []string) {
 	}
 }
 
-func cmdLookup(cmd *cobra.Command, args []string) {
+func cmdLookup(cmd *cobra.Command, args []string) error {
 	cmdOpts.Default = dflt.StringPointer()
 	configOptions := map[string]px.Value{
 		provider.LookupProvidersKey: types.WrapRuntime([]hieraapi.LookupKey{provider.ConfigLookupKey, provider.Environment})}
@@ -128,12 +128,8 @@ func cmdLookup(cmd *cobra.Command, args []string) {
 		cmdOpts.VarPaths = append(cmdOpts.VarPaths, facts...)
 	}
 
-	err := hiera.TryWithParent(context.Background(), provider.MuxLookupKey, configOptions, func(c px.Context) error {
+	return hiera.TryWithParent(context.Background(), provider.MuxLookupKey, configOptions, func(c px.Context) error {
 		hiera.LookupAndRender(c, &cmdOpts, args, cmd.OutOrStdout())
 		return nil
 	})
-	if err != nil {
-		fmt.Println(cmd.OutOrStderr(), err)
-		os.Exit(1)
-	}
 }
