@@ -55,9 +55,9 @@ func (dh *DataDigProvider) lookupKey(ic hieraapi.Invocation, location hieraapi.L
 		opts = optionsWithLocation(opts, cacheKey)
 	}
 	cache, _ := dh.hashes.LoadOrStore(cacheKey, &sync.Map{})
-	value := dh.providerFunction(ic)(newProviderContext(ic, cache.(*sync.Map)), key, opts)
+	value := dh.providerFunction(ic)(newServerContext(ic, cache.(*sync.Map), opts), key)
 	if value != nil {
-		ic.ReportFound(key.String(), value)
+		ic.ReportFound(key.Source(), value)
 	} else {
 		ic.ReportNotFound(key)
 	}
@@ -66,23 +66,21 @@ func (dh *DataDigProvider) lookupKey(ic hieraapi.Invocation, location hieraapi.L
 
 func (dh *DataDigProvider) providerFunction(ic hieraapi.Invocation) (pf hieraapi.DataDig) {
 	if dh.providerFunc == nil {
-		n := dh.hierarchyEntry.Function().Name()
-		// Load lookup provider function using the standard loader
-		if f, ok := px.Load(ic, px.NewTypedName(px.NsFunction, n)); ok {
-			dh.providerFunc = func(pc hieraapi.ProviderContext, key hieraapi.Key, options map[string]px.Value) px.Value {
-				defer catchNotFound()
-				return f.(px.Function).Call(ic, nil, []px.Value{pc, px.Wrap(ic, key.Parts()), px.Wrap(ic, options)}...)
-			}
-		} else {
-			ic.ReportText(func() string {
-				return fmt.Sprintf(`unresolved function '%s'`, n)
-			})
-			dh.providerFunc = func(pc hieraapi.ProviderContext, key hieraapi.Key, options map[string]px.Value) px.Value {
-				return nil
-			}
-		}
+		dh.providerFunc = dh.loadFunction(ic)
 	}
 	return dh.providerFunc
+}
+
+func (dh *DataDigProvider) loadFunction(ic hieraapi.Invocation) (pf hieraapi.DataDig) {
+	n := dh.hierarchyEntry.Function().Name()
+	if f, ok := loadPluginFunction(ic, n, dh.hierarchyEntry); ok {
+		return func(pc hieraapi.ServerContext, key hieraapi.Key) px.Value {
+			defer catchNotFound()
+			return f.(px.Function).Call(ic, nil, []px.Value{pc.(*serverCtx), key}...)
+		}
+	}
+	ic.ReportText(func() string { return fmt.Sprintf(`unresolved function '%s'`, n) })
+	return func(pc hieraapi.ServerContext, key hieraapi.Key) px.Value { return nil }
 }
 
 func (dh *DataDigProvider) FullName() string {

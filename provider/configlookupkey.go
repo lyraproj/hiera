@@ -10,7 +10,7 @@ var first = types.WrapString(`first`)
 
 // ConfigLookupKey performs a lookup based on a hierarchy of providers that has been specified
 // in a yaml based configuration stored on disk.
-func ConfigLookupKey(pc hieraapi.ProviderContext, key string, options map[string]px.Value) px.Value {
+func ConfigLookupKey(pc hieraapi.ServerContext, key string) px.Value {
 	ic := pc.Invocation()
 	cfg := ic.Config()
 	ic = ic.ForData()
@@ -18,16 +18,16 @@ func ConfigLookupKey(pc hieraapi.ProviderContext, key string, options map[string
 	k := hieraapi.NewKey(key)
 	return ic.WithLookup(k, func() px.Value {
 		var lo map[string]px.Value
-		merge, ok := options[`merge`]
-		if ok {
+		merge := pc.Option(`merge`)
+		if merge != nil {
 			ic.ReportMergeSource(`CLI option`)
 		} else {
 			lo = cfg.LookupOptions(k)
 			if lo == nil {
 				merge = first
 			} else {
-				merge, ok = lo[`merge`]
-				if !ok {
+				merge = lo[`merge`]
+				if merge == nil {
 					merge = first
 				} else {
 					ic.ReportMergeSource(`"lookup_options" hash`)
@@ -35,9 +35,8 @@ func ConfigLookupKey(pc hieraapi.ProviderContext, key string, options map[string
 			}
 		}
 
-		var mh px.OrderedMap
 		var mergeOpts map[string]px.Value
-		if mh, ok = merge.(px.OrderedMap); ok {
+		if mh, ok := merge.(px.OrderedMap); ok {
 			merge = mh.Get5(`strategy`, first)
 			mergeOpts = make(map[string]px.Value, mh.Len())
 			mh.EachPair(func(k, v px.Value) {

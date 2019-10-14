@@ -36,13 +36,15 @@ func (f *function) Resolve(ic hieraapi.Invocation) (hieraapi.Function, bool) {
 }
 
 type entry struct {
-	cfg       *hieraCfg
-	dataDir   string
-	options   px.OrderedMap
-	optsMap   map[string]px.Value
-	function  hieraapi.Function
-	name      string
-	locations []hieraapi.Location
+	cfg        *hieraCfg
+	dataDir    string
+	pluginDir  string
+	pluginFile string
+	options    px.OrderedMap
+	optsMap    map[string]px.Value
+	function   hieraapi.Function
+	name       string
+	locations  []hieraapi.Location
 }
 
 func (e *entry) Options() px.OrderedMap {
@@ -55,6 +57,14 @@ func (e *entry) OptionsMap() map[string]px.Value {
 
 func (e *entry) DataDir() string {
 	return e.dataDir
+}
+
+func (e *entry) PluginDir() string {
+	return e.pluginDir
+}
+
+func (e *entry) PluginFile() string {
+	return e.pluginFile
 }
 
 func (e *entry) Function() hieraapi.Function {
@@ -133,6 +143,21 @@ func (e *entry) Resolve(ic hieraapi.Invocation, defaults hieraapi.Entry) hieraap
 		if d, dc := interpolateString(ic, ce.dataDir, false); dc {
 			ce.dataDir = d.String()
 		}
+	}
+
+	if ce.pluginDir == `` {
+		if defaults == nil {
+			ce.pluginDir = `plugin`
+		} else {
+			ce.pluginDir = defaults.PluginDir()
+		}
+	} else {
+		if d, dc := interpolateString(ic, ce.pluginDir, false); dc {
+			ce.pluginDir = d.String()
+		}
+	}
+	if !filepath.IsAbs(ce.pluginDir) {
+		ce.pluginDir = filepath.Join(e.cfg.root, ce.pluginDir)
 	}
 
 	if ce.options == nil {
@@ -216,7 +241,7 @@ func createConfig(ic hieraapi.Invocation, path string, hash *types.Hash) hieraap
 }
 
 func (hc *hieraCfg) makeDefaultConfig() *entry {
-	return &entry{cfg: hc, dataDir: `data`, function: &function{kind: hieraapi.KindDataHash, name: `yaml_data`}}
+	return &entry{cfg: hc, dataDir: `data`, pluginDir: `plugin`, function: &function{kind: hieraapi.KindDataHash, name: `yaml_data`}}
 }
 
 func (hc *hieraCfg) makeDefaultHierarchy() []hieraapi.Entry {
@@ -307,10 +332,14 @@ func (hc *hieraCfg) createEntry(ic hieraapi.Invocation, name string, entryHash *
 	entry.initialize(ic, name, entryHash)
 	entryHash.EachPair(func(k, v px.Value) {
 		ks := k.String()
-		if ks == `datadir` {
+		switch {
+		case ks == `datadir`:
 			entry.dataDir = v.String()
-		}
-		if utils.ContainsString(hieraapi.LocationKeys, ks) {
+		case ks == `plugindir`:
+			entry.pluginDir = v.String()
+		case ks == `pluginfile`:
+			entry.pluginFile = v.String()
+		case utils.ContainsString(hieraapi.LocationKeys, ks):
 			if entry.locations != nil {
 				panic(px.Error(hieraapi.MultipleLocationSpecs, issue.H{`keys`: hieraapi.LocationKeys, `name`: name}))
 			}

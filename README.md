@@ -14,11 +14,6 @@ Hiera uses the concept of "managing by exception": you design a *hierarchy* of d
 
 ### Standalone execution
 
-Hiera is a go module and go modules must be enabled by setting the environment variable GO111MODULE is on before an
-attempt is made to install:
-
-    export GO111MODULE=on
-
 #### Install the module
 
 To install the module under $GOPATH/src:
@@ -113,80 +108,39 @@ This maps to a directory structure based in the `hiera` subdirectory (due to the
     └── hosts
         └── specialhost.yaml
 
-## Azure Key Vault lookup key
+## Extending Hiera
 
-This function allows you to look up single values stored as secrets from an Azure Key Vault.
-A single option `vault_name` should be set in `hiera.yaml`:
+When Hiera performs a lookup it uses a lookup function. Unless the function embedded in the hiera binary, it will
+make an attempt to load a RESTful Plugin that provides the needed function. Such plugins are enabled by using the API
+provided by the [hierasdk library](https://github.com/lyraproj/hierasdk).
 
-    ---
-    version: 5
-    defaults:
-    datadir: hiera
-    data_hash: yaml_data
+#### How Hiera finds its plugins
+The resolution of a plugin can be controlled using a "plugindir" key in the Hiera configuration file. As with "datadir",
+the "plugindir" can be specified both in the defaults hierarchy or explicitly in a specific hierarchy. Unless specified,
+the "plugindir" is assumed to be the directory "plugin" present in the same directory as the configuration file.
 
-    hierarchy:
-    - name: common
-      path: common.yaml
-    - name: secrets
-      lookup_key: azure_key_vault
-      options:
-        vault_name: my-key-vault
+In addition to "plugindir", a hierarchy may also specify a "pluginfile". Unless specified, the "pluginfile" is assumed
+to be equal to the name of the lookup function (with the extension ".exe" in case of Windows).
 
-There are two options for authentication, using a service principal or the Azure CLI
+### Containerized extension
 
-* To use a service principal set the environment variables `AZURE_TENANT_ID`, `AZURE_CLIENT_ID` and `AZURE_CLIENT_SECRET`
+In order to include an extension in a Hiera Docker image you need to:
 
-* If the above variables are not present the Azure CLI will be used (it must already be logged in)
+1. Copy the source (or clone the git repository) of the desired extensions into the hiera plugin directory (don't worry,
+   this directory will be ignored by git when doing commits to hiera).
+2. For each extension, add a line like the following line to the Hiera Dockerfile below the comment
+   `# Add plugin builds here`:
+    ```
+    RUN (cd plugin/hiera_terraform && go build -o ../terraform_backend)
+    ```
+3. Run the docker build.
 
-## Terraform Backend data hash
+### Useful extensions
 
-This function allows hiera to query data from a Terraform [backend](https://www.terraform.io/docs/backends/types/index.html). Any backend supported by Terraform can be queried.
-
-Example using a local backend:
-
-    ---
-    version: 5
-    defaults:
-    datadir: hiera
-    data_hash: yaml_data
-
-    hierarchy:
-    - name: common
-      path: common.yaml
-    - name: terraform_backend_local
-      data_hash: terraform_backend
-      options:
-        backend: local
-        config:
-          path: /tfdir/terraform.tfstate
-
-Example using a remote S3 backend:
-
-    ---
-    version: 5
-    defaults:
-    datadir: hiera
-    data_hash: yaml_data
-
-    hierarchy:
-    - name: common
-      path: common.yaml
-    - name: terraform_backend_s3
-      data_hash: terraform_backend
-      options:
-        backend: s3
-        config:
-          bucket: mybucket
-          key: path/to/my/key
-          region: us-east-1
-
-* `backend` - The name of the backend.
-
-* `config` - A map of options to configure the backend. See the Terraform documentation for each backend.
-
-* `workspace` - The name of the workspace. If not set the `default` workspace will be used.
-
-If the backend supports reading options from environment variables this will work as well.
+* [Azure Key Vault lookup_key](https://github.com/lyraproj/hiera_azure). Allows you to lookup single values stored as
+ secrets from the Azure Key Vault.
+* [Terraform Backend data_hash](https://github.com/lyraproj/hiera_terrform). Allows hiera to query data from a Terraform
+ backend. 
 
 ## Implementation status
 
@@ -203,7 +157,7 @@ If the backend supports reading options from environment variables this will wor
 * [x] convert_to type coercions
 * [x] Sensitive data
 * [ ] configurable deep merge
-* [ ] pluggable back ends (initially for secrets management)
+* [x] pluggable back ends
 * [x] `explain` functionality to show traversal
 * [x] containerized REST-based microservice
 * [x] JSON and YAML schema for the hiera.yaml config file (see schema/hiera_v5.yaml)

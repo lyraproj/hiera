@@ -1,0 +1,9 @@
+version: 5
+
+hierarchy:
+  - name: Plugin
+    lookup_key: test_lookup_key
+    pluginfile: hieratestplugin
+    options:
+      a: option a
+      b: option b

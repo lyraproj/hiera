@@ -10,6 +10,9 @@ definitions:
       datadir:
         description: Default value for datadir, used for any file-based hierarchy level that doesn't specify its own.
         type: string
+      plugindir:
+        description: Default value for plugin, used for any file-based hierarchy level that doesn't specify its own.
+        type: string
       options:
         description: Default value for options, used for any hierarchy level that does not specify its own.
         type: object
@@ -32,6 +35,12 @@ definitions:
         type: string
       datadir:
         description: The directory where data files are kept; can be omitted if you set a default
+        type: string
+      plugindir:
+        description: The directory where plugins are kept; can be omitted when using embedded lookup functions or if you set a default
+        type: string
+      pluginfile:
+        description: The file name of the plugin; can be omitted when using embedded lookup functions or if plugin is named after the function
         type: string
       options:
         description: Options to pass on to the data provider function

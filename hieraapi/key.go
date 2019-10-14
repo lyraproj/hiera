@@ -1,15 +1,13 @@
 package hieraapi
 
 import (
-	"fmt"
-
 	"github.com/lyraproj/pcore/px"
 )
 
 // A Key is a parsed version of the possibly dot-separated key to lookup. The
 // parts of a key will be strings or integers
 type Key interface {
-	fmt.Stringer
+	px.PuppetObject
 
 	// Return the result of using this key to dig into the given value. Nil is returned
 	// unless the dig was a success
@@ -25,6 +23,9 @@ type Key interface {
 
 	// Return the root key, i.e. the first part.
 	Root() string
+
+	// Source returns the string that this key was created from
+	Source() string
 }
 
 // NewKey parses the given string into a Key

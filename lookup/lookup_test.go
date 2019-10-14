@@ -1,67 +1,73 @@
 package main
 
 import (
-	"bytes"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"sync"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/lyraproj/hiera/cli"
 
 	"github.com/lyraproj/hiera/hieraapi"
 	"github.com/lyraproj/pcore/px"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestLookup_defaultInt(t *testing.T) {
-	result, err := executeLookup(`--default`, `23`, `--type`, `Integer`, `foo`)
+	result, err := cli.ExecuteLookup(`--default`, `23`, `--type`, `Integer`, `foo`)
 	require.NoError(t, err)
 	require.Equal(t, "23\n", string(result))
 }
 
 func TestLookup_defaultString(t *testing.T) {
-	result, err := executeLookup(`--default`, `23`, `--type`, `String`, `foo`)
+	result, err := cli.ExecuteLookup(`--default`, `23`, `--type`, `String`, `foo`)
 	require.NoError(t, err)
 	require.Equal(t, "\"23\"\n", string(result))
 }
 
 func TestLookup_defaultEmptyString(t *testing.T) {
-	result, err := executeLookup(`--default`, ``, `foo`)
+	result, err := cli.ExecuteLookup(`--default`, ``, `foo`)
 	require.NoError(t, err)
 	require.Equal(t, "\"\"\n", string(result))
 }
 
 func TestLookup_defaultHash(t *testing.T) {
-	result, err := executeLookup(`--default`, `{ x => 'a', y => 9 }`, `--type`, `Hash[String,Variant[String,Integer]]`, `foo`)
+	result, err := cli.ExecuteLookup(`--default`, `{ x => 'a', y => 9 }`, `--type`, `Hash[String,Variant[String,Integer]]`, `foo`)
 	require.NoError(t, err)
 	require.Equal(t, "x: a\ny: 9\n", string(result))
 }
 
 func TestLookup_defaultHash_json(t *testing.T) {
-	result, err := executeLookup(`--default`, `{ x => 'a', y => 9 }`, `--type`, `Hash[String,Variant[String,Integer]]`, `--render-as`, `json`, `foo`)
+	result, err := cli.ExecuteLookup(`--default`, `{ x => 'a', y => 9 }`, `--type`, `Hash[String,Variant[String,Integer]]`, `--render-as`, `json`, `foo`)
 	require.NoError(t, err)
 	require.Equal(t, `{"x":"a","y":9}`, string(result))
 }
 
 func TestLookup_defaultString_s(t *testing.T) {
-	result, err := executeLookup(`--default`, `xyz`, `--render-as`, `s`, `foo`)
+	result, err := cli.ExecuteLookup(`--default`, `xyz`, `--render-as`, `s`, `foo`)
 	require.NoError(t, err)
 	require.Equal(t, "xyz\n", string(result))
 }
 
 func TestLookup_defaultString_binary(t *testing.T) {
-	result, err := executeLookup(`--default`, `YWJjMTIzIT8kKiYoKSctPUB+`, `--render-as`, `binary`, `foo`)
+	result, err := cli.ExecuteLookup(`--default`, `YWJjMTIzIT8kKiYoKSctPUB+`, `--render-as`, `binary`, `foo`)
 	require.NoError(t, err)
 	require.Equal(t, "abc123!?$*&()'-=@~", string(result))
 }
 
 func TestLookup_defaultArray_binary(t *testing.T) {
-	result, err := executeLookup(`--default`, `[12, 28, 37, 15]`, `--type`, `Array[Integer]`, `--render-as`, `binary`, `foo`)
+	result, err := cli.ExecuteLookup(`--default`, `[12, 28, 37, 15]`, `--type`, `Array[Integer]`, `--render-as`, `binary`, `foo`)
 	require.NoError(t, err)
 	require.Equal(t, []byte{12, 28, 37, 15}, result)
 }
 
 func TestLookup_facts(t *testing.T) {
 	inTestdata(func() {
-		result, err := executeLookup(`--facts`, `facts.yaml`, `interpolate_a`)
+		result, err := cli.ExecuteLookup(`--facts`, `facts.yaml`, `interpolate_a`)
 		require.NoError(t, err)
 		require.Equal(t, "This is value of a\n", string(result))
 	})
@@ -69,7 +75,7 @@ func TestLookup_facts(t *testing.T) {
 
 func TestLookup_fact_interpolated_config(t *testing.T) {
 	inTestdata(func() {
-		result, err := executeLookup(`--facts`, `facts.yaml`, `interpolate_ca`)
+		result, err := cli.ExecuteLookup(`--facts`, `facts.yaml`, `interpolate_ca`)
 		require.NoError(t, err)
 		require.Equal(t, "This is value of c.a\n", string(result))
 	})
@@ -77,7 +83,7 @@ func TestLookup_fact_interpolated_config(t *testing.T) {
 
 func TestLookup_vars_interpolated_config(t *testing.T) {
 	inTestdata(func() {
-		result, err := executeLookup(`--vars`, `facts.yaml`, `interpolate_ca`)
+		result, err := cli.ExecuteLookup(`--vars`, `facts.yaml`, `interpolate_ca`)
 		require.NoError(t, err)
 		require.Equal(t, "This is value of c.a\n", string(result))
 	})
@@ -85,7 +91,7 @@ func TestLookup_vars_interpolated_config(t *testing.T) {
 
 func TestLookup_var_interpolated_config(t *testing.T) {
 	inTestdata(func() {
-		result, err := executeLookup(`--var`, `c={a=>'the option value'}`, `--var`, `data_file: by_fact`, `interpolate_ca`)
+		result, err := cli.ExecuteLookup(`--var`, `c={a=>'the option value'}`, `--var`, `data_file: by_fact`, `interpolate_ca`)
 		require.NoError(t, err)
 		require.Equal(t, "This is the option value\n", string(result))
 	})
@@ -93,7 +99,7 @@ func TestLookup_var_interpolated_config(t *testing.T) {
 
 func TestLookup_fact_directly(t *testing.T) {
 	inTestdata(func() {
-		result, err := executeLookup(`--facts`, `facts.yaml`, `--config`, `fact_directly.yaml`, `the_fact`)
+		result, err := cli.ExecuteLookup(`--facts`, `facts.yaml`, `--config`, `fact_directly.yaml`, `the_fact`)
 		require.NoError(t, err)
 		require.Equal(t, "value of the_fact\n", string(result))
 	})
@@ -101,7 +107,7 @@ func TestLookup_fact_directly(t *testing.T) {
 
 func TestLookup_nullentry(t *testing.T) {
 	inTestdata(func() {
-		result, err := executeLookup(`nullentry`)
+		result, err := cli.ExecuteLookup(`nullentry`)
 		require.NoError(t, err)
 		require.Equal(t, "nv: null\n", string(result))
 	})
@@ -109,7 +115,7 @@ func TestLookup_nullentry(t *testing.T) {
 
 func TestLookup_explain(t *testing.T) {
 	inTestdata(func() {
-		result, err := executeLookup(`--explain`, `--facts`, `facts.yaml`, `interpolate_ca`)
+		result, err := cli.ExecuteLookup(`--explain`, `--facts`, `facts.yaml`, `interpolate_ca`)
 		require.NoError(t, err)
 		require.Regexp(t,
 			`\ASearching for "interpolate_ca"
@@ -133,7 +139,7 @@ func TestLookup_explain(t *testing.T) {
 
 func TestLookup_explain_yaml(t *testing.T) {
 	inTestdata(func() {
-		result, err := executeLookup(`--explain`, `--facts`, `facts.yaml`, `--render-as`, `yaml`, `interpolate_ca`)
+		result, err := cli.ExecuteLookup(`--explain`, `--facts`, `facts.yaml`, `--render-as`, `yaml`, `interpolate_ca`)
 		require.NoError(t, err)
 		require.Regexp(t,
 			`\A__ptype: Hiera::Explainer
@@ -187,7 +193,7 @@ branches:
 
 func TestLookup_explain_options(t *testing.T) {
 	inTestdata(func() {
-		result, err := executeLookup(`--explain-options`, `--facts`, `facts.yaml`, `hash`)
+		result, err := cli.ExecuteLookup(`--explain-options`, `--facts`, `facts.yaml`, `hash`)
 		require.NoError(t, err)
 		require.Regexp(t,
 			`\ASearching for "lookup_options"
@@ -222,7 +228,7 @@ func TestLookup_explain_options(t *testing.T) {
 
 func TestLookup_explain_explain_options(t *testing.T) {
 	inTestdata(func() {
-		result, err := executeLookup(`--explain`, `--explain-options`, `--facts`, `facts.yaml`, `hash`)
+		result, err := cli.ExecuteLookup(`--explain`, `--explain-options`, `--facts`, `facts.yaml`, `hash`)
 		require.NoError(t, err)
 		require.Regexp(t,
 			`\ASearching for "lookup_options"
@@ -289,12 +295,8 @@ Searching for "hash"
 	})
 }
 
-func customLK(hc hieraapi.ProviderContext, key string, options map[string]px.Value) px.Value {
-	if v, ok := options[key]; ok {
-		return v
-	}
-	hc.NotFound()
-	return nil // Not reached
+func customLK(hc hieraapi.ServerContext, key string) px.Value {
+	return hc.Option(key)
 }
 
 func init() {
@@ -302,53 +304,79 @@ func init() {
 		func(d px.Dispatch) {
 			d.Param(`Hiera::Context`)
 			d.Param(`String`)
-			d.Param(`Hash[String,Any]`)
 			d.Function(func(c px.Context, args []px.Value) px.Value {
-				return customLK(args[0].(hieraapi.ProviderContext), args[1].String(), args[2].(px.OrderedMap).ToStringMap())
+				return customLK(args[0].(hieraapi.ServerContext), args[1].String())
 			})
 		},
 	)
 }
 
 func TestLookup_withCustomLK(t *testing.T) {
-
 	inTestdata(func() {
-		result, err := executeLookup(`--config`, `with_custom_provider.yaml`, `a`)
+		result, err := cli.ExecuteLookup(`--config`, `with_custom_provider.yaml`, `a`)
 		require.NoError(t, err)
 		require.Equal(t, "option a\n", string(result))
 	})
 }
 
-func TestLookup_TerraformBackend(t *testing.T) {
+func TestLookupKey_plugin(t *testing.T) {
+	ensureTestPlugin(t)
 	inTestdata(func() {
-		result, err := executeLookup(`--var`, `backend:local`, `--var`, `path:terraform.tfstate`, `--config`, `terraform_backend.yaml`, `test`)
+		result, err := cli.ExecuteLookup(`--config`, `lookup_key_plugin.yaml`, `a`)
 		require.NoError(t, err)
-		require.Equal(t, "value\n", string(result))
-	})
-	inTestdata(func() {
-		result, err := executeLookup(`--var`, `backend:local`, `--var`, `path:terraform.tfstate`, `--config`, `terraform_backend.yaml`, `--render-as`, `json`, `testobject`)
-		require.NoError(t, err)
-		require.Equal(t, `{"key1":"value1","key2":"value2"}`, string(result))
+		require.Equal(t, "option a\n", string(result))
 	})
 }
 
-func TestLookup_TerraformBackendErrors(t *testing.T) {
+func TestDataHash_refuseToDie(t *testing.T) {
+	ensureTestPlugin(t)
 	inTestdata(func() {
-		_, err := executeLookup(`--var`, `backend:something`, `--config`, `terraform_backend.yaml`, `test`)
+		_, err := cli.ExecuteLookup(`--config`, `refuse_to_die_plugin.yaml`, `a`)
 		if assert.Error(t, err) {
-			require.Regexp(t, `Unknown backend type "something"`, err.Error())
+			require.Regexp(t, `did not find a value for the name 'a'`, err.Error())
 		}
 	})
+}
+
+func TestDataHash_panic(t *testing.T) {
+	ensureTestPlugin(t)
 	inTestdata(func() {
-		_, err := executeLookup(`--var`, `backend:local`, `--var`, `path:something`, `--config`, `terraform_backend.yaml`, `test`)
+		_, err := cli.ExecuteLookup(`--config`, `panic_plugin.yaml`, `a`)
 		if assert.Error(t, err) {
-			require.Regexp(t, `RootModule called on nil State`, err.Error())
+			require.Regexp(t, `500 Internal Server Error: dit dit dit daah daah daah dit dit dit`, err.Error())
 		}
 	})
-	inTestdata(func() {
-		_, err := executeLookup(`--var`, `backend:local`, `--config`, `terraform_backend_errors.yaml`, `test`)
-		if assert.Error(t, err) {
-			require.Regexp(t, `The given configuration is not valid for backend "local"`, err.Error())
+}
+
+var once = sync.Once{}
+
+func ensureTestPlugin(t *testing.T) {
+	once.Do(func() {
+		t.Helper()
+		cw, err := os.Getwd()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if err = os.Chdir(filepath.Join(`testdata`, `hieratestplugin`)); err != nil {
+			t.Fatal(err)
+		}
+
+		defer func() {
+			_ = os.Chdir(cw)
+		}()
+
+		pe := `hieratestplugin`
+		ps := pe + `.go`
+		if runtime.GOOS == `windows` {
+			pe += `.exe`
+		}
+
+		cmd := exec.Command(`go`, `build`, `-o`, filepath.Join(`..`, `plugin`, pe), ps)
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+		if err = cmd.Run(); err != nil {
+			t.Fatal(err)
 		}
 	})
 }
@@ -367,15 +395,4 @@ func inTestdata(f func()) {
 	if err != nil {
 		panic(err)
 	}
-}
-
-func executeLookup(args ...string) (output []byte, err error) {
-	cmd := newCommand()
-	buf := new(bytes.Buffer)
-	cmd.SetOutput(buf)
-	cmd.SetArgs(args)
-
-	err = cmd.Execute()
-
-	return buf.Bytes(), err
 }

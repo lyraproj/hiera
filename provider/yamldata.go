@@ -8,15 +8,14 @@ import (
 	"github.com/lyraproj/pcore/yaml"
 )
 
-func YamlData(ctx hieraapi.ProviderContext, options map[string]px.Value) px.OrderedMap {
-	pv, ok := options[`path`]
-	if !ok {
+func YamlData(ctx hieraapi.ServerContext) px.OrderedMap {
+	pv := ctx.Option(`path`)
+	if pv == nil {
 		panic(px.Error(hieraapi.MissingRequiredOption, issue.H{`option`: `path`}))
 	}
 	path := pv.String()
-	var bin *types.Binary
-	if bin, ok = types.BinaryFromFile2(path); ok {
-		v := yaml.Unmarshal(ctx.Invocation(), bin.Bytes())
+	if bin, ok := types.BinaryFromFile2(path); ok {
+		v := yaml.Unmarshal(ctx.(hieraapi.ServerContext).Invocation(), bin.Bytes())
 		if data, ok := v.(px.OrderedMap); ok {
 			return data
 		}

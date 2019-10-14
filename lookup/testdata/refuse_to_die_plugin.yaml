@@ -1,0 +1,6 @@
+version: 5
+
+hierarchy:
+  - name: Plugin
+    data_hash: test_refuse_to_die
+    pluginfile: hieratestplugin

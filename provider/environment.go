@@ -13,7 +13,7 @@ import (
 // "env" in which case all current environment variables will be returned as an OrderedMap, or
 // prefixed with "env::" in which case the rest of the key is interpreted as the environment variable
 // to look for.
-func Environment(_ hieraapi.ProviderContext, key string, _ map[string]px.Value) px.Value {
+func Environment(_ hieraapi.ServerContext, key string) px.Value {
 	if key == `env` {
 		env := os.Environ()
 		em := make([]*types.HashEntry, len(env))

@@ -11,14 +11,13 @@ import (
 	"github.com/lyraproj/pcore/types"
 )
 
-func JsonData(_ hieraapi.ProviderContext, options map[string]px.Value) px.OrderedMap {
-	pv, ok := options[`path`]
-	if !ok {
+func JsonData(c hieraapi.ServerContext) px.OrderedMap {
+	pv := c.Option(`path`)
+	if pv == nil {
 		panic(px.Error(hieraapi.MissingRequiredOption, issue.H{`option`: `path`}))
 	}
 	path := pv.String()
-	var bin *types.Binary
-	if bin, ok = types.BinaryFromFile2(path); ok {
+	if bin, ok := types.BinaryFromFile2(path); ok {
 		rdr := bytes.NewBuffer(bin.Bytes())
 		vc := px.NewCollector()
 		serialization.JsonToData(path, rdr, vc)
