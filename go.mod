@@ -4,7 +4,7 @@ require (
 	github.com/bmatcuk/doublestar v1.1.5
 	github.com/labstack/echo v3.3.10+incompatible
 	github.com/labstack/gommon v0.2.9 // indirect
-	github.com/lyraproj/hierasdk v0.0.0-20191002143551-3b327220411b
+	github.com/lyraproj/hierasdk v0.1.0
 	github.com/lyraproj/issue v0.0.0-20190606092846-e082d6813d15
 	github.com/lyraproj/pcore v0.0.0-20191009094231-d24a2ffc5639
 	github.com/sirupsen/logrus v1.4.2
