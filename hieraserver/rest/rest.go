@@ -3,16 +3,16 @@ package main
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
 
-	"github.com/lyraproj/hiera/internal"
-
-	"github.com/labstack/echo"
 	"github.com/lyraproj/hiera/hiera"
 	"github.com/lyraproj/hiera/hieraapi"
+	"github.com/lyraproj/hiera/internal"
 	"github.com/lyraproj/hiera/provider"
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/pcore/px"
@@ -58,9 +58,9 @@ func initialize(_ *cobra.Command, _ []string) {
 	issue.IncludeStacktrace(logLevel == `debug`)
 }
 
+var keyPattern = regexp.MustCompile(`^/lookup/(.*)$`)
+
 func startServer(cmd *cobra.Command, _ []string) {
-	e := echo.New()
-	e.Logger.SetOutput(cmd.OutOrStdout())
 	configOptions := map[string]px.Value{
 		provider.LookupProvidersKey: types.WrapRuntime([]hieraapi.LookupKey{provider.ConfigLookupKey, provider.Environment})}
 
@@ -69,40 +69,57 @@ func startServer(cmd *cobra.Command, _ []string) {
 	hiera.DoWithParent(context.Background(), provider.MuxLookupKey, configOptions, func(ctx px.Context) {
 		ctx.Set(`logLevel`, px.LogLevelFromString(logLevel))
 		defer internal.KillPlugins()
+		router := CreateRouter(ctx)
+		err := http.ListenAndServe(":"+strconv.Itoa(port), router)
+		if err != nil {
+			panic(err)
+		}
+	})
+}
 
-		doLookup := func(c echo.Context) (err error) {
-			defer func() {
-				if r := recover(); r != nil {
-					if rp, ok := r.(issue.Reported); ok {
-						err = c.JSON(http.StatusBadRequest, map[string]string{`message`: rp.Error()})
-					} else if er, ok := r.(error); ok {
-						err = er
-					} else {
-						panic(r)
-					}
-				}
-			}()
-
-			opts := cmdOpts
-			key := c.Param(`key`)
-			params := c.QueryParams()
-			if dflt, ok := params[`default`]; ok && len(dflt) > 0 {
-				opts.Default = &dflt[0]
-			}
-			opts.Merge = params.Get(`merge`)
-			opts.Type = params.Get(`type`)
-			opts.Variables = append(opts.Variables, params[`var`]...)
-			opts.RenderAs = `json`
-			out := bytes.Buffer{}
-			if hiera.LookupAndRender(ctx, &opts, []string{key}, &out) {
-				err = c.Stream(http.StatusOK, echo.MIMEApplicationJSONCharsetUTF8, bytes.NewBuffer(out.Bytes()))
-			} else {
-				err = c.NoContent(http.StatusNotFound)
-			}
+func CreateRouter(ctx px.Context) http.Handler {
+	doLookup := func(w http.ResponseWriter, r *http.Request) {
+		ks := keyPattern.FindStringSubmatch(r.URL.Path)
+		if ks == nil {
+			http.NotFound(w, r)
 			return
 		}
+		key := ks[1]
 
-		e.GET("/lookup/:key", doLookup)
-		e.Logger.Fatal(e.Start(":" + strconv.Itoa(port)))
-	})
+		defer func() {
+			if r := recover(); r != nil {
+				var err error
+				if er, ok := r.(error); ok {
+					err = er
+				} else if es, ok := r.(string); ok {
+					err = errors.New(es)
+				} else {
+					panic(r)
+				}
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+		}()
+
+		opts := cmdOpts
+		params := r.URL.Query()
+		if dflt, ok := params[`default`]; ok && len(dflt) > 0 {
+			opts.Default = &dflt[0]
+		}
+		opts.Merge = params.Get(`merge`)
+		opts.Type = params.Get(`type`)
+		opts.Variables = append(opts.Variables, params[`var`]...)
+		opts.RenderAs = `json`
+		out := bytes.Buffer{}
+		if hiera.LookupAndRender(ctx, &opts, []string{key}, &out) {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write(out.Bytes())
+		} else {
+			http.Error(w, `404 value not found`, http.StatusNotFound)
+		}
+		return
+	}
+
+	router := http.NewServeMux()
+	router.HandleFunc("/lookup/", doLookup)
+	return router
 }
