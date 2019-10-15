@@ -11,7 +11,6 @@ import (
 )
 
 func ExampleServerContext_CachedValue() {
-
 	cachingProvider := func(ic hieraapi.ServerContext, key string) px.Value {
 		if v, ok := ic.CachedValue(key); ok {
 			fmt.Printf("Returning cached value for %s\n", key)

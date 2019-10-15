@@ -19,12 +19,14 @@ func luNames(nameOrNames px.Value) (names []string) {
 }
 
 func mergeType(nameOrHash px.Value) (merge map[string]px.Value) {
-	if hs, ok := nameOrHash.(*types.Hash); ok {
+	hs, ok := nameOrHash.(*types.Hash)
+	switch {
+	case ok:
 		merge = make(map[string]px.Value, hs.Len())
 		hs.EachPair(func(k, v px.Value) { merge[k.String()] = v })
-	} else if nameOrHash == px.Undef {
+	case nameOrHash == px.Undef:
 		merge = NoOptions
-	} else {
+	default:
 		merge = map[string]px.Value{`merge`: nameOrHash}
 	}
 	return

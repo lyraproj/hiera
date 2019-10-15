@@ -1,5 +1,9 @@
 # Hiera lookup framework
 
+[![](https://goreportcard.com/badge/github.com/lyraproj/hiera)](https://goreportcard.com/report/github.com/lyraproj/hiera)
+[![](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/lyraproj/hiera)
+[![](https://github.com/lyraproj/hiera/workflows/Hiera%20SDK%20Build/badge.svg)](https://github.com/lyraproj/hiera/actions)
+
 ## Introduction
 
 Hiera is a flexible, powerful tool for resolving values for variable lookups, which was first popularised by its use in [Puppet](https://puppet.com/docs/puppet/5.5/hiera.html).

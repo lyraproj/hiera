@@ -15,7 +15,7 @@ const (
 	HierarchyNameMultiplyDefined        = `HIERA_HIERARCHY_NAME_MULTIPLY_DEFINED`
 	InterpolationAliasNotEntireString   = `HIERA_INTERPOLATION_ALIAS_NOT_ENTIRE_STRING`
 	InterpolationMethodSyntaxNotAllowed = `HIERA_INTERPOLATION_METHOD_SYNTAX_NOT_ALLOWED`
-	JsonNotHash                         = `HIERA_JSON_NOT_HASH`
+	JSONNOtHash                         = `HIERA_JSON_NOT_HASH`
 	KeyNotFound                         = `HIERA_KEY_NOT_FOUND`
 	MissingDataProviderFunction         = `HIERA_MISSING_DATA_PROVIDER_FUNCTION`
 	MissingRequiredOption               = `HIERA_MISSING_REQUIRED_OPTION`
@@ -55,7 +55,7 @@ func init() {
 
 	issue.Hard(InterpolationMethodSyntaxNotAllowed, `Interpolation using method syntax is not allowed in this context`)
 
-	issue.Hard(JsonNotHash, `File '%{path}' does not contain a JSON object`)
+	issue.Hard(JSONNOtHash, `File '%{path}' does not contain a JSON object`)
 
 	issue.Hard(KeyNotFound, `key not found`)
 

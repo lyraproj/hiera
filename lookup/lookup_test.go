@@ -8,12 +8,10 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/lyraproj/hiera/cli"
-
 	"github.com/lyraproj/hiera/hieraapi"
 	"github.com/lyraproj/pcore/px"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 

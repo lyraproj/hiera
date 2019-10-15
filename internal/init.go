@@ -62,6 +62,23 @@ func Lookup(ic hieraapi.Invocation, name string, dflt px.Value, options map[stri
 	return Lookup2(ic, []string{name}, types.DefaultAnyType(), dflt, px.EmptyMap, px.EmptyMap, options, nil)
 }
 
+// Lookup2 performs a lookup using the given parameters.
+//
+// ic - The lookup invocation
+//
+// names[] - The name or names to lookup
+//
+// valueType - Optional expected type of the found value
+//
+// defaultValue - Optional value to use as default when no value is found
+//
+// override - Optional map to use as override. Values found here are returned immediately (no merge)
+//
+// defaultValuesHash - Optional map to use as the last resort (but before defaultValue)
+//
+// options - Optional map with merge strategy and options
+//
+// block - Optional block to produce a default value
 func Lookup2(
 	ic hieraapi.Invocation,
 	names []string,

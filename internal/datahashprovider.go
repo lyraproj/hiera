@@ -88,7 +88,7 @@ func (dh *DataHashProvider) loadFunction(ic hieraapi.Invocation) hieraapi.DataHa
 	case `yaml_data`:
 		return provider.YamlData
 	case `json_data`:
-		return provider.JsonData
+		return provider.JSONData
 	}
 
 	if fn, ok := loadPluginFunction(ic, n, dh.hierarchyEntry); ok {

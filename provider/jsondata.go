@@ -11,7 +11,7 @@ import (
 	"github.com/lyraproj/pcore/types"
 )
 
-func JsonData(c hieraapi.ServerContext) px.OrderedMap {
+func JSONData(c hieraapi.ServerContext) px.OrderedMap {
 	pv := c.Option(`path`)
 	if pv == nil {
 		panic(px.Error(hieraapi.MissingRequiredOption, issue.H{`option`: `path`}))
@@ -25,7 +25,7 @@ func JsonData(c hieraapi.ServerContext) px.OrderedMap {
 		if data, ok := v.(px.OrderedMap); ok {
 			return data
 		}
-		panic(px.Error(hieraapi.JsonNotHash, issue.H{`path`: path}))
+		panic(px.Error(hieraapi.JSONNOtHash, issue.H{`path`: path}))
 	}
 	return px.EmptyMap
 }

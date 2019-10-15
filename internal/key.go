@@ -172,7 +172,7 @@ func parseUnquoted(b *bytes.Buffer, key, part string, parts []interface{}) []int
 			parts = append(parts, mungedPart(len(parts), b.String()))
 			b.Reset()
 		default:
-			b.WriteRune(c)
+			_, _ = b.WriteRune(c)
 		}
 	}
 	return append(parts, mungedPart(len(parts), b.String()))
@@ -186,7 +186,7 @@ func parseQuoted(b *bytes.Buffer, q rune, key, part string, parts []interface{})
 			}
 			return parseUnquoted(b, key, part[i+1:], parts)
 		}
-		b.WriteRune(c)
+		_, _ = b.WriteRune(c)
 	}
 	panic(px.Error(hieraapi.UnterminatedQuote, issue.H{`key`: key}))
 }

@@ -116,7 +116,6 @@ func CreateRouter(ctx px.Context) http.Handler {
 		} else {
 			http.Error(w, `404 value not found`, http.StatusNotFound)
 		}
-		return
 	}
 
 	router := http.NewServeMux()

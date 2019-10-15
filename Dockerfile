@@ -28,7 +28,7 @@ RUN mkdir -p plugin
 FROM alpine
 COPY --from=build_base /go/bin/hieraserver /bin/hieraserver
 RUN mkdir -p /hiera/plugin
-COPY --from=build_base /go/src/github.com/lyraproj/hiera/plugin/*.so /hiera/plugin/
+COPY --from=build_base /go/src/github.com/lyraproj/hiera/plugin/* /hiera/plugin/
 
 # Configurable values for runtime overrides
 ENV port 8080

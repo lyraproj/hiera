@@ -852,52 +852,52 @@ func newExplainer(options, onlyOptions bool) explain.Explainer {
 	return ex
 }
 
-func (en *explainer) initialize(ih px.OrderedMap) {
-	en.explainTreeNode.initialize(ih)
+func (ex *explainer) initialize(ih px.OrderedMap) {
+	ex.explainTreeNode.initialize(ih)
 	if v, ok := ih.Get4(`current`); ok {
-		if en.current != en {
-			en.current = v.(explainNode)
+		if ex.current != ex {
+			ex.current = v.(explainNode)
 		}
 	} else {
-		en.current = en
+		ex.current = ex
 	}
 	if v, ok := ih.Get4(`options`); ok {
-		en.options = v.(px.Boolean).Bool()
+		ex.options = v.(px.Boolean).Bool()
 	}
 	if v, ok := ih.Get4(`onlyOptions`); ok {
-		en.onlyOptions = v.(px.Boolean).Bool()
+		ex.onlyOptions = v.(px.Boolean).Bool()
 	}
 }
 
-func (en *explainer) Equals(value interface{}, guard px.Guard) bool {
-	return en == value
+func (ex *explainer) Equals(value interface{}, guard px.Guard) bool {
+	return ex == value
 }
 
-func (en *explainer) ToString(bld io.Writer, format px.FormatContext, g px.RDetect) {
-	types.ObjectToString(en, format, bld, g)
+func (ex *explainer) ToString(bld io.Writer, format px.FormatContext, g px.RDetect) {
+	types.ObjectToString(ex, format, bld, g)
 }
 
-func (en *explainer) PType() px.Type {
+func (ex *explainer) PType() px.Type {
 	return explainerMetaType
 }
 
-func (en *explainer) Get(key string) (value px.Value, ok bool) {
+func (ex *explainer) Get(key string) (value px.Value, ok bool) {
 	switch key {
 	case `current`:
-		if en.current != en {
-			return en.current, true
+		if ex.current != ex {
+			return ex.current, true
 		}
 		return px.Undef, true
 	case `options`:
-		return types.WrapBoolean(en.options), true
+		return types.WrapBoolean(ex.options), true
 	case `onlyOptions`:
-		return types.WrapBoolean(en.onlyOptions), true
+		return types.WrapBoolean(ex.onlyOptions), true
 	}
-	return en.explainTreeNode.Get(key)
+	return ex.explainTreeNode.Get(key)
 }
 
-func (en *explainer) InitHash() px.OrderedMap {
-	return explainerMetaType.InstanceHash(en)
+func (ex *explainer) InitHash() px.OrderedMap {
+	return explainerMetaType.InstanceHash(ex)
 }
 
 func (ex *explainer) AcceptFound(key interface{}, value px.Value) {

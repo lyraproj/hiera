@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"testing"
+
+	require "github.com/lyraproj/dgo/dgo_test"
 
 	"github.com/lyraproj/hiera/hiera"
 	"github.com/lyraproj/hiera/hieraapi"
@@ -28,25 +31,24 @@ func ExampleLookup_first() {
 	// Output: value of first
 }
 
-func ExampleLookup_dottedInt() {
+func TestLookup_dottedInt(t *testing.T) {
 	hiera.DoWithParent(context.Background(), provider.YamlLookupKey, options, func(c px.Context) {
-		fmt.Println(hiera.Lookup(internal.NewInvocation(c, px.EmptyMap, nil), `array.1`, nil, nil))
+		require.Equal(t, `two`, hiera.Lookup(internal.NewInvocation(c, px.EmptyMap, nil), `array.1`, nil, nil).String())
 	})
-	// Output: two
 }
 
-func ExampleLookup_dottedMix() {
+func TestLookup_dottedMix(t *testing.T) {
 	hiera.DoWithParent(context.Background(), provider.YamlLookupKey, options, func(c px.Context) {
-		fmt.Println(hiera.Lookup(internal.NewInvocation(c, px.EmptyMap, nil), `hash.array.1`, nil, nil))
+		require.Equal(t, `value of first`,
+			hiera.Lookup(internal.NewInvocation(c, px.EmptyMap, nil), `hash.array.1`, nil, nil).String())
 	})
-	// Output: value of first
 }
 
-func ExampleLookup_interpolate() {
+func TestLookup_interpolate(t *testing.T) {
 	hiera.DoWithParent(context.Background(), provider.YamlLookupKey, options, func(c px.Context) {
-		fmt.Println(hiera.Lookup(internal.NewInvocation(c, px.EmptyMap, nil), `second`, nil, nil))
+		require.Equal(t, `includes 'value of first'`,
+			hiera.Lookup(internal.NewInvocation(c, px.EmptyMap, nil), `second`, nil, nil).String())
 	})
-	// Output: includes 'value of first'
 }
 
 func ExampleLookup_interpolateScope() {

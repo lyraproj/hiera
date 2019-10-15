@@ -336,7 +336,9 @@ func (p *plugin) callPlugin(luType, name string, params url.Values) px.Value {
 		return nil
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	switch resp.StatusCode {
 	case http.StatusOK:
 		vc := px.NewCollector()

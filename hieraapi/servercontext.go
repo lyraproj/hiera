@@ -4,11 +4,14 @@ import (
 	"github.com/lyraproj/pcore/px"
 )
 
+// ServerContext is the Hiera context used by lookup functions that operate in-process
 type ServerContext interface {
 	px.Value
 
+	// Return the Option keyed by the given key or nil if no such option exists
 	Option(key string) px.Value
 
+	// Call the given func once for each key, value pair found in the options map.
 	EachOption(func(key string, value px.Value))
 
 	// ReportText will add the message returned by the given function to the

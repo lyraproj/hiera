@@ -192,7 +192,7 @@ func (u *uri) Exists() bool {
 }
 
 func (u *uri) Kind() hieraapi.LocationKind {
-	return hieraapi.LcUri
+	return hieraapi.LcURI
 }
 
 func (u *uri) String() string {
