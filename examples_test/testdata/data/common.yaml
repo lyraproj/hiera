@@ -1,1 +1,3 @@
 hello: yaml data says hello
+ipl_a: interpolate <%{a}>
+ipl_c: x = %{c.x}, y = %{c.y}
