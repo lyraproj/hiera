@@ -9,19 +9,20 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/lyraproj/dgo/dgo"
+	"github.com/lyraproj/dgo/typ"
+	"github.com/lyraproj/dgo/util"
+	"github.com/lyraproj/dgo/vf"
+	"github.com/lyraproj/dgoyaml/yaml"
 	"github.com/lyraproj/hiera/explain"
 	"github.com/lyraproj/hiera/hieraapi"
-	"github.com/lyraproj/hiera/internal"
-	"github.com/lyraproj/issue/issue"
-	"github.com/lyraproj/pcore/pcore"
-	"github.com/lyraproj/pcore/px"
-	"github.com/lyraproj/pcore/types"
-	"github.com/lyraproj/pcore/yaml"
+	"github.com/lyraproj/hiera/session"
+	"github.com/lyraproj/hierasdk/hiera"
 )
 
 // A CommandOptions contains the options given by to the CLI lookup command or a REST invocation.
 type CommandOptions struct {
-	// Type is a pcore Type string such as "String" or "Array[Integer]" used for assertion of the
+	// Type is a  Type string such as "string" or "[]int" used for assertion of the
 	// found value.
 	Type string
 
@@ -47,12 +48,7 @@ type CommandOptions struct {
 	ExplainOptions bool
 }
 
-// NewInvocation creates a new lookup invocation using the given scope and explainer.
-func NewInvocation(c px.Context, scope px.Keyed, explainer explain.Explainer) hieraapi.Invocation {
-	return internal.NewInvocation(c, scope, explainer)
-}
-
-// Lookup performs a lookup using the given parameters.
+// MergeLookup performs a lookup using the given parameters.
 //
 // ic - The lookup invocation
 //
@@ -61,8 +57,8 @@ func NewInvocation(c px.Context, scope px.Keyed, explainer explain.Explainer) hi
 // defaultValue - Optional value to use as default when no value is found
 //
 // options - Optional map with merge strategy and options
-func Lookup(ic hieraapi.Invocation, name string, defaultValue px.Value, options map[string]px.Value) px.Value {
-	return internal.Lookup(ic, name, defaultValue, options)
+func Lookup(ic hieraapi.Invocation, name string, defaultValue dgo.Value, options interface{}) dgo.Value {
+	return Lookup2(ic, []string{name}, typ.Any, defaultValue, nil, nil, hieraapi.ToMap(`lookup options`, options), nil)
 }
 
 // Lookup2 performs a lookup using the given parameters.
@@ -81,38 +77,74 @@ func Lookup(ic hieraapi.Invocation, name string, defaultValue px.Value, options 
 //
 // options - Optional map with merge strategy and options
 //
-// block - Optional block to produce a default value
+// defaultFunc - Optional function to produce a default value
 func Lookup2(
 	ic hieraapi.Invocation,
 	names []string,
-	valueType px.Type,
-	defaultValue px.Value,
-	override px.OrderedMap,
-	defaultValuesHash px.OrderedMap,
-	options map[string]px.Value,
-	block px.Lambda) px.Value {
-	return internal.Lookup2(ic, names, valueType, defaultValue, override, defaultValuesHash, options, block)
+	valueType dgo.Type,
+	defaultValue dgo.Value,
+	override dgo.Map,
+	defaultValuesHash dgo.Map,
+	options dgo.Map,
+	defaultFunc dgo.Producer) dgo.Value {
+	if v := lookupInMap(names, override); v != nil {
+		return ensureType(valueType, v)
+	}
+	for _, name := range names {
+		if v := ic.Lookup(hieraapi.NewKey(name), options); v != nil {
+			return ensureType(valueType, v)
+		}
+	}
+	if v := lookupInMap(names, defaultValuesHash); v != nil {
+		return ensureType(valueType, v)
+	}
+	if defaultValue != nil {
+		return ensureType(valueType, defaultValue)
+	}
+	if defaultFunc != nil {
+		return ensureType(valueType, defaultFunc())
+	}
+	return nil
+}
+
+func lookupInMap(names []string, m dgo.Map) dgo.Value {
+	if m != nil && m.Len() > 0 {
+		for _, name := range names {
+			if dv := m.Get(name); dv != nil {
+				return dv
+			}
+		}
+	}
+	return nil
+}
+
+func ensureType(t dgo.Type, v dgo.Value) dgo.Value {
+	if t == nil || t.Instance(v) {
+		return v
+	}
+	return vf.New(t, v)
 }
 
 // TryWithParent initializes a lookup context with global options and a top-level lookup key function and then calls
 // the given consumer function with that context. If the given function panics, the panic will be recovered and returned
 // as an error.
-func TryWithParent(parent context.Context, tp hieraapi.LookupKey, options map[string]px.Value, consumer func(px.Context) error) error {
-	return pcore.TryWithParent(parent, func(c px.Context) error {
-		internal.InitContext(c, tp, options)
-		defer internal.KillPlugins(c)
-		return consumer(c)
+func TryWithParent(parent context.Context, tp hiera.LookupKey, options interface{}, consumer func(hieraapi.Session) error) error {
+	return util.Catch(func() {
+		s := session.New(parent, tp, options, nil)
+		defer s.KillPlugins()
+		err := consumer(s)
+		if err != nil {
+			panic(err)
+		}
 	})
 }
 
 // DoWithParent initializes a lookup context with global options and a top-level lookup key function and then calls
 // the given consumer function with that context.
-func DoWithParent(parent context.Context, tp hieraapi.LookupKey, options map[string]px.Value, consumer func(px.Context)) {
-	pcore.DoWithParent(parent, func(c px.Context) {
-		internal.InitContext(c, tp, options)
-		defer internal.KillPlugins(c)
-		consumer(c)
-	})
+func DoWithParent(parent context.Context, tp hiera.LookupKey, options interface{}, consumer func(hieraapi.Session)) {
+	s := session.New(parent, tp, options, nil)
+	defer s.KillPlugins()
+	consumer(s)
 }
 
 // varSplit splits on either ':' or '=' but not on '::', ':=', '=:' or '=='
@@ -121,32 +153,34 @@ var needParsePrefix = []string{`{`, `[`, `"`, `'`}
 
 // LookupAndRender performs a lookup using the given command options and arguments and renders the result on the given
 // io.Writer in accordance with the `RenderAs` option.
-func LookupAndRender(c px.Context, opts *CommandOptions, args []string, out io.Writer) bool {
-	var tp px.Type = types.DefaultAnyType()
+func LookupAndRender(c hieraapi.Session, opts *CommandOptions, args []string, out io.Writer) bool {
+	tp := typ.Any
+	dl := c.Dialect()
 	if opts.Type != `` {
-		tp = c.ParseType(opts.Type)
+		tp = dl.ParseType(nil, vf.String(opts.Type))
 	}
 
-	options := make(map[string]px.Value)
+	var options dgo.Map
 	if !(opts.Merge == `` || opts.Merge == `first`) {
-		options[`merge`] = types.WrapString(opts.Merge)
+		options = vf.Map(`merge`, opts.Merge)
 	}
 
-	var dv px.Value
+	var dv dgo.Value
 	if opts.Default != nil {
-		if !tp.Equals(types.DefaultAnyType(), nil) {
-			dv = types.CoerceTo(c, `default value`, tp, types.ParseFile(`<default value>`, *opts.Default))
+		s := *opts.Default
+		if s == `` {
+			dv = vf.String(``)
 		} else {
-			dv = types.WrapString(*opts.Default)
+			dv = parseCommandLineValue(c, s)
 		}
 	}
 
-	var explainer explain.Explainer
+	var explainer hieraapi.Explainer
 	if opts.ExplainData || opts.ExplainOptions {
 		explainer = explain.NewExplainer(opts.ExplainOptions, opts.ExplainOptions && !opts.ExplainData)
 	}
 
-	found := Lookup2(internal.NewInvocation(c, createScope(c, opts), explainer), args, tp, dv, nil, nil, options, nil)
+	found := Lookup2(c.Invocation(createScope(c, opts), explainer), args, tp, dv, nil, nil, options, nil)
 	if explainer != nil {
 		renderAs := Text
 		if opts.RenderAs != `` {
@@ -168,51 +202,49 @@ func LookupAndRender(c px.Context, opts *CommandOptions, args []string, out io.W
 	return true
 }
 
-func parseCommandLineValue(c px.Context, key, vs string) px.Value {
+func parseCommandLineValue(c hieraapi.Session, vs string) dgo.Value {
 	vs = strings.TrimSpace(vs)
 	for _, pfx := range needParsePrefix {
 		if strings.HasPrefix(vs, pfx) {
-			return types.ResolveDeferred(c, types.ParseFile(`var `+key, vs), c.Scope())
+			return typ.ExactValue(c.Dialect().ParseType(c.AliasMap(), vf.String(vs)))
 		}
 	}
-	return types.WrapString(vs)
+	return vf.String(vs)
 }
 
-func createScope(c px.Context, opts *CommandOptions) px.OrderedMap {
-	scope := px.EmptyMap
+func createScope(c hieraapi.Session, opts *CommandOptions) dgo.Map {
+	scope := vf.MutableMap()
 	if vl := len(opts.Variables); vl > 0 {
-		ve := make([]*types.HashEntry, vl)
-		for i, e := range opts.Variables {
+		for _, e := range opts.Variables {
 			if m := varSplit.FindStringSubmatch(e); m != nil {
 				key := strings.TrimSpace(m[1])
-				ve[i] = types.WrapHashEntry2(key, parseCommandLineValue(c, key, m[2]))
+				scope.Put(key, parseCommandLineValue(c, m[2]))
 			} else {
 				panic(fmt.Errorf("unable to parse variable '%s'", e))
 			}
 		}
-		scope = types.WrapHash(ve)
 	}
 
 	for _, vars := range opts.VarPaths {
-		var content *types.Binary
+		var bs []byte
+		var err error
 		if vars == `-` {
-			data, err := ioutil.ReadAll(os.Stdin)
-			if err != nil {
-				panic(err)
+			bs, err = ioutil.ReadAll(os.Stdin)
+		} else {
+			bs, err = ioutil.ReadFile(vars)
+		}
+		if err == nil && len(bs) > 0 {
+			var yv dgo.Value
+			if yv, err = yaml.Unmarshal(bs); err == nil {
+				if data, ok := yv.(dgo.Map); ok {
+					scope.PutAll(data)
+				} else {
+					err = fmt.Errorf(`file '%s' does not contain a YAML hash`, vars)
+				}
 			}
-			content = types.WrapBinary(data)
-		} else {
-			content = types.BinaryFromFile(vars)
 		}
-		bs := content.Bytes()
-		if len(bs) == 0 {
-			continue
-		}
-		yv := yaml.Unmarshal(c, bs)
-		if data, ok := yv.(px.OrderedMap); ok {
-			scope = scope.Merge(data)
-		} else {
-			panic(px.Error(hieraapi.YamlNotHash, issue.H{`path`: vars}))
+		if err != nil {
+			panic(err)
 		}
 	}
 	return scope

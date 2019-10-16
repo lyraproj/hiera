@@ -1,51 +1,25 @@
 package hieraapi
 
-import (
-	"github.com/lyraproj/pcore/px"
-)
+// FunctionKind denotes what kind of function this is.
+type FunctionKind string
 
-type (
-	// DataDig performs a lookup by digging into a dotted key and returning the value that represents that key
-	DataDig func(ctx ServerContext, key Key) px.Value
+// A Function is a definition of a Hiera lookup function, i.e. a data_dig, data_hash, or lookup_key.
+type Function interface {
+	// FunctionKind returns the function kind
+	Kind() FunctionKind
 
-	// DataHash returns a hash with many values that Hiera then can use to resolve lookups
-	DataHash func(ctx ServerContext) px.OrderedMap
+	// Name returns the name of the function
+	Name() string
 
-	// LookupKey performs a lookup of the given key and returns its value.
-	LookupKey func(ctx ServerContext, key string) px.Value
-)
-
-// RegisterDataHash registers a new data_hash function with Hiera
-func RegisterDataHash(name string, f DataHash) {
-	px.NewGoFunction(name,
-		func(d px.Dispatch) {
-			d.Param(`Hiera::Context`)
-			d.Function(func(c px.Context, args []px.Value) px.Value {
-				return f(args[0].(ServerContext))
-			})
-		})
+	// Resolve resolves the function on behalf of the given invocation
+	Resolve(ic Invocation) (Function, bool)
 }
 
-// RegisterDataDig registers a new data_dig function with Hiera
-func RegisterDataDig(name string, f DataDig) {
-	px.NewGoFunction(name,
-		func(d px.Dispatch) {
-			d.Param(`Hiera::Context`)
-			d.Param(`Hiera::Key`)
-			d.Function(func(c px.Context, args []px.Value) px.Value {
-				return f(args[0].(ServerContext), args[1].(Key))
-			})
-		})
-}
+// KindDataDig is the function kind for data_dig functions
+const KindDataDig = FunctionKind(`data_dig`)
 
-// RegisterLookupKey registers a new lookup_key function with Hiera
-func RegisterLookupKey(name string, f LookupKey) {
-	px.NewGoFunction(name,
-		func(d px.Dispatch) {
-			d.Param(`Hiera::Context`)
-			d.Param(`String`)
-			d.Function(func(c px.Context, args []px.Value) px.Value {
-				return f(args[0].(ServerContext), args[1].String())
-			})
-		})
-}
+// KindDataHash is the function kind for data_dig functions
+const KindDataHash = FunctionKind(`data_hash`)
+
+// KindLookupKey is the function kind for data_dig functions
+const KindLookupKey = FunctionKind(`lookup_key`)

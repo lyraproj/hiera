@@ -3,207 +3,159 @@ package hiera_test
 import (
 	"context"
 	"fmt"
-	"strings"
 	"testing"
 
+	"github.com/lyraproj/dgo/dgo"
 	require "github.com/lyraproj/dgo/dgo_test"
-
+	"github.com/lyraproj/dgo/typ"
+	"github.com/lyraproj/dgo/vf"
 	"github.com/lyraproj/hiera/hiera"
 	"github.com/lyraproj/hiera/hieraapi"
-	"github.com/lyraproj/hiera/internal"
 	"github.com/lyraproj/hiera/provider"
-	"github.com/lyraproj/issue/issue"
-	"github.com/lyraproj/pcore/pcore"
-	"github.com/lyraproj/pcore/px"
-	"github.com/lyraproj/pcore/types"
+	sdk "github.com/lyraproj/hierasdk/hiera"
 )
 
-var options map[string]px.Value
+var options = vf.Map(`path`, `./testdata/sample_data.yaml`)
 
-func init() {
-	options = map[string]px.Value{`path`: types.WrapString(`./testdata/sample_data.yaml`)}
-}
-
-func ExampleLookup_first() {
-	hiera.DoWithParent(context.Background(), provider.YamlLookupKey, options, func(c px.Context) {
-		fmt.Println(hiera.Lookup(internal.NewInvocation(c, px.EmptyMap, nil), `first`, nil, nil))
+func TestLookup_first(t *testing.T) {
+	testOneLookup(t, func(iv hieraapi.Invocation) {
+		require.Equal(t, `value of first`, hiera.Lookup(iv, `first`, nil, nil))
 	})
-	// Output: value of first
 }
 
 func TestLookup_dottedInt(t *testing.T) {
-	hiera.DoWithParent(context.Background(), provider.YamlLookupKey, options, func(c px.Context) {
-		require.Equal(t, `two`, hiera.Lookup(internal.NewInvocation(c, px.EmptyMap, nil), `array.1`, nil, nil).String())
+	testOneLookup(t, func(iv hieraapi.Invocation) {
+		require.Equal(t, `two`, hiera.Lookup(iv, `array.1`, nil, nil).String())
 	})
 }
 
 func TestLookup_dottedMix(t *testing.T) {
-	hiera.DoWithParent(context.Background(), provider.YamlLookupKey, options, func(c px.Context) {
+	testOneLookup(t, func(iv hieraapi.Invocation) {
 		require.Equal(t, `value of first`,
-			hiera.Lookup(internal.NewInvocation(c, px.EmptyMap, nil), `hash.array.1`, nil, nil).String())
+			hiera.Lookup(iv, `hash.array.1`, nil, nil).String())
 	})
 }
 
 func TestLookup_interpolate(t *testing.T) {
-	hiera.DoWithParent(context.Background(), provider.YamlLookupKey, options, func(c px.Context) {
+	testOneLookup(t, func(iv hieraapi.Invocation) {
 		require.Equal(t, `includes 'value of first'`,
-			hiera.Lookup(internal.NewInvocation(c, px.EmptyMap, nil), `second`, nil, nil).String())
+			hiera.Lookup(iv, `second`, nil, nil).String())
 	})
 }
 
-func ExampleLookup_interpolateScope() {
-	pcore.DoWithParent(context.Background(), func(c px.Context) {
-		s := types.WrapStringToInterfaceMap(c, issue.H{
-			`world`: `cruel world`,
-		})
-		hiera.DoWithParent(c, provider.YamlLookupKey, options, func(c px.Context) {
-			fmt.Println(hiera.Lookup(internal.NewInvocation(c, s, nil), `ipScope`, nil, nil))
-			fmt.Println(hiera.Lookup(internal.NewInvocation(c, s, nil), `ipScope2`, nil, nil))
-		})
-	})
-	// Output:
-	// hello cruel world
-	// hello cruel world
-}
-
-func ExampleLookup_interpolateEmpty() {
-	hiera.DoWithParent(context.Background(), provider.YamlLookupKey, options, func(c px.Context) {
-		s := px.EmptyMap
-		fmt.Println(hiera.Lookup(internal.NewInvocation(c, s, nil), `empty1`, nil, nil))
-		fmt.Println(hiera.Lookup(internal.NewInvocation(c, s, nil), `empty2`, nil, nil))
-		fmt.Println(hiera.Lookup(internal.NewInvocation(c, s, nil), `empty3`, nil, nil))
-		fmt.Println(hiera.Lookup(internal.NewInvocation(c, s, nil), `empty4`, nil, nil))
-		fmt.Println(hiera.Lookup(internal.NewInvocation(c, s, nil), `empty5`, nil, nil))
-		fmt.Println(hiera.Lookup(internal.NewInvocation(c, s, nil), `empty6`, nil, nil))
-	})
-	// Output:
-	// StartEnd
-	// StartEnd
-	// StartEnd
-	// StartEnd
-	// StartEnd
-	// StartEnd
-}
-
-func printErr(e error) {
-	s := e.Error()
-	if ix := strings.Index(s, ` (file: `); ix > 0 {
-		s = s[0:ix]
+func TestLookup_interpolateScope(t *testing.T) {
+	s := map[string]string{
+		`world`: `cruel world`,
 	}
-	fmt.Println(s)
-}
-
-func ExampleLookup_interpolateLiteral() {
-	hiera.DoWithParent(context.Background(), provider.YamlLookupKey, options, func(c px.Context) {
-		fmt.Println(hiera.Lookup(internal.NewInvocation(c, px.EmptyMap, nil), `ipLiteral`, nil, options))
+	testLookup(t, func(hs hieraapi.Session) {
+		require.Equal(t, `hello cruel world`, hiera.Lookup(hs.Invocation(s, nil), `ipScope`, nil, nil))
+		require.Equal(t, `hello cruel world`, hiera.Lookup(hs.Invocation(s, nil), `ipScope2`, nil, nil))
 	})
-	// Output: some literal text
 }
 
-func ExampleLookup_interpolateAlias() {
-	hiera.DoWithParent(context.Background(), provider.YamlLookupKey, options, func(c px.Context) {
-		v := hiera.Lookup(internal.NewInvocation(c, px.EmptyMap, nil), `ipAlias`, nil, options)
-		fmt.Printf(`%s %s`, px.GenericValueType(v), v)
+func TestLookup_interpolateEmpty(t *testing.T) {
+	testLookup(t, func(hs hieraapi.Session) {
+		require.Equal(t, `StartEnd`, hiera.Lookup(hs.Invocation(nil, nil), `empty1`, nil, nil))
+		require.Equal(t, `StartEnd`, hiera.Lookup(hs.Invocation(nil, nil), `empty2`, nil, nil))
+		require.Equal(t, `StartEnd`, hiera.Lookup(hs.Invocation(nil, nil), `empty3`, nil, nil))
+		require.Equal(t, `StartEnd`, hiera.Lookup(hs.Invocation(nil, nil), `empty4`, nil, nil))
+		require.Equal(t, `StartEnd`, hiera.Lookup(hs.Invocation(nil, nil), `empty5`, nil, nil))
+		require.Equal(t, `StartEnd`, hiera.Lookup(hs.Invocation(nil, nil), `empty6`, nil, nil))
 	})
-	// Output: Array[Enum] ['one', 'two', 'three']
 }
 
-func ExampleLookup_interpolateBadAlias() {
-	printErr(hiera.TryWithParent(context.Background(), provider.YamlLookupKey, options, func(c px.Context) error {
-		hiera.Lookup(internal.NewInvocation(c, px.EmptyMap, nil), `ipBadAlias`, nil, options)
-		return nil
-	}))
-	// Output: 'alias' interpolation is only permitted if the expression is equal to the entire string
-}
-
-func ExampleLookup_interpolateBadFunction() {
-	printErr(hiera.TryWithParent(context.Background(), provider.YamlLookupKey, options, func(c px.Context) error {
-		hiera.Lookup(internal.NewInvocation(c, px.EmptyMap, nil), `ipBad`, nil, options)
-		return nil
-	}))
-	// Output: Unknown interpolation method 'bad'
-}
-
-func ExampleLookup_notFoundWithoutDefault() {
-	printErr(hiera.TryWithParent(context.Background(), provider.YamlLookupKey, options, func(c px.Context) error {
-		hiera.Lookup(internal.NewInvocation(c, px.EmptyMap, nil), `nonexistent`, nil, options)
-		return nil
-	}))
-	// Output: lookup() did not find a value for the name 'nonexistent'
-}
-
-func ExampleLookup_notFoundDflt() {
-	hiera.DoWithParent(context.Background(), provider.YamlLookupKey, options, func(c px.Context) {
-		fmt.Println(hiera.Lookup(internal.NewInvocation(c, px.EmptyMap, nil), `nonexistent`, types.WrapString(`default value`), options))
+func TestLookup_interpolateLiteral(t *testing.T) {
+	testOneLookup(t, func(iv hieraapi.Invocation) {
+		require.Equal(t, `some literal text`, hiera.Lookup(iv, `ipLiteral`, nil, options))
 	})
-	// Output: default value
 }
 
-func ExampleLookup_notFoundDottedIdx() {
-	hiera.DoWithParent(context.Background(), provider.YamlLookupKey, options, func(c px.Context) {
-		fmt.Println(hiera.Lookup(internal.NewInvocation(c, px.EmptyMap, nil), `array.3`, types.WrapString(`default value`), options))
+func TestLookup_interpolateAlias(t *testing.T) {
+	testOneLookup(t, func(iv hieraapi.Invocation) {
+		require.Equal(t, vf.Strings("one", "two", "three"), hiera.Lookup(iv, `ipAlias`, nil, options))
 	})
-	// Output: default value
 }
 
-func ExampleLookup_notFoundDottedMix() {
-	hiera.DoWithParent(context.Background(), provider.YamlLookupKey, options, func(c px.Context) {
-		fmt.Println(hiera.Lookup(internal.NewInvocation(c, px.EmptyMap, nil), `hash.float`, types.WrapString(`default value`), options))
+func TestLookup_interpolateBadAlias(t *testing.T) {
+	require.NotOk(t, `'alias' interpolation is only permitted if the expression is equal to the entire string`,
+		hiera.TryWithParent(context.Background(), provider.YamlLookupKey, options, func(hs hieraapi.Session) error {
+			hiera.Lookup(hs.Invocation(nil, nil), `ipBadAlias`, nil, options)
+			return nil
+		}))
+}
+
+func TestLookup_interpolateBadFunction(t *testing.T) {
+	require.NotOk(t, `unknown interpolation method 'bad'`,
+		hiera.TryWithParent(context.Background(), provider.YamlLookupKey, options, func(hs hieraapi.Session) error {
+			hiera.Lookup(hs.Invocation(nil, nil), `ipBad`, nil, options)
+			return nil
+		}))
+}
+
+func TestLookup_notFoundWithoutDefault(t *testing.T) {
+	testOneLookup(t, func(iv hieraapi.Invocation) {
+		require.Nil(t, hiera.Lookup(iv, `nonexistent`, nil, options))
 	})
-	// Output: default value
 }
 
-func ExampleLookup_badStringDig() {
-	printErr(hiera.TryWithParent(context.Background(), provider.YamlLookupKey, options, func(c px.Context) error {
-		hiera.Lookup(internal.NewInvocation(c, px.EmptyMap, nil), `hash.int.v`, nil, options)
-		return nil
-	}))
-	// Output: lookup() did not find a value for the name 'hash.int.v'
-}
-
-func ExampleLookup_badIntDig() {
-	printErr(hiera.TryWithParent(context.Background(), provider.YamlLookupKey, options, func(c px.Context) error {
-		hiera.Lookup(internal.NewInvocation(c, px.EmptyMap, nil), `hash.int.3`, nil, options)
-		return nil
-	}))
-	// Output: lookup() did not find a value for the name 'hash.int.3'
-}
-
-func ExampleLookup2_findFirst() {
-	hiera.DoWithParent(context.Background(), provider.YamlLookupKey, options, func(c px.Context) {
-		fmt.Println(hiera.Lookup2(internal.NewInvocation(c, px.EmptyMap, nil), []string{`first`, `second`}, types.DefaultAnyType(), nil, nil, nil, options, nil))
+func TestLookup_notFoundDflt(t *testing.T) {
+	testOneLookup(t, func(iv hieraapi.Invocation) {
+		require.Equal(t, `default value`, hiera.Lookup(iv, `nonexistent`, vf.String(`default value`), options))
 	})
-	// Output: value of first
 }
 
-func ExampleLookup2_findSecond() {
-	hiera.DoWithParent(context.Background(), provider.YamlLookupKey, options, func(c px.Context) {
-		fmt.Println(hiera.Lookup2(internal.NewInvocation(c, px.EmptyMap, nil), []string{`non existing`, `second`}, types.DefaultAnyType(), nil, nil, nil, options, nil))
+func TestLookup_notFoundDottedIdx(t *testing.T) {
+	testOneLookup(t, func(iv hieraapi.Invocation) {
+		require.Equal(t, `default value`, hiera.Lookup(iv, `array.3`, vf.String(`default value`), options))
 	})
-	// Output: includes 'value of first'
 }
 
-func ExampleLookup2_notFoundWithoutDflt() {
-	printErr(hiera.TryWithParent(context.Background(), provider.YamlLookupKey, options, func(c px.Context) error {
-		hiera.Lookup2(internal.NewInvocation(c, px.EmptyMap, nil), []string{`non existing`, `not there`}, types.DefaultAnyType(), nil, nil, nil, options, nil)
-		return nil
-	}))
-	// Output: lookup() did not find a value for any of the names [non existing, not there]
-}
-
-func ExampleLookup2_notFoundDflt() {
-	hiera.DoWithParent(context.Background(), provider.YamlLookupKey, options, func(c px.Context) {
-		fmt.Println(hiera.Lookup2(internal.NewInvocation(c, px.EmptyMap, nil), []string{`non existing`, `not there`}, types.DefaultAnyType(), types.WrapString(`default value`), nil, nil, options, nil))
+func TestLookup_notFoundDottedMix(t *testing.T) {
+	testOneLookup(t, func(iv hieraapi.Invocation) {
+		require.Equal(t, `default value`, hiera.Lookup(iv, `hash.float`, vf.String(`default value`), options))
 	})
-	// Output: default value
 }
 
-func ExampleLookup_dottedStringInt() {
-	hiera.DoWithParent(context.Background(), provider.YamlLookupKey, options, func(c px.Context) {
-		v := hiera.Lookup(internal.NewInvocation(c, px.EmptyMap, nil), `hash.array.0`, nil, options)
-		fmt.Println(v)
+func TestLookup_badStringDig(t *testing.T) {
+	testOneLookup(t, func(iv hieraapi.Invocation) {
+		require.Nil(t, hiera.Lookup(iv, `hash.int.v`, nil, options))
 	})
-	// Output: two
+}
+
+func TestLookup_badIntDig(t *testing.T) {
+	testOneLookup(t, func(iv hieraapi.Invocation) {
+		require.Nil(t, hiera.Lookup(iv, `hash.int.3`, nil, options))
+	})
+}
+
+func TestLookup2_findFirst(t *testing.T) {
+	testOneLookup(t, func(iv hieraapi.Invocation) {
+		require.Equal(t, `value of first`, hiera.Lookup2(iv, []string{`first`, `second`}, typ.Any, nil, nil, nil, options, nil))
+	})
+}
+
+func TestLookup2_findSecond(t *testing.T) {
+	testOneLookup(t, func(iv hieraapi.Invocation) {
+		require.Equal(t, `includes 'value of first'`, hiera.Lookup2(iv, []string{`non existing`, `second`}, typ.Any, nil, nil, nil, options, nil))
+	})
+}
+
+func TestLookup2_notFoundWithoutDflt(t *testing.T) {
+	testOneLookup(t, func(iv hieraapi.Invocation) {
+		require.Nil(t, hiera.Lookup2(iv, []string{`non existing`, `not there`}, typ.Any, nil, nil, nil, options, nil))
+	})
+}
+
+func TestLookup2_notFoundDflt(t *testing.T) {
+	testOneLookup(t, func(iv hieraapi.Invocation) {
+		require.Equal(t, `default value`, hiera.Lookup2(iv, []string{`non existing`, `not there`}, typ.Any, vf.String(`default value`), nil, nil, options, nil))
+	})
+}
+
+func TestLookup_dottedStringInt(t *testing.T) {
+	testOneLookup(t, func(iv hieraapi.Invocation) {
+		require.Equal(t, `two`, hiera.Lookup(iv, `hash.array.0`, nil, options))
+	})
 }
 
 func ExampleLookup_mapProvider() {
@@ -211,19 +163,35 @@ func ExampleLookup_mapProvider() {
 		`a`: `value of a`,
 		`b`: `value of b`}
 
-	tp := func(ic hieraapi.ServerContext, key string) px.Value {
+	tp := func(ic sdk.ProviderContext, key string) dgo.Value {
 		if v, ok := sampleData[key]; ok {
-			return types.WrapString(v)
+			return vf.String(v)
 		}
 		return nil
 	}
 
-	hiera.DoWithParent(context.Background(), tp, map[string]px.Value{}, func(c px.Context) {
-		fmt.Println(hiera.Lookup(internal.NewInvocation(c, px.EmptyMap, nil), `a`, nil, nil))
-		fmt.Println(hiera.Lookup(internal.NewInvocation(c, px.EmptyMap, nil), `b`, nil, nil))
+	hiera.DoWithParent(context.Background(), tp, nil, func(hs hieraapi.Session) {
+		fmt.Println(hiera.Lookup(hs.Invocation(nil, nil), `a`, nil, nil))
+		fmt.Println(hiera.Lookup(hs.Invocation(nil, nil), `b`, nil, nil))
 	})
 
 	// Output:
 	// value of a
 	// value of b
+}
+
+func testOneLookup(t *testing.T, f func(i hieraapi.Invocation)) {
+	t.Helper()
+	hiera.DoWithParent(context.Background(), provider.YamlLookupKey, options, func(hs hieraapi.Session) {
+		t.Helper()
+		f(hs.Invocation(nil, nil))
+	})
+}
+
+func testLookup(t *testing.T, f func(hs hieraapi.Session)) {
+	t.Helper()
+	hiera.DoWithParent(context.Background(), provider.YamlLookupKey, options, func(hs hieraapi.Session) {
+		t.Helper()
+		f(hs)
+	})
 }

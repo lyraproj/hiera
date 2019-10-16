@@ -13,9 +13,7 @@ import (
 	"github.com/lyraproj/hiera/hiera"
 	"github.com/lyraproj/hiera/hieraapi"
 	"github.com/lyraproj/hiera/provider"
-	"github.com/lyraproj/issue/issue"
-	"github.com/lyraproj/pcore/px"
-	"github.com/lyraproj/pcore/types"
+	sdk "github.com/lyraproj/hierasdk/hiera"
 	"github.com/spf13/cobra"
 )
 
@@ -38,12 +36,11 @@ var (
 
 func newCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:    "server",
-		Short:  `Server - Start a Hiera REST server`,
-		Long:   "Server - Start a REST server that performs lookups in a Hiera data storage.\n  Responds to key lookups under the /lookup endpoint",
-		PreRun: initialize,
-		Run:    startServer,
-		Args:   cobra.NoArgs}
+		Use:   "server",
+		Short: `Server - Start a Hiera REST server`,
+		Long:  "Server - Start a REST server that performs lookups in a Hiera data storage.\n  Responds to key lookups under the /lookup endpoint",
+		Run:   startServer,
+		Args:  cobra.NoArgs}
 
 	flags := cmd.Flags()
 	flags.StringVar(&logLevel, `loglevel`, `error`, `error/warn/info/debug`)
@@ -55,21 +52,15 @@ func newCommand() *cobra.Command {
 	return cmd
 }
 
-func initialize(_ *cobra.Command, _ []string) {
-	issue.IncludeStacktrace(logLevel == `debug`)
-}
-
 var keyPattern = regexp.MustCompile(`^/lookup/(.*)$`)
 
-func startServer(cmd *cobra.Command, _ []string) {
-	configOptions := map[string]px.Value{
-		provider.LookupKeyFunctions: types.WrapRuntime([]hieraapi.LookupKey{provider.ConfigLookupKey, provider.Environment})}
+func startServer(_ *cobra.Command, _ []string) {
+	configOptions := map[string]interface{}{
+		provider.LookupKeyFunctions: []sdk.LookupKey{provider.ConfigLookupKey, provider.Environment},
+		hieraapi.HieraConfig:        config}
 
-	configOptions[hieraapi.HieraConfig] = types.WrapString(config)
-
-	hiera.DoWithParent(context.Background(), provider.MuxLookupKey, configOptions, func(ctx px.Context) {
-		ctx.Set(`logLevel`, px.LogLevelFromString(logLevel))
-		router := CreateRouter(ctx)
+	hiera.DoWithParent(context.Background(), provider.MuxLookupKey, configOptions, func(hs hieraapi.Session) {
+		router := CreateRouter(hs)
 		err := http.ListenAndServe(addr+":"+strconv.Itoa(port), router)
 		if err != nil {
 			panic(err)
@@ -77,7 +68,7 @@ func startServer(cmd *cobra.Command, _ []string) {
 	})
 }
 
-func CreateRouter(ctx px.Context) http.Handler {
+func CreateRouter(ctx hieraapi.Session) http.Handler {
 	doLookup := func(w http.ResponseWriter, r *http.Request) {
 		ks := keyPattern.FindStringSubmatch(r.URL.Path)
 		if ks == nil {
