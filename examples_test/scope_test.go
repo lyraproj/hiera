@@ -6,7 +6,6 @@ import (
 
 	"github.com/lyraproj/hiera/hiera"
 	"github.com/lyraproj/hiera/hieraapi"
-	"github.com/lyraproj/hiera/internal"
 	"github.com/lyraproj/hiera/provider"
 	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
@@ -33,13 +32,13 @@ func TestScope(t *testing.T) {
 			`c`: map[string]int{`x`: 10, `y`: 20}}
 
 		// The value of key "ipl_a" uses interpolation and includes %{a} in the result
-		result := hiera.Lookup(internal.NewInvocation(c, s, nil), `ipl_a`, nil, nil)
+		result := hiera.Lookup(hiera.NewInvocation(c, s, nil), `ipl_a`, nil, nil)
 		if result == nil || `interpolate <the "a" string>` != result.String() {
 			t.Fatalf("unexpected result %v", result)
 		}
 
 		// The value of key "ipl_c" is "x = %{c.x}, y = %{c.y}"
-		result = hiera.Lookup(internal.NewInvocation(c, s, nil), `ipl_c`, nil, nil)
+		result = hiera.Lookup(hiera.NewInvocation(c, s, nil), `ipl_c`, nil, nil)
 		if result == nil || `x = 10, y = 20` != result.String() {
 			t.Fatalf("unexpected result %v", result)
 		}
