@@ -1,15 +1,16 @@
 package provider
 
 import (
+	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/hiera/hieraapi"
-	"github.com/lyraproj/pcore/px"
-	"github.com/lyraproj/pcore/types"
+	"github.com/lyraproj/hierasdk/hiera"
 )
 
 // ScopeLookupKey is a function that performs a lookup in the current scope.
-func ScopeLookupKey(c hieraapi.ServerContext, key string) px.Value {
-	if v, ok := c.Invocation().Scope().Get(types.WrapString(key)); ok {
-		return v
+func ScopeLookupKey(pc hiera.ProviderContext, key string) dgo.Value {
+	sc, ok := pc.(hieraapi.ServerContext)
+	if !ok {
+		return nil
 	}
-	return nil
+	return sc.Invocation().Scope().Get(key)
 }

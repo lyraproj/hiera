@@ -4,39 +4,31 @@ import (
 	"context"
 	"testing"
 
-	"github.com/lyraproj/issue/issue"
-
-	"github.com/lyraproj/dgo/util"
-
+	"github.com/lyraproj/dgo/vf"
 	"github.com/lyraproj/hiera/hiera"
 	"github.com/lyraproj/hiera/hieraapi"
-	"github.com/lyraproj/hiera/internal"
+	"github.com/lyraproj/hiera/merge"
 	"github.com/lyraproj/hiera/provider"
-	"github.com/lyraproj/pcore/px"
-	"github.com/lyraproj/pcore/types"
 )
 
 // TestMerge_default tests the default merge strategy which is "first found"
 func TestMerge_default(t *testing.T) {
-	configOptions := map[string]px.Value{hieraapi.HieraConfig: types.WrapString(`testdata/merge.yaml`)}
-	hiera.DoWithParent(context.Background(), provider.ConfigLookupKey, configOptions, func(c px.Context) {
+	configOptions := map[string]string{hieraapi.HieraConfig: `testdata/merge.yaml`}
+	hiera.DoWithParent(context.Background(), provider.ConfigLookupKey, configOptions, func(hs hieraapi.Session) {
 		// m.a only exists in the first provider
-		result := hiera.Lookup(internal.NewInvocation(c, nil, nil), `m.a`, nil, nil)
+		result := hiera.Lookup(hs.Invocation(nil, nil), `m.a`, nil, nil)
 		if result == nil || `first value of a` != result.String() {
 			t.Fatalf("unexpected result %v", result)
 		}
 
 		// m.b only exists in the second provider and is hence not found since the hashes are not merged
-		err := util.Catch(func() {
-			hiera.Lookup(internal.NewInvocation(c, nil, nil), `m.b`, nil, nil)
-		})
-		re, ok := err.(issue.Reported)
-		if !(ok && re.Code() == hieraapi.NameNotFound) {
-			t.Fatalf("unexpected error %v", err)
+		result = hiera.Lookup(hs.Invocation(nil, nil), `m.b`, nil, nil)
+		if result != nil {
+			t.Fatalf("unexpected result %v", result)
 		}
 
 		// m.c exists in both but since no merge occurs, the first one is selected
-		result = hiera.Lookup(internal.NewInvocation(c, nil, nil), `m.c`, nil, nil)
+		result = hiera.Lookup(hs.Invocation(nil, nil), `m.c`, nil, nil)
 		if result == nil || `first value of c` != result.String() {
 			t.Fatalf("unexpected result %v", result)
 		}
@@ -50,43 +42,43 @@ func TestMerge_default(t *testing.T) {
 //
 // As with Puppet Hiera, merge options can also be specified as lookup_options in the data files.
 func TestMerge_deep(t *testing.T) {
-	configOptions := map[string]px.Value{hieraapi.HieraConfig: types.WrapString(`testdata/merge.yaml`)}
-	hiera.DoWithParent(context.Background(), provider.ConfigLookupKey, configOptions, func(c px.Context) {
+	configOptions := map[string]string{hieraapi.HieraConfig: `testdata/merge.yaml`}
+	hiera.DoWithParent(context.Background(), provider.ConfigLookupKey, configOptions, func(hs hieraapi.Session) {
 		// options containing the merge option "deep"
-		opts := map[string]px.Value{`merge`: px.Wrap(c, hieraapi.Deep)}
+		opts := map[string]string{`merge`: `deep`}
 
 		// m.a only exists in the first provider
-		result := hiera.Lookup(hiera.NewInvocation(c, nil, nil), `m.a`, nil, opts)
+		result := hiera.Lookup(hs.Invocation(nil, nil), `m.a`, nil, opts)
 		if result == nil || `first value of a` != result.String() {
 			t.Fatalf("unexpected result %v", result)
 		}
 
 		// m.b only exists in the second provider
-		result = hiera.Lookup(hiera.NewInvocation(c, nil, nil), `m.b`, nil, opts)
+		result = hiera.Lookup(hs.Invocation(nil, nil), `m.b`, nil, opts)
 		if result == nil || `second value of b` != result.String() {
 			t.Fatalf("unexpected result %v", result)
 		}
 
 		// m.c exists in both and since a merge occurs, the first one has precedence
-		result = hiera.Lookup(hiera.NewInvocation(c, nil, nil), `m.c`, nil, opts)
+		result = hiera.Lookup(hs.Invocation(nil, nil), `m.c`, nil, opts)
 		if result == nil || `first value of c` != result.String() {
 			t.Fatalf("unexpected result %v", result)
 		}
 
 		// obtain the full map and compare
-		result = hiera.Lookup(hiera.NewInvocation(c, nil, nil), `m`, nil, opts)
-		if !px.Wrap(c, map[string]string{`a`: `first value of a`, `b`: `second value of b`, `c`: `first value of c`}).Equals(result, nil) {
+		result = hiera.Lookup(hs.Invocation(nil, nil), `m`, nil, opts)
+		if !vf.Value(map[string]string{`a`: `first value of a`, `b`: `second value of b`, `c`: `first value of c`}).Equals(result) {
 			t.Fatalf("unexpected result %v", result)
 		}
 
 		// obtain m and m2 using first found strategy (no options). Then merge them with an explicit call to DeepMerge
-		m := hiera.Lookup(hiera.NewInvocation(c, nil, nil), `m`, nil, nil)
-		m2 := hiera.Lookup(hiera.NewInvocation(c, nil, nil), `m2`, nil, nil)
-		result, ok := hieraapi.DeepMerge(m, m2, opts)
+		m := hiera.Lookup(hs.Invocation(nil, nil), `m`, nil, nil)
+		m2 := hiera.Lookup(hs.Invocation(nil, nil), `m2`, nil, nil)
+		result, ok := merge.Deep(m, m2, opts)
 		if !ok {
 			t.Fatal("DeepMerge failed")
 		}
-		if !px.Wrap(c, map[string]string{`a`: `first value of a`, `b`: `third value of b`, `c`: `first value of c`}).Equals(result, nil) {
+		if !vf.Value(map[string]string{`a`: `first value of a`, `b`: `third value of b`, `c`: `first value of c`}).Equals(result) {
 			t.Fatalf("unexpected result %v", result)
 		}
 	})

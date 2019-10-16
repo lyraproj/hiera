@@ -4,12 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/lyraproj/dgo/vf"
 	"github.com/lyraproj/hiera/hiera"
 	"github.com/lyraproj/hiera/hieraapi"
 	"github.com/lyraproj/hiera/provider"
-	"github.com/lyraproj/issue/issue"
-	"github.com/lyraproj/pcore/px"
-	"github.com/lyraproj/pcore/types"
+	sdk "github.com/lyraproj/hierasdk/hiera"
 	"github.com/spf13/cobra"
 )
 
@@ -73,10 +72,9 @@ var (
 func NewCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "lookup <key> [<key> ...]",
-		Short:   `Lookup - Perform lookups in Hiera data storage`,
-		Long:    "Lookup - Perform lookups in Hiera data storage.\n  Find more information at: https://github.com/lyraproj/hiera",
+		Short:   `MergeLookup - Perform lookups in Hiera data storage`,
+		Long:    "MergeLookup - Perform lookups in Hiera data storage.\n  Find more information at: https://github.com/lyraproj/hiera",
 		Version: fmt.Sprintf("%v", getVersion()),
-		PreRun:  initialize,
 		RunE:    cmdLookup,
 		Args:    cobra.MinimumNArgs(1)}
 
@@ -85,7 +83,7 @@ func NewCommand() *cobra.Command {
 	flags.StringVar(&cmdOpts.Merge, `merge`, `first`, `first/unique/hash/deep`)
 	flags.StringVar(&config, `config`, ``, `path to the hiera config file. Overrides <current directory>/hiera.yaml`)
 	flags.Var(&dflt, `default`, `a value to return if Hiera can't find a value in data`)
-	flags.StringVar(&cmdOpts.Type, `type`, `Any`, `assert that the value has the specified type`)
+	flags.StringVar(&cmdOpts.Type, `type`, ``, `assert that the value has the specified type`)
 	flags.StringVar(&cmdOpts.RenderAs, `render-as`, ``, `s/json/yaml/binary: Specify the output format of the results; s means plain text`)
 	flags.BoolVar(&cmdOpts.ExplainData, `explain`, false, `Explain the details of how the lookup was performed and where the final value came from (or the reason no value was found)`)
 	flags.BoolVar(&cmdOpts.ExplainOptions, `explain-options`, false, `Explain whether a lookup_options hash affects this lookup, and how that hash was assembled`)
@@ -97,25 +95,21 @@ func NewCommand() *cobra.Command {
 	return cmd
 }
 
-func initialize(_ *cobra.Command, _ []string) {
-	issue.IncludeStacktrace(logLevel == `debug`)
-}
-
 func cmdLookup(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 	cmdOpts.Default = dflt.StringPointer()
-	configOptions := map[string]px.Value{
-		provider.LookupKeyFunctions: types.WrapRuntime([]hieraapi.LookupKey{provider.ConfigLookupKey, provider.Environment})}
+	configOptions := vf.MutableMap()
+	configOptions.Put(
+		provider.LookupKeyFunctions, []sdk.LookupKey{provider.ConfigLookupKey, provider.Environment})
 
 	if config != `` {
-		configOptions[hieraapi.HieraConfig] = types.WrapString(config)
+		configOptions.Put(hieraapi.HieraConfig, config)
 	}
 	if len(facts) > 0 {
 		cmdOpts.VarPaths = append(cmdOpts.VarPaths, facts...)
 	}
 
-	return hiera.TryWithParent(context.Background(), provider.MuxLookupKey, configOptions, func(c px.Context) error {
-		c.Set(`logLevel`, px.LogLevelFromString(logLevel))
+	return hiera.TryWithParent(context.Background(), provider.MuxLookupKey, configOptions, func(c hieraapi.Session) error {
 		hiera.LookupAndRender(c, &cmdOpts, args, cmd.OutOrStdout())
 		return nil
 	})

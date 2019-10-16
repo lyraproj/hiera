@@ -1,18 +1,13 @@
 package hieraapi
 
 import (
-	"github.com/lyraproj/pcore/px"
+	"github.com/lyraproj/dgo/dgo"
+	"github.com/lyraproj/hierasdk/hiera"
 )
 
 // ServerContext is the Hiera context used by lookup functions that operate in-process
 type ServerContext interface {
-	px.Value
-
-	// Return the Option keyed by the given key or nil if no such option exists
-	Option(key string) px.Value
-
-	// Call the given func once for each key, value pair found in the options map.
-	EachOption(func(key string, value px.Value))
+	hiera.ProviderContext
 
 	// ReportText will add the message returned by the given function to the
 	// lookup explainer. The method will only get called when the explanation
@@ -20,20 +15,20 @@ type ServerContext interface {
 	Explain(messageProducer func() string)
 
 	// Cache adds the given key - value association to the cache
-	Cache(key string, value px.Value) px.Value
+	Cache(key string, value dgo.Value) dgo.Value
 
 	// CacheAll adds all key - value associations in the given hash to the cache
-	CacheAll(hash px.OrderedMap)
+	CacheAll(hash dgo.Map)
 
 	// CachedEntry returns the value for the given key together with
 	// a boolean to indicate if the value was found or not
-	CachedValue(key string) (px.Value, bool)
+	CachedValue(key string) (dgo.Value, bool)
 
-	// CachedEntries calls the consumer with each entry in the cache
-	CachedEntries(consumer px.BiConsumer)
+	// CachedEntries calls the consumer with each association in the cache
+	CachedEntries(consumer func(key string, value dgo.Value))
 
 	// Interpolate resolves interpolations in the given value and returns the result
-	Interpolate(value px.Value) px.Value
+	Interpolate(value dgo.Value) dgo.Value
 
 	// Invocation returns the active invocation.
 	Invocation() Invocation

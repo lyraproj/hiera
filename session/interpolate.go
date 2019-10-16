@@ -1,13 +1,14 @@
-package internal
+package session
 
 import (
+	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 
+	"github.com/lyraproj/dgo/dgo"
+	"github.com/lyraproj/dgo/vf"
 	"github.com/lyraproj/hiera/hieraapi"
-	"github.com/lyraproj/issue/issue"
-	"github.com/lyraproj/pcore/px"
-	"github.com/lyraproj/pcore/types"
 )
 
 var iplPattern = regexp.MustCompile(`%{[^}]*}`)
@@ -21,43 +22,46 @@ var emptyInterpolations = map[string]bool{
 }
 
 // Interpolate resolves interpolations in the given value and returns the result
-func Interpolate(ic hieraapi.Invocation, value px.Value, allowMethods bool) px.Value {
-	result, _ := doInterpolate(ic, value, allowMethods)
-	return result
+func (ic *ivContext) Interpolate(value dgo.Value, allowMethods bool) dgo.Value {
+	if result, changed := ic.doInterpolate(value, allowMethods); changed {
+		return result
+	}
+	return value
 }
 
-func doInterpolate(ic hieraapi.Invocation, value px.Value, allowMethods bool) (px.Value, bool) {
-	if s, ok := value.(px.StringValue); ok {
-		return interpolateString(ic, s.String(), allowMethods)
+func (ic *ivContext) doInterpolate(value dgo.Value, allowMethods bool) (dgo.Value, bool) {
+	if s, ok := value.(dgo.String); ok {
+		return ic.InterpolateString(s.String(), allowMethods)
 	}
-	if a, ok := value.(*types.Array); ok {
-		cp := a.AppendTo(make([]px.Value, 0, a.Len()))
+	if a, ok := value.(dgo.Array); ok {
+		cp := a.AppendToSlice(make([]dgo.Value, 0, a.Len()))
 		changed := false
 		for i, e := range cp {
-			v, c := doInterpolate(ic, e, allowMethods)
+			v, c := ic.doInterpolate(e, allowMethods)
 			if c {
 				changed = true
 				cp[i] = v
 			}
 		}
 		if changed {
-			a = types.WrapValues(cp)
+			a = vf.Array(cp)
 		}
 		return a, changed
 	}
-	if h, ok := value.(*types.Hash); ok {
-		cp := h.AppendEntriesTo(make([]*types.HashEntry, 0, h.Len()))
+	if h, ok := value.(dgo.Map); ok {
+		cp := vf.MapWithCapacity((h.Len()*4)/3, nil)
 		changed := false
-		for i, e := range cp {
-			k, kc := doInterpolate(ic, e.Key(), allowMethods)
-			v, vc := doInterpolate(ic, e.Value(), allowMethods)
+		h.EachEntry(func(e dgo.MapEntry) {
+			k, kc := ic.doInterpolate(e.Key(), allowMethods)
+			v, vc := ic.doInterpolate(e.Value(), allowMethods)
+			cp.Put(k, v)
 			if kc || vc {
 				changed = true
-				cp[i] = types.WrapHashEntry(k, v)
 			}
-		}
+		})
 		if changed {
-			h = types.WrapHash(cp)
+			cp.Freeze()
+			h = cp
 		}
 		return h, changed
 	}
@@ -74,7 +78,7 @@ var methodMatch = regexp.MustCompile(`^(\w+)\((?:["]([^"]+)["]|[']([^']+)['])\)$
 func getMethodAndData(expr string, allowMethods bool) (int, string) {
 	if groups := methodMatch.FindStringSubmatch(expr); groups != nil {
 		if !allowMethods {
-			panic(px.Error(hieraapi.InterpolationMethodSyntaxNotAllowed, issue.NoArgs))
+			panic(errors.New(`interpolation using method syntax is not allowed in this context`))
 		}
 		data := groups[2]
 		if data == `` {
@@ -90,19 +94,20 @@ func getMethodAndData(expr string, allowMethods bool) (int, string) {
 		case `scope`:
 			return scopeMethod, data
 		default:
-			panic(px.Error(hieraapi.UnknownInterpolationMethod, issue.H{`name`: groups[1]}))
+			panic(fmt.Errorf(`unknown interpolation method '%s'`, groups[1]))
 		}
 	}
 	return scopeMethod, expr
 }
 
-func interpolateString(ic hieraapi.Invocation, str string, allowMethods bool) (px.Value, bool) {
+// InterpolateString resolves a string containing interpolation expressions
+func (ic *ivContext) InterpolateString(str string, allowMethods bool) (dgo.Value, bool) {
 	if !strings.Contains(str, `%{`) {
-		return types.WrapString(str), false
+		return vf.String(str), false
 	}
 
-	return ic.WithInterpolation(str, func() px.Value {
-		var result px.Value
+	return ic.WithInterpolation(str, func() dgo.Value {
+		var result dgo.Value
 		str = iplPattern.ReplaceAllStringFunc(str, func(match string) string {
 			expr := strings.TrimSpace(match[2 : len(match)-1])
 			if emptyInterpolations[expr] {
@@ -111,25 +116,19 @@ func interpolateString(ic hieraapi.Invocation, str string, allowMethods bool) (p
 			var methodKey int
 			methodKey, expr = getMethodAndData(expr, allowMethods)
 			if methodKey == aliasMethod && match != str {
-				panic(px.Error(hieraapi.InterpolationAliasNotEntireString, issue.NoArgs))
+				panic(errors.New(`'alias' interpolation is only permitted if the expression is equal to the entire string`))
 			}
 
 			switch methodKey {
 			case literalMethod:
 				return expr
 			case scopeMethod:
-				key := newKey(expr)
-				if val, ok := ic.Scope().Get(types.WrapString(key.Root())); ok {
-					val, _ = doInterpolate(ic, val, allowMethods)
-					val = key.Dig(ic, val)
-					if val == nil {
-						return ``
-					}
+				if val := ic.InterpolateInScope(expr, allowMethods); val != nil {
 					return val.String()
 				}
 				return ``
 			default:
-				val := Lookup(ic, expr, px.Undef, nil)
+				val := ic.Lookup(hieraapi.NewKey(expr), nil)
 				if methodKey == aliasMethod {
 					result = val
 					return ``
@@ -138,16 +137,17 @@ func interpolateString(ic hieraapi.Invocation, str string, allowMethods bool) (p
 			}
 		})
 		if result == nil {
-			result = types.WrapString(str)
+			result = vf.String(str)
 		}
 		return result
 	}), true
 }
 
-func resolveInScope(ic hieraapi.Invocation, expr string, allowMethods bool) px.Value {
-	key := newKey(expr)
-	if val, ok := ic.Scope().Get(types.WrapString(key.Root())); ok {
-		val, _ = doInterpolate(ic, val, allowMethods)
+// InterpolateInScope resolves a key expression in the invocation scope
+func (ic *ivContext) InterpolateInScope(expr string, allowMethods bool) dgo.Value {
+	key := hieraapi.NewKey(expr)
+	if val := ic.Scope().Get(key.Root()); val != nil {
+		val, _ = ic.doInterpolate(val, allowMethods)
 		return key.Dig(ic, val)
 	}
 	return nil

@@ -1,86 +1,95 @@
 package provider
 
 import (
+	"github.com/lyraproj/dgo/dgo"
+	"github.com/lyraproj/dgo/typ"
+	"github.com/lyraproj/dgo/vf"
 	"github.com/lyraproj/hiera/hieraapi"
-	"github.com/lyraproj/pcore/px"
-	"github.com/lyraproj/pcore/types"
+	"github.com/lyraproj/hiera/merge"
+	"github.com/lyraproj/hierasdk/hiera"
 )
 
-var first = types.WrapString(`first`)
+var first = vf.String(`first`)
+
+func extractMergeInfo(sc hieraapi.ServerContext, lo dgo.Map) (mergeName dgo.Value, mergeOpts dgo.Map) {
+	mergeName = sc.Option(`merge`)
+	if mergeName != nil {
+		sc.Invocation().ReportMergeSource(`CLI option`)
+	} else {
+		if lo == nil {
+			mergeName = first
+		} else {
+			mergeName = lo.Get(`merge`)
+			if mergeName == nil {
+				mergeName = first
+			} else {
+				sc.Invocation().ReportMergeSource(`"lookup_options" hash`)
+			}
+		}
+	}
+	if mh, ok := mergeName.(dgo.Map); ok {
+		if mergeName = mh.Get(`strategy`); mergeName == nil {
+			mergeName = first
+		}
+		mergeOpts = mh.Without(`stragegy`)
+	}
+	return
+}
+
+func extractConversion(sc hieraapi.ServerContext, lo dgo.Map) (convertToType dgo.Type, convertToArgs dgo.Array) {
+	if lo == nil {
+		return
+	}
+	ct := lo.Get(`convert_to`)
+	if ct == nil {
+		return
+	}
+	var ts dgo.Value
+	if cm, ok := ct.(dgo.Array); ok {
+		// First arg must be a type. The rest is arguments
+		switch cm.Len() {
+		case 0:
+			// Obviously bogus
+		case 1:
+			ts = cm.Get(0)
+		default:
+			ts = cm.Get(0)
+			convertToArgs = cm.Slice(1, cm.Len())
+		}
+	} else {
+		ts = ct
+	}
+	if ts != nil {
+		ic := sc.Invocation()
+		convertToType = ic.Dialect().ParseType(ic.AliasMap(), ts.(dgo.String))
+	}
+	return
+}
 
 // ConfigLookupKey performs a lookup based on a hierarchy of providers that has been specified
 // in a yaml based configuration stored on disk.
-func ConfigLookupKey(pc hieraapi.ServerContext, key string) px.Value {
-	ic := pc.Invocation()
+func ConfigLookupKey(pc hiera.ProviderContext, key string) dgo.Value {
+	sc, ok := pc.(hieraapi.ServerContext)
+	if !ok {
+		return nil
+	}
+	ic := sc.Invocation()
 	cfg := ic.Config()
 	ic = ic.ForData()
 
 	k := hieraapi.NewKey(key)
-	return ic.WithLookup(k, func() px.Value {
-		var lo map[string]px.Value
-		merge := pc.Option(`merge`)
-		if merge != nil {
-			ic.ReportMergeSource(`CLI option`)
-		} else {
-			lo = cfg.LookupOptions(k)
-			if lo == nil {
-				merge = first
-			} else {
-				merge = lo[`merge`]
-				if merge == nil {
-					merge = first
-				} else {
-					ic.ReportMergeSource(`"lookup_options" hash`)
-				}
-			}
-		}
+	return ic.WithLookup(k, func() dgo.Value {
+		lo := cfg.LookupOptions(k)
+		mergeName, mergeOpts := extractMergeInfo(sc, lo)
+		convertToType, convertToArgs := extractConversion(sc, lo)
+		redacted := typ.Sensitive.Equals(convertToType)
 
-		var mergeOpts map[string]px.Value
-		if mh, ok := merge.(px.OrderedMap); ok {
-			merge = mh.Get5(`strategy`, first)
-			mergeOpts = make(map[string]px.Value, mh.Len())
-			mh.EachPair(func(k, v px.Value) {
-				ks := k.String()
-				if ks != `strategy` {
-					mergeOpts[ks] = v
-				}
-			})
-		}
-
-		redacted := false
-
-		var convertToType px.Type
-		var convertToArgs []px.Value
-		if lo != nil {
-			ts := ``
-			if ct, ok := lo[`convert_to`]; ok {
-				if cm, ok := ct.(*types.Array); ok {
-					// First arg must be a type. The rest is arguments
-					switch cm.Len() {
-					case 0:
-						// Obviously bogus
-					case 1:
-						ts = cm.At(0).String()
-					default:
-						ts = cm.At(0).String()
-						convertToArgs = cm.Slice(1, cm.Len()).AppendTo(make([]px.Value, 0, cm.Len()-1))
-					}
-				} else {
-					ts = ct.String()
-				}
-			}
-			if ts != `` {
-				convertToType = ic.ParseType(ts)
-				redacted = ts == `Sensitive`
-			}
-		}
-
-		var v px.Value
+		var v dgo.Value
 		hf := func() {
-			ms := hieraapi.GetMergeStrategy(hieraapi.MergeStrategyName(merge.String()), mergeOpts)
-			v = ms.Lookup(cfg.Hierarchy(), ic, func(prv interface{}) px.Value {
+			ms := merge.GetStrategy(mergeName.String(), mergeOpts)
+			v = ms.MergeLookup(cfg.Hierarchy(), ic, func(prv interface{}) dgo.Value {
 				pr := prv.(hieraapi.DataProvider)
-				return pr.Lookup(k, ic, ms)
+				return ic.MergeLookup(k, pr, ms)
 			})
 		}
 
@@ -91,11 +100,10 @@ func ConfigLookupKey(pc hieraapi.ServerContext, key string) px.Value {
 		}
 
 		if v != nil && convertToType != nil {
-			av := []px.Value{v}
 			if convertToArgs != nil {
-				av = append(av, convertToArgs...)
+				v = vf.Arguments(vf.Values(v).WithAll(convertToArgs))
 			}
-			v = px.New(ic, convertToType, av...)
+			v = vf.New(convertToType, v)
 		}
 		return v
 	})
