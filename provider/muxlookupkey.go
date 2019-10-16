@@ -1,9 +1,10 @@
 package provider
 
 import (
+	"github.com/lyraproj/dgo/dgo"
+	"github.com/lyraproj/dgo/vf"
 	"github.com/lyraproj/hiera/hieraapi"
-	"github.com/lyraproj/pcore/px"
-	"github.com/lyraproj/pcore/types"
+	"github.com/lyraproj/hierasdk/hiera"
 )
 
 const LookupKeyFunctions = `hiera::lookup::providers`
@@ -14,17 +15,19 @@ const LookupKeyFunctions = `hiera::lookup::providers`
 //
 // The intended use for this function is when a very simplistic way of configuring Hiera is desired that
 // requires no configuration files.
-func MuxLookupKey(c hieraapi.ServerContext, key string) px.Value {
-	if pv := c.Option(LookupKeyFunctions); pv != nil {
-		if rpv, ok := pv.(*types.RuntimeValue); ok {
-			var pvs []hieraapi.LookupKey
-			if pvs, ok = rpv.Interface().([]hieraapi.LookupKey); ok {
-				for _, lk := range pvs {
-					var result px.Value
-					if result = lk(c, key); result != nil {
-						return result
-					}
+func MuxLookupKey(pc hiera.ProviderContext, key string) dgo.Value {
+	iv := pc.(hieraapi.ServerContext).Invocation()
+	if pv := iv.SessionOptions().Get(LookupKeyFunctions); pv != nil {
+		if rpv, ok := pv.(dgo.Array); ok {
+			args := vf.MutableValues(pc, key)
+			found := rpv.Find(func(e dgo.Value) interface{} {
+				if lk, ok := e.(dgo.Function); ok {
+					return lk.Call(args)[0]
 				}
+				return nil
+			})
+			if found != nil {
+				return vf.Value(found)
 			}
 		}
 	}

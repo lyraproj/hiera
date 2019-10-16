@@ -18,4 +18,4 @@ lookup_options:
   hash:
     merge: deep
   sense:
-    convert_to: Sensitive
+    convert_to: sensitive

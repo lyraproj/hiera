@@ -1,31 +1,32 @@
 package provider
 
 import (
-	"bytes"
+	"io/ioutil"
+	"os"
 
+	"github.com/lyraproj/dgo/dgo"
+	"github.com/lyraproj/dgo/streamer"
+	"github.com/lyraproj/dgo/vf"
 	"github.com/lyraproj/hiera/hieraapi"
-	"github.com/lyraproj/pcore/serialization"
-
-	"github.com/lyraproj/issue/issue"
-	"github.com/lyraproj/pcore/px"
-	"github.com/lyraproj/pcore/types"
+	"github.com/lyraproj/hierasdk/hiera"
 )
 
-func JSONData(c hieraapi.ServerContext) px.OrderedMap {
-	pv := c.Option(`path`)
+func JSONData(ctx hiera.ProviderContext) dgo.Map {
+	pv := ctx.Option(`path`)
 	if pv == nil {
-		panic(px.Error(hieraapi.MissingRequiredOption, issue.H{`option`: `path`}))
+		panic(hieraapi.MissingRequiredOption(`path`))
 	}
 	path := pv.String()
-	if bin, ok := types.BinaryFromFile2(path); ok {
-		rdr := bytes.NewBuffer(bin.Bytes())
-		vc := px.NewCollector()
-		serialization.JsonToData(path, rdr, vc)
-		v := vc.Value()
-		if data, ok := v.(px.OrderedMap); ok {
-			return data
+	bs, err := ioutil.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return vf.Map()
 		}
-		panic(px.Error(hieraapi.JSONNOtHash, issue.H{`path`: path}))
+		panic(err)
 	}
-	return px.EmptyMap
+	v := streamer.UnmarshalJSON(bs, nil)
+	if data, ok := v.(dgo.Map); ok {
+		return data
+	}
+	panic(hieraapi.JSONNOtHash(path))
 }

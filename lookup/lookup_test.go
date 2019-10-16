@@ -9,20 +9,18 @@ import (
 	"testing"
 
 	"github.com/lyraproj/hiera/cli"
-	"github.com/lyraproj/hiera/hieraapi"
-	"github.com/lyraproj/pcore/px"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestLookup_defaultInt(t *testing.T) {
-	result, err := cli.ExecuteLookup(`--default`, `23`, `--type`, `Integer`, `foo`)
+	result, err := cli.ExecuteLookup(`--default`, `23`, `--type`, `int`, `foo`)
 	require.NoError(t, err)
 	require.Equal(t, "23\n", string(result))
 }
 
 func TestLookup_defaultString(t *testing.T) {
-	result, err := cli.ExecuteLookup(`--default`, `23`, `--type`, `String`, `foo`)
+	result, err := cli.ExecuteLookup(`--default`, `23`, `--type`, `string`, `foo`)
 	require.NoError(t, err)
 	require.Equal(t, "\"23\"\n", string(result))
 }
@@ -34,13 +32,13 @@ func TestLookup_defaultEmptyString(t *testing.T) {
 }
 
 func TestLookup_defaultHash(t *testing.T) {
-	result, err := cli.ExecuteLookup(`--default`, `{ x => 'a', y => 9 }`, `--type`, `Hash[String,Variant[String,Integer]]`, `foo`)
+	result, err := cli.ExecuteLookup(`--default`, `{ x: "a", y: 9 }`, `--type`, `map[string](string|int)`, `foo`)
 	require.NoError(t, err)
 	require.Equal(t, "x: a\ny: 9\n", string(result))
 }
 
 func TestLookup_defaultHash_json(t *testing.T) {
-	result, err := cli.ExecuteLookup(`--default`, `{ x => 'a', y => 9 }`, `--type`, `Hash[String,Variant[String,Integer]]`, `--render-as`, `json`, `foo`)
+	result, err := cli.ExecuteLookup(`--default`, `{ x: "a", y: 9 }`, `--type`, `map[string](string|int)`, `--render-as`, `json`, `foo`)
 	require.NoError(t, err)
 	require.Equal(t, "{\"x\":\"a\",\"y\":9}\n", string(result))
 }
@@ -58,7 +56,7 @@ func TestLookup_defaultString_binary(t *testing.T) {
 }
 
 func TestLookup_defaultArray_binary(t *testing.T) {
-	result, err := cli.ExecuteLookup(`--default`, `[12, 28, 37, 15]`, `--type`, `Array[Integer]`, `--render-as`, `binary`, `foo`)
+	result, err := cli.ExecuteLookup(`--default`, `{12, 28, 37, 15}`, `--type`, `[]int`, `--render-as`, `binary`, `foo`)
 	require.NoError(t, err)
 	require.Equal(t, []byte{12, 28, 37, 15}, result)
 }
@@ -89,7 +87,7 @@ func TestLookup_vars_interpolated_config(t *testing.T) {
 
 func TestLookup_var_interpolated_config(t *testing.T) {
 	inTestdata(func() {
-		result, err := cli.ExecuteLookup(`--var`, `c={a=>'the option value'}`, `--var`, `data_file: by_fact`, `interpolate_ca`)
+		result, err := cli.ExecuteLookup(`--var`, `c={a:"the option value"}`, `--var`, `data_file: by_fact`, `interpolate_ca`)
 		require.NoError(t, err)
 		require.Equal(t, "This is the option value\n", string(result))
 	})
@@ -151,9 +149,9 @@ func TestLookup_explain(t *testing.T) {
         Original path: "named_%\{data_file\}.yaml"
         Interpolation on "This is %\{c\.a\}"
           Sub key: "a"
-            Found key: "a" value: 'value of c.a'
-        Found key: "interpolate_ca" value: 'This is value of c\.a'
-    Merged result: 'This is value of c\.a'
+            Found key: "a" value: "value of c.a"
+        Found key: "interpolate_ca" value: "This is value of c\.a"
+    Merged result: "This is value of c\.a"
 \z`, filepath.ToSlash(string(result)))
 	})
 }
@@ -163,49 +161,48 @@ func TestLookup_explain_yaml(t *testing.T) {
 		result, err := cli.ExecuteLookup(`--explain`, `--facts`, `facts.yaml`, `--render-as`, `yaml`, `interpolate_ca`)
 		require.NoError(t, err)
 		require.Regexp(t,
-			`\A__ptype: Hiera::Explainer
+			`\A__type: hiera\.explainer
 branches:
-  - __ptype: Hiera::ExplainLookup
+  - __type: hiera\.explainLookup
     branches:
-      - __ptype: Hiera::ExplainMerge
+      - __type: hiera\.explainMerge
         branches:
-          - __ptype: Hiera::ExplainProvider
+          - __type: hiera\.explainDataProvider
             branches:
-              - __ptype: Hiera::ExplainLocation
+              - __type: hiera\.explainLocation
                 event: 5
                 key: interpolate_ca
                 location:
-                    __ptype: Hiera::Path
-                    exists: true
+                    __type: hiera\.path
                     original: common\.yaml
                     resolved: .*/testdata/hiera/common\.yaml
+                    exists: true
             providerName: data_hash function 'yaml_data'
-          - __ptype: Hiera::ExplainProvider
+          - __type: hiera\.explainDataProvider
             branches:
-              - __ptype: Hiera::ExplainLocation
+              - __type: hiera\.explainLocation
                 branches:
-                  - __ptype: Hiera::ExplainInterpolate
+                  - __type: hiera\.explainInterpolate
                     branches:
-                      - __ptype: Hiera::ExplainSubLookup
+                      - __type: hiera\.explainSubLookup
                         branches:
-                          - __ptype: Hiera::ExplainKeySegment
+                          - __type: hiera\.explainKeySegment
                             event: 1
                             key: a
-                            segment: a
                             value: value of c\.a
+                            segment: a
                         subKey: c\.a
                     expression: This is %\{c\.a\}
                 event: 1
                 key: interpolate_ca
+                value: This is value of c\.a
                 location:
-                    __ptype: Hiera::Path
-                    exists: true
+                    __type: hiera\.path
                     original: named_%\{data_file\}\.yaml
                     resolved: .*/testdata/hiera/named_by_fact\.yaml
-                value: This is value of c\.a
+                    exists: true
             providerName: data_hash function 'yaml_data'
         event: 6
-        strategy: first
         value: This is value of c\.a
     key: interpolate_ca
 \z`, filepath.ToSlash(string(result)))
@@ -223,11 +220,11 @@ func TestLookup_explain_options(t *testing.T) {
       Path "[^"]*/testdata/hiera/common\.yaml"
         Original path: "common\.yaml"
         Found key: "lookup_options" value: \{
-          'hash' => \{
-            'merge' => 'deep'
+          "hash": \{
+            "merge": "deep"
           \},
-          'sense' => \{
-            'convert_to' => 'Sensitive'
+          "sense": \{
+            "convert_to": "Sensitive"
           \}
         \}
     data_hash function 'yaml_data'
@@ -235,13 +232,14 @@ func TestLookup_explain_options(t *testing.T) {
         Original path: "named_%\{data_file\}\.yaml"
         No such key: "lookup_options"
     Merged result: \{
-        'hash' => \{
-          'merge' => 'deep'
-        \},
-        'sense' => \{
-          'convert_to' => 'Sensitive'
-        \}
+      "hash": \{
+        "merge": "deep"
+      \},
+      "sense": \{
+        "convert_to": "Sensitive"
       \}
+    \}
+Using merge options from "lookup_options" hash
 \z`, filepath.ToSlash(string(result)))
 	})
 }
@@ -257,11 +255,11 @@ func TestLookup_explain_explain_options(t *testing.T) {
       Path "[^"]*/testdata/hiera/common\.yaml"
         Original path: "common\.yaml"
         Found key: "lookup_options" value: \{
-          'hash' => \{
-            'merge' => 'deep'
+          "hash": \{
+            "merge": "deep"
           \},
-          'sense' => \{
-            'convert_to' => 'Sensitive'
+          "sense": \{
+            "convert_to": "Sensitive"
           \}
         \}
     data_hash function 'yaml_data'
@@ -269,13 +267,13 @@ func TestLookup_explain_explain_options(t *testing.T) {
         Original path: "named_%\{data_file\}\.yaml"
         No such key: "lookup_options"
     Merged result: \{
-        'hash' => \{
-          'merge' => 'deep'
-        \},
-        'sense' => \{
-          'convert_to' => 'Sensitive'
-        \}
+      "hash": \{
+        "merge": "deep"
+      \},
+      "sense": \{
+        "convert_to": "Sensitive"
       \}
+    \}
 Searching for "hash"
   Using merge options from "lookup_options" hash
   Merge strategy "deep merge strategy"
@@ -283,58 +281,34 @@ Searching for "hash"
       Path "[^"]*/testdata/hiera/common\.yaml"
         Original path: "common\.yaml"
         Found key: "hash" value: \{
-          'one' => 1,
-          'two' => 'two',
-          'three' => \{
-            'a' => 'A',
-            'c' => 'C'
+          "one": 1,
+          "two": "two",
+          "three": \{
+            "a": "A",
+            "c": "C"
           \}
         \}
     data_hash function 'yaml_data'
       Path "[^"]*/testdata/hiera/named_by_fact\.yaml"
         Original path: "named_%\{data_file\}\.yaml"
         Found key: "hash" value: \{
-          'one' => 'overwritten one',
-          'three' => \{
-            'a' => 'overwritten A',
-            'b' => 'B',
-            'c' => 'overwritten C'
+          "one": "overwritten one",
+          "three": \{
+            "a": "overwritten A",
+            "b": "B",
+            "c": "overwritten C"
           \}
         \}
     Merged result: \{
-        'one' => 1,
-        'two' => 'two',
-        'three' => \{
-          'a' => 'A',
-          'c' => 'C',
-          'b' => 'B'
-        \}
+      "one": 1,
+      "two": "two",
+      "three": \{
+        "a": "A",
+        "c": "C",
+        "b": "B"
       \}
+    \}
 \z`, filepath.ToSlash(string(result)))
-	})
-}
-
-func customLK(hc hieraapi.ServerContext, key string) px.Value {
-	return hc.Option(key)
-}
-
-func init() {
-	px.NewGoFunction(`customLK`,
-		func(d px.Dispatch) {
-			d.Param(`Hiera::Context`)
-			d.Param(`String`)
-			d.Function(func(c px.Context, args []px.Value) px.Value {
-				return customLK(args[0].(hieraapi.ServerContext), args[1].String())
-			})
-		},
-	)
-}
-
-func TestLookup_withCustomLK(t *testing.T) {
-	inTestdata(func() {
-		result, err := cli.ExecuteLookup(`--config`, `with_custom_provider.yaml`, `a`)
-		require.NoError(t, err)
-		require.Equal(t, "option a\n", string(result))
 	})
 }
 
@@ -361,7 +335,7 @@ func TestDataHash_refuseToDie(t *testing.T) {
 	inTestdata(func() {
 		_, err := cli.ExecuteLookup(`--config`, `refuse_to_die_plugin.yaml`, `a`)
 		if assert.Error(t, err) {
-			require.Regexp(t, `did not find a value for the name 'a'`, err.Error())
+			require.Regexp(t, `net/http: request canceled`, err.Error())
 		}
 	})
 }

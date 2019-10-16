@@ -1,33 +1,35 @@
-package internal_test
+package session_test
 
 import (
 	"context"
 	"fmt"
 
+	"github.com/lyraproj/dgo/dgo"
+	"github.com/lyraproj/dgo/vf"
 	"github.com/lyraproj/hiera/hiera"
 	"github.com/lyraproj/hiera/hieraapi"
-	"github.com/lyraproj/pcore/px"
-	"github.com/lyraproj/pcore/types"
+	sdk "github.com/lyraproj/hierasdk/hiera"
 )
 
 func ExampleServerContext_CachedValue() {
-	cachingProvider := func(ic hieraapi.ServerContext, key string) px.Value {
+	cachingProvider := func(pc sdk.ProviderContext, key string) dgo.Value {
+		ic := pc.(hieraapi.ServerContext)
 		if v, ok := ic.CachedValue(key); ok {
 			fmt.Printf("Returning cached value for %s\n", key)
 			return v
 		}
 		fmt.Printf("Creating and caching value for %s\n", key)
-		v := ic.Interpolate(types.WrapString(fmt.Sprintf("value for %%{%s}", key)))
+		v := ic.Interpolate(vf.String(fmt.Sprintf("value for %%{%s}", key)))
 		ic.Cache(key, v)
 		return v
 	}
 
-	hiera.DoWithParent(context.Background(), cachingProvider, map[string]px.Value{}, func(c px.Context) {
-		s := types.WrapStringToInterfaceMap(c, map[string]interface{}{
+	hiera.DoWithParent(context.Background(), cachingProvider, nil, func(hs hieraapi.Session) {
+		s := map[string]interface{}{
 			`a`: `scope 'a'`,
 			`b`: `scope 'b'`,
-		})
-		ic := hiera.NewInvocation(c, s, nil)
+		}
+		ic := hs.Invocation(s, nil)
 		fmt.Println(hiera.Lookup(ic, `a`, nil, nil))
 		fmt.Println(hiera.Lookup(ic, `b`, nil, nil))
 		fmt.Println(hiera.Lookup(ic, `a`, nil, nil))

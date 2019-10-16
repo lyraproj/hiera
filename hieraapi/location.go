@@ -1,6 +1,8 @@
 package hieraapi
 
-import "fmt"
+import (
+	"github.com/lyraproj/dgo/dgo"
+)
 
 type LocationKind string
 
@@ -10,7 +12,7 @@ const LcGlob = LocationKind(`glob`)
 const LcMappedPaths = LocationKind(`mapped_paths`)
 
 type Location interface {
-	fmt.Stringer
+	dgo.Value
 	Kind() LocationKind
 	Exists() bool
 	Resolve(ic Invocation, dataDir string) []Location
