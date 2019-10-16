@@ -2,7 +2,7 @@
 
 [![](https://goreportcard.com/badge/github.com/lyraproj/hiera)](https://goreportcard.com/report/github.com/lyraproj/hiera)
 [![](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/lyraproj/hiera)
-[![](https://github.com/lyraproj/hiera/workflows/Hiera%20Build/badge.svg)](https://github.com/lyraproj/hiera/actions)
+[![](https://github.com/lyraproj/hiera/workflows/Hiera%20Tests/badge.svg)](https://github.com/lyraproj/hiera/actions)
 
 ## Introduction
 
