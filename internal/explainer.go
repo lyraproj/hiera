@@ -619,7 +619,7 @@ func (en *explainLocation) AppendTo(w *utils.Indenter) {
 	w.AppendRune('"')
 
 	en.dumpBranches(w)
-	if en.e == notFound {
+	if en.e == locationNotFound {
 		w.NewLine()
 		w.Append(string(en.location.Kind()))
 		w.Append(` not found`)

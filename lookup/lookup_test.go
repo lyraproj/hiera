@@ -121,7 +121,6 @@ func TestLookup_explain(t *testing.T) {
     data_hash function 'yaml_data'
       Path "[^"]*/testdata/hiera/common\.yaml"
         Original path: "common\.yaml"
-        path not found
         No such key: "interpolate_ca"
     data_hash function 'yaml_data'
       Path "[^"]*/testdata/hiera/named_by_fact\.yaml"
@@ -210,7 +209,6 @@ func TestLookup_explain_options(t *testing.T) {
     data_hash function 'yaml_data'
       Path "[^"]*/testdata/hiera/named_by_fact\.yaml"
         Original path: "named_%\{data_file\}\.yaml"
-        path not found
         No such key: "lookup_options"
     Merged result: \{
         'hash' => \{
@@ -245,7 +243,6 @@ func TestLookup_explain_explain_options(t *testing.T) {
     data_hash function 'yaml_data'
       Path "[^"]*/testdata/hiera/named_by_fact\.yaml"
         Original path: "named_%\{data_file\}\.yaml"
-        path not found
         No such key: "lookup_options"
     Merged result: \{
         'hash' => \{
