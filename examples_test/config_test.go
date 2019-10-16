@@ -31,7 +31,7 @@ func TestConfig_hardwired(t *testing.T) {
 	// perform a lookup.
 	//
 	// The DoWithParent is meant to be called once and the created context can then be used for any number of lookups that
-	// uses the same configuration. The session's life-cycle can be compared to the compilers life-cycle in puppet.
+	// uses the same configuration. The session's life-cycle can be compared to the compiler's life-cycle in puppet.
 	hiera.DoWithParent(context.Background(), sayHello, nil, func(c px.Context) {
 		result := hiera.Lookup(hiera.NewInvocation(c, nil, nil), `hello`, nil, nil)
 		if result == nil || `hello world` != result.String() {
@@ -63,13 +63,13 @@ func TestConfig_semiHardWired(t *testing.T) {
 }
 
 /*
- The remaining in tests in this file use the ConfigLookupKey provider. This provider will consult the configuration
+ The remaining tests in this file use the ConfigLookupKey provider. This provider will consult the configuration
  options HieraRoot, HieraConfigFileName, and HieraConfig to determine the path of the configuration file. Use of
- HieraConfig is mutually exclusive to use of HieraRoot and HieraConfigFileName.
+ HieraConfig is mutually exclusive with HieraRoot and HieraConfigFileName.
 
- HieraRoot will default to the current working directory
+ HieraRoot will default to the current working directory.
 
- HieraConfigFileName will default to "hiera.yaml"
+ HieraConfigFileName will default to "hiera.yaml".
 
  If the HieraRoot or HieraConfig are relative paths, they will be considered relative to the current directory.
 
@@ -93,7 +93,7 @@ func TestHelloWorld_yamlConfig(t *testing.T) {
 }
 
 // TestHelloWorld_explicitYamlConfig is similar to TestHelloWorld_yamlConfig but uses HieraConfig
-// option to explicitly define what file to use.
+// option to explicitly define the file to use.
 func TestHelloWorld_explicitYamlConfig(t *testing.T) {
 	configOptions := make(map[string]px.Value)
 	configOptions[hieraapi.HieraConfig] = types.WrapString(`testdata/hiera.yaml`)
