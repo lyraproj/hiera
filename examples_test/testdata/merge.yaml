@@ -1,0 +1,7 @@
+version: 5
+
+hierarchy:
+  - name: First
+    path: merge1.yaml
+  - name: Second
+    path: merge2.yaml
