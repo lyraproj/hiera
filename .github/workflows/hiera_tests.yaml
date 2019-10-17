@@ -1,4 +1,4 @@
-name: Hiera Build
+name: Hiera Tests
 on: [push, pull_request]
 jobs:
 
