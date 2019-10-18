@@ -12,7 +12,7 @@ RUN go install ./...
 # Ensure that a plugin directory is present
 RUN mkdir -p plugin
 
-# Include externa plugins. A prerequisite is that the plugin source is copied into the hiera/plugin directory
+# Include external plugins. A prerequisite is that the plugin source is copied into the hiera/plugin directory
 # prior to the docker build.
 
 # Add plugin builds here...
@@ -26,9 +26,9 @@ RUN mkdir -p plugin
 # Create a new minimalisic image that doesn't contain the build environment and
 # copy the executable over
 FROM alpine
-COPY --from=build_base /go/bin/hieraserver /bin/hieraserver
+COPY --from=build_base /go/bin/rest /bin/hieraserver
 RUN mkdir -p /hiera/plugin
-COPY --from=build_base /go/src/github.com/lyraproj/hiera/plugin/* /hiera/plugin/
+# COPY --from=build_base /go/src/github.com/lyraproj/hiera/plugin/* /hiera/plugin/
 
 # Configurable values for runtime overrides
 ENV port 8080
