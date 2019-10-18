@@ -56,6 +56,8 @@ func init() {
 	hieraapi.NotFound = px.Error(hieraapi.KeyNotFound, issue.NoArgs)
 
 	hieraapi.NewKey = newKey
+
+	hieraapi.DeepMerge = DeepMerge
 }
 
 func Lookup(ic hieraapi.Invocation, name string, dflt px.Value, options map[string]px.Value) px.Value {

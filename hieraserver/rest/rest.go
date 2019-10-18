@@ -62,7 +62,7 @@ var keyPattern = regexp.MustCompile(`^/lookup/(.*)$`)
 
 func startServer(cmd *cobra.Command, _ []string) {
 	configOptions := map[string]px.Value{
-		provider.LookupProvidersKey: types.WrapRuntime([]hieraapi.LookupKey{provider.ConfigLookupKey, provider.Environment})}
+		provider.LookupKeyFunctions: types.WrapRuntime([]hieraapi.LookupKey{provider.ConfigLookupKey, provider.Environment})}
 
 	configOptions[hieraapi.HieraConfig] = types.WrapString(config)
 

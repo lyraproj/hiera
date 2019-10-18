@@ -6,7 +6,7 @@ import (
 	"github.com/lyraproj/pcore/types"
 )
 
-const LookupProvidersKey = `hiera::lookup::providers`
+const LookupKeyFunctions = `hiera::lookup::providers`
 
 // MuxLookup performs a lookup using all LookupKey function slice registered under the LookupProviderKey key
 // in the given options map. The lookups are performed in the order the functions appear in the
@@ -15,7 +15,7 @@ const LookupProvidersKey = `hiera::lookup::providers`
 // The intended use for this function is when a very simplistic way of configuring Hiera is desired that
 // requires no configuration files.
 func MuxLookupKey(c hieraapi.ServerContext, key string) px.Value {
-	if pv := c.Option(LookupProvidersKey); pv != nil {
+	if pv := c.Option(LookupKeyFunctions); pv != nil {
 		if rpv, ok := pv.(*types.RuntimeValue); ok {
 			var pvs []hieraapi.LookupKey
 			if pvs, ok = rpv.Interface().([]hieraapi.LookupKey); ok {
