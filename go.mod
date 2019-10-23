@@ -3,7 +3,7 @@ module github.com/lyraproj/hiera
 require (
 	github.com/bmatcuk/doublestar v1.1.5
 	github.com/lyraproj/dgo v0.2.0
-	github.com/lyraproj/hierasdk v0.1.0
+	github.com/lyraproj/hierasdk v0.2.0
 	github.com/lyraproj/issue v0.0.0-20190606092846-e082d6813d15
 	github.com/lyraproj/pcore v0.0.0-20191009094231-d24a2ffc5639
 	github.com/sirupsen/logrus v1.4.2

@@ -22,13 +22,13 @@ func lookupOption(c hiera.ProviderContext, key string) dgo.Value {
 }
 
 // refuseToDie hangs indefinitely
-func refuseToDie(c hiera.ProviderContext) dgo.Value {
+func refuseToDie(c hiera.ProviderContext) dgo.Map {
 	x := make(chan bool)
 	<-x
 	return nil
 }
 
 // panicAttack panics with an error
-func panicAttack(c hiera.ProviderContext) dgo.Value {
+func panicAttack(c hiera.ProviderContext) dgo.Map {
 	panic(errors.New(`dit dit dit daah daah daah dit dit dit`))
 }
