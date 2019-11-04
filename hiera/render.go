@@ -1,7 +1,6 @@
 package hiera
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 
@@ -25,34 +24,31 @@ const (
 func Render(c px.Context, renderAs RenderName, value px.Value, out io.Writer) {
 	switch renderAs {
 	case YAML, JSON:
-		var v interface{}
+		var v px.Value
 		if !value.Equals(px.Undef, nil) {
 			// Convert value to rich data format
 			ser := serialization.NewSerializer(c, px.EmptyMap)
 			dc := px.NewCollector()
 			ser.Convert(value, dc)
-			rf := c.Reflector().Reflect(dc.Value())
-			if rf.IsValid() && rf.CanInterface() {
-				v = rf.Interface()
-			} else {
-				v = value.String()
-			}
+			v = dc.Value()
 		}
-		var bs []byte
-		var err error
+
 		if renderAs == `yaml` {
-			bs, err = yaml.Marshal(v)
-		} else {
-			// JSON is not able to handle the result of reflecting an empty untyped map.
-			if em, ok := v.(map[interface{}]interface{}); ok && len(em) == 0 {
-				v = map[string]interface{}{}
+			rf := c.Reflector().Reflect(v)
+			var iv interface{}
+			if rf.IsValid() && rf.CanInterface() {
+				iv = rf.Interface()
+			} else {
+				iv = value.String()
 			}
-			bs, err = json.Marshal(v)
+			bs, err := yaml.Marshal(iv)
+			utils.WriteString(out, string(bs))
+			if err != nil {
+				panic(err)
+			}
+		} else {
+			serialization.DataToJson(v, out)
 		}
-		if err != nil {
-			panic(err)
-		}
-		utils.WriteString(out, string(bs))
 	case Binary:
 		bi := types.CoerceTo(c, `lookup value`, types.DefaultBinaryType(), value).(*types.Binary)
 		_, err := out.Write(bi.Bytes())
