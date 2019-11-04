@@ -43,6 +43,10 @@ func Render(c px.Context, renderAs RenderName, value px.Value, out io.Writer) {
 		if renderAs == `yaml` {
 			bs, err = yaml.Marshal(v)
 		} else {
+			// JSON is not able to handle the result of reflecting an empty untyped map.
+			if em, ok := v.(map[interface{}]interface{}); ok && len(em) == 0 {
+				v = map[string]interface{}{}
+			}
 			bs, err = json.Marshal(v)
 		}
 		if err != nil {

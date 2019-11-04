@@ -111,6 +111,14 @@ func TestLookup_nullentry(t *testing.T) {
 	})
 }
 
+func TestLookup_emptyMap(t *testing.T) {
+	inTestdata(func() {
+		result, err := cli.ExecuteLookup(`--config`, `empty_map.yaml`, `--render-as`, `json`, `empty_map`)
+		require.NoError(t, err)
+		require.Equal(t, "{}", string(result))
+	})
+}
+
 func TestLookup_explain(t *testing.T) {
 	inTestdata(func() {
 		result, err := cli.ExecuteLookup(`--explain`, `--facts`, `facts.yaml`, `interpolate_ca`)

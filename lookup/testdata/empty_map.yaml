@@ -1,0 +1,6 @@
+version: 5
+defaults:
+  datadir: hiera
+hierarchy:
+  - name: empty
+    path: empty_map.yaml
