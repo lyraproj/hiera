@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/lyraproj/pcore/serialization"
-
+	"github.com/lyraproj/pcore/pcore"
 	"github.com/lyraproj/pcore/px"
+	"github.com/lyraproj/pcore/serialization"
 	"github.com/lyraproj/pcore/types"
 	"github.com/lyraproj/pcore/utils"
 	"gopkg.in/yaml.v3"
@@ -47,7 +47,11 @@ func Render(c px.Context, renderAs RenderName, value px.Value, out io.Writer) {
 				panic(err)
 			}
 		} else {
-			serialization.DataToJson(v, out)
+			he := make([]*types.HashEntry, 0, 2)
+			he = append(he, types.WrapHashEntry2(`rich_data`, types.BooleanFalse))
+			he = append(he, types.WrapHashEntry2(`local_reference`, types.BooleanFalse))
+			serialization.NewSerializer(pcore.RootContext(), types.WrapHash(he)).Convert(value, serialization.NewJsonStreamer(out))
+			utils.WriteByte(out, '\n')
 		}
 	case Binary:
 		bi := types.CoerceTo(c, `lookup value`, types.DefaultBinaryType(), value).(*types.Binary)
