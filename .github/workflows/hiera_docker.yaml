@@ -1,11 +1,15 @@
 name: Docker Image Build + Push
 
 on: [push]
+  branches:
+    - master
+  tags:
+    - v*
 
 jobs:
 
   build:
- 
+    if: github.repository == "lyraproj/hiera"
     runs-on: ubuntu-latest
  
     steps:
