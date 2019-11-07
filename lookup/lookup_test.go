@@ -347,6 +347,15 @@ func TestLookupKey_plugin(t *testing.T) {
 	})
 }
 
+func TestDataHash_plugin(t *testing.T) {
+	ensureTestPlugin(t)
+	inTestdata(func() {
+		result, err := cli.ExecuteLookup(`--config`, `data_hash_plugin.yaml`, `d`)
+		require.NoError(t, err)
+		require.Equal(t, "interpolate c is value c\n", string(result))
+	})
+}
+
 func TestDataHash_refuseToDie(t *testing.T) {
 	ensureTestPlugin(t)
 	inTestdata(func() {

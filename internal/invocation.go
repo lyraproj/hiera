@@ -32,6 +32,7 @@ type invocation struct {
 	scope      px.Keyed
 	redacted   bool
 	explainer  explain.Explainer
+	config     hieraapi.ResolvedConfig
 }
 
 // InitContext initializes the given context with the Hiera cache. The context initialized
@@ -152,10 +153,15 @@ func (ic *invocation) sharedCache() *sync.Map {
 }
 
 func (ic *invocation) Config() hieraapi.ResolvedConfig {
+	if ic.config != nil {
+		return ic.config
+	}
+
 	sc := ic.sharedCache()
 	cp := hieraConfigsPrefix + ic.configPath
 	if val, ok := sc.Load(cp); ok {
-		return val.(hieraapi.Config).Resolve(ic)
+		ic.config = val.(hieraapi.Config).Resolve(ic)
+		return ic.config
 	}
 
 	lc := hieraLockPrefix + ic.configPath
@@ -183,7 +189,8 @@ func (ic *invocation) Config() hieraapi.ResolvedConfig {
 		sc.Store(cp, conf)
 		myLock.Unlock()
 	}
-	return conf.Resolve(ic)
+	ic.config = conf.Resolve(ic)
+	return ic.config
 }
 
 func (ic *invocation) ExplainMode() bool {
