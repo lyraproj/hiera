@@ -10,7 +10,7 @@ on:
 jobs:
 
   build:
-    if: github.repository == lyraproj/hiera
+    if: github.repository == 'lyraproj/hiera'
     runs-on: ubuntu-latest
  
     steps:
