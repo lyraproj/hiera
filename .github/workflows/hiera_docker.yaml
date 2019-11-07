@@ -1,10 +1,11 @@
 name: Docker Image Build + Push
 
-on: [push]
-  branches:
-    - master
-  tags:
-    - v*
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - v*
 
 jobs:
 
