@@ -42,7 +42,7 @@ func TestLookup_defaultHash(t *testing.T) {
 func TestLookup_defaultHash_json(t *testing.T) {
 	result, err := cli.ExecuteLookup(`--default`, `{ x => 'a', y => 9 }`, `--type`, `Hash[String,Variant[String,Integer]]`, `--render-as`, `json`, `foo`)
 	require.NoError(t, err)
-	require.Equal(t, `{"x":"a","y":9}`, string(result))
+	require.Equal(t, "{\"x\":\"a\",\"y\":9}\n", string(result))
 }
 
 func TestLookup_defaultString_s(t *testing.T) {
@@ -108,6 +108,30 @@ func TestLookup_nullentry(t *testing.T) {
 		result, err := cli.ExecuteLookup(`nullentry`)
 		require.NoError(t, err)
 		require.Equal(t, "nv: null\n", string(result))
+	})
+}
+
+func TestLookup_emptyMap(t *testing.T) {
+	inTestdata(func() {
+		result, err := cli.ExecuteLookup(`--config`, `empty_map.yaml`, `--render-as`, `json`, `empty_map`)
+		require.NoError(t, err)
+		require.Equal(t, "{}\n", string(result))
+	})
+}
+
+func TestLookup_emptySubMap(t *testing.T) {
+	inTestdata(func() {
+		result, err := cli.ExecuteLookup(`--config`, `empty_map.yaml`, `--render-as`, `json`, `empty_sub_map`)
+		require.NoError(t, err)
+		require.Equal(t, "{\"x\":\"the x\",\"empty\":{}}\n", string(result))
+	})
+}
+
+func TestLookup_emptySubMapInArray(t *testing.T) {
+	inTestdata(func() {
+		result, err := cli.ExecuteLookup(`--config`, `empty_map.yaml`, `--render-as`, `json`, `empty_sub_map_in_array`)
+		require.NoError(t, err)
+		require.Equal(t, "[{}]\n", string(result))
 	})
 }
 
@@ -320,6 +344,15 @@ func TestLookupKey_plugin(t *testing.T) {
 		result, err := cli.ExecuteLookup(`--config`, `lookup_key_plugin.yaml`, `a`)
 		require.NoError(t, err)
 		require.Equal(t, "option a\n", string(result))
+	})
+}
+
+func TestDataHash_plugin(t *testing.T) {
+	ensureTestPlugin(t)
+	inTestdata(func() {
+		result, err := cli.ExecuteLookup(`--config`, `data_hash_plugin.yaml`, `d`)
+		require.NoError(t, err)
+		require.Equal(t, "interpolate c is value c\n", string(result))
 	})
 }
 

@@ -1,0 +1,8 @@
+empty_map: {}
+
+empty_sub_map:
+  x: the x
+  empty: {}
+
+empty_sub_map_in_array:
+  - {}
