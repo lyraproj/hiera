@@ -104,6 +104,7 @@ func initialize(_ *cobra.Command, _ []string) {
 }
 
 func cmdLookup(cmd *cobra.Command, args []string) error {
+	cmd.SilenceUsage = true
 	cmdOpts.Default = dflt.StringPointer()
 	configOptions := map[string]px.Value{
 		provider.LookupKeyFunctions: types.WrapRuntime([]hieraapi.LookupKey{provider.ConfigLookupKey, provider.Environment})}
