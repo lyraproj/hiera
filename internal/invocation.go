@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -64,12 +65,19 @@ func InitContext(c px.Context, topProvider hieraapi.LookupKey, options map[strin
 		}
 
 		var fileName string
-		if r, ok = options[hieraapi.HieraConfigFileName]; ok {
+		if config, ok := os.LookupEnv("HIERA_CONFIGFILE"); ok {
+			fileName = config
+		} else if r, ok = options[hieraapi.HieraConfigFileName]; ok {
 			fileName = r.String()
 		} else {
 			fileName = `hiera.yaml`
 		}
-		options[hieraapi.HieraConfig] = types.WrapString(filepath.Join(hieraRoot, fileName))
+		filePath := filepath.Join(hieraRoot, fileName)
+		_, err := os.Stat(filePath)
+		if os.IsNotExist(err) {
+			panic(fmt.Sprintf("File %s does not exist", filePath))
+		}
+		options[hieraapi.HieraConfig] = types.WrapString(filePath)
 	}
 }
 
