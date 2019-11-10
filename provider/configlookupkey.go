@@ -1,6 +1,9 @@
 package provider
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/lyraproj/hiera/hieraapi"
 	"github.com/lyraproj/pcore/px"
 	"github.com/lyraproj/pcore/types"
@@ -14,6 +17,11 @@ func ConfigLookupKey(pc hieraapi.ServerContext, key string) px.Value {
 	ic := pc.Invocation()
 	cfg := ic.Config()
 	ic = ic.ForData()
+
+	_, err := os.Stat(cfg.Config().Path())
+	if os.IsNotExist(err) {
+		panic(fmt.Sprintf("File %s does not exist", cfg.Config().Path()))
+	}
 
 	k := hieraapi.NewKey(key)
 	return ic.WithLookup(k, func() px.Value {
