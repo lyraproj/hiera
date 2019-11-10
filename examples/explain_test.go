@@ -2,6 +2,7 @@ package examples_test
 
 import (
 	"context"
+	"path/filepath"
 	"testing"
 
 	"github.com/lyraproj/hiera/explain"
@@ -34,7 +35,7 @@ func TestExplain(t *testing.T) {
 			t.Fatalf("unexpected result %v", result)
 		}
 
-		expectedExplanation := `Searching for "ipl_c"
+		expectedExplanation := filepath.FromSlash(`Searching for "ipl_c"
   Merge strategy "first found strategy"
     data_hash function 'yaml_data'
       Path "testdata/data.yaml"
@@ -49,7 +50,7 @@ func TestExplain(t *testing.T) {
           Sub key: "y"
             Found key: "y" value: 20
         Found key: "ipl_c" value: 'x = 10, y = 20'
-    Merged result: 'x = 10, y = 20'`
+    Merged result: 'x = 10, y = 20'`)
 
 		actualExplanation := explainer.String()
 		if expectedExplanation != explainer.String() {
@@ -76,7 +77,7 @@ func TestExplain_withOptions(t *testing.T) {
 			t.Fatalf("unexpected result %v", result)
 		}
 
-		expectedExplanation := `Searching for "lookup_options"
+		expectedExplanation := filepath.FromSlash(`Searching for "lookup_options"
   Merge strategy "deep merge strategy"
     data_hash function 'yaml_data'
       Path "testdata/data.yaml"
@@ -101,7 +102,7 @@ Searching for "ipl_c"
           Sub key: "y"
             Found key: "y" value: 20
         Found key: "ipl_c" value: 'x = 10, y = 20'
-    Merged result: 'x = 10, y = 20'`
+    Merged result: 'x = 10, y = 20'`)
 
 		actualExplanation := explainer.String()
 		if expectedExplanation != explainer.String() {
@@ -129,7 +130,7 @@ func TestExplain_withOnlyOptions(t *testing.T) {
 			t.Fatalf("unexpected result %v", result)
 		}
 
-		expectedExplanation := `Searching for "lookup_options"
+		expectedExplanation := filepath.FromSlash(`Searching for "lookup_options"
   Merge strategy "deep merge strategy"
     data_hash function 'yaml_data'
       Path "testdata/data.yaml"
@@ -138,7 +139,7 @@ func TestExplain_withOnlyOptions(t *testing.T) {
     data_hash function 'yaml_data'
       Path "testdata/data/common.yaml"
         Original path: "common.yaml"
-        No such key: "lookup_options"`
+        No such key: "lookup_options"`)
 
 		actualExplanation := explainer.String()
 		if expectedExplanation != explainer.String() {

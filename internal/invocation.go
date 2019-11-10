@@ -71,8 +71,7 @@ func InitContext(c px.Context, topProvider hieraapi.LookupKey, options map[strin
 		} else {
 			fileName = `hiera.yaml`
 		}
-		filePath := filepath.Join(hieraRoot, fileName)
-		options[hieraapi.HieraConfig] = types.WrapString(filePath)
+		options[hieraapi.HieraConfig] = types.WrapString(filepath.Join(hieraRoot, fileName))
 	}
 }
 
