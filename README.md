@@ -126,6 +126,21 @@ the "plugindir" is assumed to be the directory "plugin" present in the same dire
 In addition to "plugindir", a hierarchy may also specify a "pluginfile". Unless specified, the "pluginfile" is assumed
 to be equal to the name of the lookup function (with the extension ".exe" in case of Windows).
 
+## Environment Variables
+
+The following environment variables can be set as an alternative to CLI options.
+
+* `HIERA_CONFIGFILE` - `--config`
+
+Values passed as CLI options will take precendence over the environment variables.
+
+The following environment variables can be set as an alternative to setting values in the `defaults` hash.
+
+* `HIERA_DATADIR` - `datadir`
+* `HIERA_PLUGINDIR` - `plugindir`
+
+Values set in `hiera.yaml` will take precedence over the environment variables.
+
 ### Containerized extension
 
 In order to include an extension in a Hiera Docker image you need to:

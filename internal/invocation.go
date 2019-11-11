@@ -66,6 +66,8 @@ func InitContext(c px.Context, topProvider hieraapi.LookupKey, options map[strin
 		var fileName string
 		if r, ok = options[hieraapi.HieraConfigFileName]; ok {
 			fileName = r.String()
+		} else if config, ok := os.LookupEnv("HIERA_CONFIGFILE"); ok {
+			fileName = config
 		} else {
 			fileName = `hiera.yaml`
 		}

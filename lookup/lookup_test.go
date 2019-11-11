@@ -154,7 +154,7 @@ func TestLookup_explain(t *testing.T) {
             Found key: "a" value: 'value of c.a'
         Found key: "interpolate_ca" value: 'This is value of c\.a'
     Merged result: 'This is value of c\.a'
-\z`, string(result))
+\z`, filepath.ToSlash(string(result)))
 	})
 }
 
@@ -208,7 +208,7 @@ branches:
         strategy: first
         value: This is value of c\.a
     key: interpolate_ca
-\z`, string(result))
+\z`, filepath.ToSlash(string(result)))
 	})
 }
 
@@ -242,7 +242,7 @@ func TestLookup_explain_options(t *testing.T) {
           'convert_to' => 'Sensitive'
         \}
       \}
-\z`, string(result))
+\z`, filepath.ToSlash(string(result)))
 	})
 }
 
@@ -310,7 +310,7 @@ Searching for "hash"
           'b' => 'B'
         \}
       \}
-\z`, string(result))
+\z`, filepath.ToSlash(string(result)))
 	})
 }
 

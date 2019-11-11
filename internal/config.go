@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/lyraproj/hiera/hieraapi"
@@ -241,7 +242,20 @@ func createConfig(ic hieraapi.Invocation, path string, hash *types.Hash) hieraap
 }
 
 func (hc *hieraCfg) makeDefaultConfig() *entry {
-	return &entry{cfg: hc, dataDir: `data`, pluginDir: `plugin`, function: &function{kind: hieraapi.KindDataHash, name: `yaml_data`}}
+	pluginDir, exists := os.LookupEnv("HIERA_PLUGINDIR")
+	if !exists {
+		pluginDir = `plugin`
+	}
+	dataDir, exists := os.LookupEnv("HIERA_DATADIR")
+	if !exists {
+		dataDir = `data`
+	}
+	return &entry{
+		cfg:       hc,
+		dataDir:   dataDir,
+		pluginDir: pluginDir,
+		function:  &function{kind: hieraapi.KindDataHash, name: `yaml_data`},
+	}
 }
 
 func (hc *hieraCfg) makeDefaultHierarchy() []hieraapi.Entry {

@@ -2,6 +2,7 @@ package examples_test
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/lyraproj/hiera/hiera"
@@ -97,6 +98,22 @@ func TestHelloWorld_yamlConfig(t *testing.T) {
 func TestHelloWorld_explicitYamlConfig(t *testing.T) {
 	configOptions := make(map[string]px.Value)
 	configOptions[hieraapi.HieraConfig] = types.WrapString(`testdata/hiera.yaml`)
+
+	// Initialize a Hiera session with the ConfigLookupKey as the top-level function configured using the configOptions.
+	hiera.DoWithParent(context.Background(), provider.ConfigLookupKey, configOptions, func(c px.Context) {
+		result := hiera.Lookup(hiera.NewInvocation(c, nil, nil), `hello`, nil, nil)
+		if result == nil || `yaml data says hello` != result.String() {
+			t.Fatalf("unexpected result %v", result)
+		}
+	})
+}
+
+// TestHelloWorld_explicitYamlConfigEnvironment is similar to TestHelloWorld_yamlConfig but uses HIERA_CONFIGFILE
+// environment variable to explicitly define the file to use.
+func TestHelloWorld_explicitYamlConfigEnvironment(t *testing.T) {
+	configOptions := make(map[string]px.Value)
+	configOptions[hieraapi.HieraRoot] = types.WrapString(`testdata`)
+	os.Setenv("HIERA_CONFIGFILE", "hiera_env.yaml")
 
 	// Initialize a Hiera session with the ConfigLookupKey as the top-level function configured using the configOptions.
 	hiera.DoWithParent(context.Background(), provider.ConfigLookupKey, configOptions, func(c px.Context) {
