@@ -134,14 +134,18 @@ func (e *entry) Resolve(ic hieraapi.Invocation, defaults hieraapi.Entry) hieraap
 		panic(px.Error(hieraapi.MissingDataProviderFunction, issue.H{`keys`: hieraapi.FunctionKeys, `name`: e.name}))
 	}
 
+	dataDir, exists := os.LookupEnv("HIERA_DATADIR")
+	if !exists {
+		dataDir = `data`
+	}
+	pluginDir, exists := os.LookupEnv("HIERA_PLUGINDIR")
+	if !exists {
+		pluginDir = `plugin`
+	}
+
 	if ce.dataDir == `` {
 		if defaults == nil {
-			dataDir, exists := os.LookupEnv("HIERA_DATADIR")
-			if exists {
-				ce.dataDir = dataDir
-			} else {
-				ce.dataDir = `data`
-			}
+			ce.dataDir = dataDir
 		} else {
 			ce.dataDir = defaults.DataDir()
 		}
@@ -153,12 +157,7 @@ func (e *entry) Resolve(ic hieraapi.Invocation, defaults hieraapi.Entry) hieraap
 
 	if ce.pluginDir == `` {
 		if defaults == nil {
-			pluginDir, exists := os.LookupEnv("HIERA_PLUGINDIR")
-			if exists {
-				ce.pluginDir = pluginDir
-			} else {
-				ce.pluginDir = `plugin`
-			}
+			ce.pluginDir = pluginDir
 		} else {
 			ce.pluginDir = defaults.PluginDir()
 		}
