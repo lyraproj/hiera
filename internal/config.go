@@ -136,7 +136,12 @@ func (e *entry) Resolve(ic hieraapi.Invocation, defaults hieraapi.Entry) hieraap
 
 	if ce.dataDir == `` {
 		if defaults == nil {
-			ce.dataDir = `data`
+			dataDir, exists := os.LookupEnv("HIERA_DATADIR")
+			if exists {
+				ce.dataDir = dataDir
+			} else {
+				ce.dataDir = `data`
+			}
 		} else {
 			ce.dataDir = defaults.DataDir()
 		}
@@ -148,7 +153,12 @@ func (e *entry) Resolve(ic hieraapi.Invocation, defaults hieraapi.Entry) hieraap
 
 	if ce.pluginDir == `` {
 		if defaults == nil {
-			ce.pluginDir = `plugin`
+			pluginDir, exists := os.LookupEnv("HIERA_PLUGINDIR")
+			if exists {
+				ce.pluginDir = pluginDir
+			} else {
+				ce.pluginDir = `plugin`
+			}
 		} else {
 			ce.pluginDir = defaults.PluginDir()
 		}
