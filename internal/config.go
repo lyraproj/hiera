@@ -134,18 +134,9 @@ func (e *entry) Resolve(ic hieraapi.Invocation, defaults hieraapi.Entry) hieraap
 		panic(px.Error(hieraapi.MissingDataProviderFunction, issue.H{`keys`: hieraapi.FunctionKeys, `name`: e.name}))
 	}
 
-	dataDir, exists := os.LookupEnv("HIERA_DATADIR")
-	if !exists {
-		dataDir = `data`
-	}
-	pluginDir, exists := os.LookupEnv("HIERA_PLUGINDIR")
-	if !exists {
-		pluginDir = `plugin`
-	}
-
 	if ce.dataDir == `` {
 		if defaults == nil {
-			ce.dataDir = dataDir
+			ce.dataDir = defaultDataDir()
 		} else {
 			ce.dataDir = defaults.DataDir()
 		}
@@ -157,7 +148,7 @@ func (e *entry) Resolve(ic hieraapi.Invocation, defaults hieraapi.Entry) hieraap
 
 	if ce.pluginDir == `` {
 		if defaults == nil {
-			ce.pluginDir = pluginDir
+			ce.pluginDir = defaultPluginDir()
 		} else {
 			ce.pluginDir = defaults.PluginDir()
 		}
@@ -251,18 +242,10 @@ func createConfig(ic hieraapi.Invocation, path string, hash *types.Hash) hieraap
 }
 
 func (hc *hieraCfg) makeDefaultConfig() *entry {
-	pluginDir, exists := os.LookupEnv("HIERA_PLUGINDIR")
-	if !exists {
-		pluginDir = `plugin`
-	}
-	dataDir, exists := os.LookupEnv("HIERA_DATADIR")
-	if !exists {
-		dataDir = `data`
-	}
 	return &entry{
 		cfg:       hc,
-		dataDir:   dataDir,
-		pluginDir: pluginDir,
+		dataDir:   defaultDataDir(),
+		pluginDir: defaultPluginDir(),
 		function:  &function{kind: hieraapi.KindDataHash, name: `yaml_data`},
 	}
 }
@@ -324,6 +307,22 @@ func (hc *hieraCfg) Path() string {
 
 func (hc *hieraCfg) Defaults() hieraapi.Entry {
 	return hc.defaults
+}
+
+func defaultDataDir() string {
+	dataDir, exists := os.LookupEnv("HIERA_DATADIR")
+	if !exists {
+		dataDir = `data`
+	}
+	return dataDir
+}
+
+func defaultPluginDir() string {
+	pluginDir, exists := os.LookupEnv("HIERA_PLUGINDIR")
+	if !exists {
+		pluginDir = `plugin`
+	}
+	return pluginDir
 }
 
 func (hc *hieraCfg) CreateProviders(ic hieraapi.Invocation, hierarchy []hieraapi.Entry) []hieraapi.DataProvider {
