@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/lyraproj/hiera/internal"
-
 	"github.com/lyraproj/hiera/hiera"
 	"github.com/lyraproj/hiera/hieraapi"
 	"github.com/lyraproj/hiera/provider"
@@ -118,8 +116,6 @@ func cmdLookup(cmd *cobra.Command, args []string) error {
 
 	return hiera.TryWithParent(context.Background(), provider.MuxLookupKey, configOptions, func(c px.Context) error {
 		c.Set(`logLevel`, px.LogLevelFromString(logLevel))
-		defer internal.KillPlugins()
-
 		hiera.LookupAndRender(c, &cmdOpts, args, cmd.OutOrStdout())
 		return nil
 	})

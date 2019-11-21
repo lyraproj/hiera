@@ -100,6 +100,7 @@ func Lookup2(
 func TryWithParent(parent context.Context, tp hieraapi.LookupKey, options map[string]px.Value, consumer func(px.Context) error) error {
 	return pcore.TryWithParent(parent, func(c px.Context) error {
 		internal.InitContext(c, tp, options)
+		defer internal.KillPlugins(c)
 		return consumer(c)
 	})
 }
@@ -109,6 +110,7 @@ func TryWithParent(parent context.Context, tp hieraapi.LookupKey, options map[st
 func DoWithParent(parent context.Context, tp hieraapi.LookupKey, options map[string]px.Value, consumer func(px.Context)) {
 	pcore.DoWithParent(parent, func(c px.Context) {
 		internal.InitContext(c, tp, options)
+		defer internal.KillPlugins(c)
 		consumer(c)
 	})
 }

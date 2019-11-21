@@ -49,15 +49,6 @@ type pluginRegistry struct {
 	plugins map[string]*plugin
 }
 
-// allPlugins is the global plugin registry
-var allPlugins = &pluginRegistry{}
-
-// KillPlugins will ensure that all plugins started by this executable are gracefully terminated if possible or
-// otherwise forcefully killed.
-func KillPlugins() {
-	allPlugins.stopAll()
-}
-
 // NewPluginLoader returns a loader that is capable of discovered plugins that matches the given hierarchy entry. If
 // such plugins are found, the will be added to the root loader. The loaded entry and the corresponding executable
 // will be kept alive for until this executable terminates.
@@ -362,8 +353,15 @@ func (l *pluginLoader) LoadEntry(c px.Context, name px.TypedName) px.LoaderEntry
 	if entry != nil {
 		return entry
 	}
-
 	if name.Namespace() != px.NsFunction {
+		return nil
+	}
+
+	// Get the plugin registry for this session
+	var allPlugins *pluginRegistry
+	if pr, ok := c.Get(hieraPluginRegistry); ok {
+		allPlugins = pr.(*pluginRegistry)
+	} else {
 		return nil
 	}
 
@@ -386,8 +384,9 @@ func (l *pluginLoader) LoadEntry(c px.Context, name px.TypedName) px.LoaderEntry
 		}
 		path = abs
 	}
-	allPlugins.startPlugin(c, path, l)
-	return l.DefiningLoader.LoadEntry(c, name)
+	pl := l.DefiningLoader.(px.ParentedLoader).Parent()
+	allPlugins.startPlugin(c, path, pl.(px.DefiningLoader))
+	return pl.LoadEntry(c, name)
 }
 
 func loadPluginFunction(c px.Context, n string, he hieraapi.Entry) (fn px.Function, ok bool) {
