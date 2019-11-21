@@ -12,7 +12,6 @@ import (
 
 	"github.com/lyraproj/hiera/hiera"
 	"github.com/lyraproj/hiera/hieraapi"
-	"github.com/lyraproj/hiera/internal"
 	"github.com/lyraproj/hiera/provider"
 	"github.com/lyraproj/issue/issue"
 	"github.com/lyraproj/pcore/px"
@@ -68,7 +67,6 @@ func startServer(cmd *cobra.Command, _ []string) {
 
 	hiera.DoWithParent(context.Background(), provider.MuxLookupKey, configOptions, func(ctx px.Context) {
 		ctx.Set(`logLevel`, px.LogLevelFromString(logLevel))
-		defer internal.KillPlugins()
 		router := CreateRouter(ctx)
 		err := http.ListenAndServe(":"+strconv.Itoa(port), router)
 		if err != nil {

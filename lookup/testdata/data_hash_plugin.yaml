@@ -1,6 +1,16 @@
 version: 5
 
 hierarchy:
-  - name: Plugin
+  - name: Plugin 1
     data_hash: test_data_hash
     pluginfile: hieratestplugin
+    options:
+      the_hash:
+        a: value a
+        b: value b
+  - name: Plugin 2
+    data_hash: test_data_hash
+    pluginfile: hieratestplugin
+    options:
+      the_hash:
+        c: value c

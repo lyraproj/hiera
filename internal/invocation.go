@@ -25,6 +25,8 @@ const hieraTopProviderCacheKey = `Hiera::TopProvider::Cache`
 const hieraConfigsPrefix = `HieraConfig:`
 const hieraLockPrefix = `HieraLock:`
 
+const hieraPluginRegistry = `Hiera::Plugins`
+
 type invocation struct {
 	px.Context
 	nameStack  []string
@@ -35,15 +37,28 @@ type invocation struct {
 	config     hieraapi.ResolvedConfig
 }
 
+// KillPlugins will ensure that all plugins started by this executable are gracefully terminated if possible or
+// otherwise forcefully killed.
+func KillPlugins(c px.Context) {
+	if pr, ok := c.Get(hieraPluginRegistry); ok {
+		pr.(*pluginRegistry).stopAll()
+	}
+}
+
 // InitContext initializes the given context with the Hiera cache. The context initialized
 // with this method determines the life-cycle of that cache.
 func InitContext(c px.Context, topProvider hieraapi.LookupKey, options map[string]px.Value) {
+	// Add a loader to the loader chain that will act as the parent loader for all plugin loaders
+	// and be the actual cache for loaded plugins.
+	c.SetLoader(px.NewParentedLoader(c.Loader()))
+
 	c.Set(hieraCacheKey, &sync.Map{})
 	if topProvider == nil {
 		topProvider = provider.ConfigLookupKey
 	}
 	c.Set(hieraTopProviderKey, topProvider)
 	c.Set(hieraTopProviderCacheKey, &sync.Map{})
+	c.Set(hieraPluginRegistry, &pluginRegistry{})
 
 	if options == nil {
 		options = make(map[string]px.Value)

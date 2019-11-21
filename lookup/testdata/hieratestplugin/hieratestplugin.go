@@ -25,7 +25,11 @@ func lookupOption(c hiera.ProviderContext, key string) dgo.Value {
 }
 
 func sampleHash(c hiera.ProviderContext) dgo.Map {
-	return vf.Map(`c`, `value c`, `d`, `interpolate c is %{lookup("c")}`)
+	h := c.Option(`the_hash`).(dgo.Map)
+	if h.Get(`c`) != nil {
+		h = h.Merge(vf.Map(`d`, `interpolate c is %{lookup("c")}`))
+	}
+	return h
 }
 
 // refuseToDie hangs indefinitely
