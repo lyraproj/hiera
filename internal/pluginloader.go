@@ -329,7 +329,7 @@ func (p *plugin) callPlugin(luType, name string, params url.Values) px.Value {
 		ad.RawQuery = params.Encode()
 	}
 	us := ad.String()
-	client := http.Client{Timeout: time.Duration(500 * time.Millisecond)}
+	client := http.Client{Timeout: time.Duration(time.Second * 5)}
 	resp, err := client.Get(us)
 	if err != nil {
 		log.Error(err.Error())
