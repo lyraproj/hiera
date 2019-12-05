@@ -11,6 +11,7 @@ import (
 	"github.com/lyraproj/hierasdk/hiera"
 )
 
+// YamlData is a data_hash provider that reads a YAML hash from a file and returns it as a Map
 func YamlData(ctx hiera.ProviderContext) dgo.Map {
 	pv := ctx.Option(`path`)
 	if pv == nil {

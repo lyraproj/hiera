@@ -34,6 +34,7 @@ var uriType = tf.NewNamed(
 	reflect.TypeOf((*hieraapi.Location)(nil)).Elem(),
 	nil)
 
+// NewURI returns a URI Location
 func NewURI(original string) hieraapi.Location {
 	return &uri{original: original}
 }

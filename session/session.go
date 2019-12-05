@@ -54,25 +54,7 @@ func New(parent context.Context, topProvider hiera.LookupKey, oif interface{}, l
 	}
 
 	if options.Get(hieraapi.HieraConfig) == nil {
-		var hieraRoot string
-		if r := options.Get(hieraapi.HieraRoot); r != nil {
-			hieraRoot = r.String()
-		} else {
-			var err error
-			if hieraRoot, err = os.Getwd(); err != nil {
-				panic(err)
-			}
-		}
-
-		var fileName string
-		if r := options.Get(hieraapi.HieraConfigFileName); r != nil {
-			fileName = r.String()
-		} else if config, ok := os.LookupEnv("HIERA_CONFIGFILE"); ok {
-			fileName = config
-		} else {
-			fileName = `hiera.yaml`
-		}
-		options.Put(hieraapi.HieraConfig, filepath.Join(hieraRoot, fileName))
+		addHieraConfig(options)
 	}
 
 	var dialect streamer.Dialect
@@ -112,6 +94,28 @@ func New(parent context.Context, topProvider hiera.LookupKey, oif interface{}, l
 	s := &session{Context: parent, aliasMap: tf.NewAliasMap(), vars: vars, dialect: dialect, scope: scope}
 	s.loader = s.newHieraLoader(ldr)
 	return s
+}
+
+func addHieraConfig(options dgo.Map) {
+	var hieraRoot string
+	if r := options.Get(hieraapi.HieraRoot); r != nil {
+		hieraRoot = r.String()
+	} else {
+		var err error
+		if hieraRoot, err = os.Getwd(); err != nil {
+			panic(err)
+		}
+	}
+
+	var fileName string
+	if r := options.Get(hieraapi.HieraConfigFileName); r != nil {
+		fileName = r.String()
+	} else if config, ok := os.LookupEnv("HIERA_CONFIGFILE"); ok {
+		fileName = config
+	} else {
+		fileName = `hiera.yaml`
+	}
+	options.Put(hieraapi.HieraConfig, filepath.Join(hieraRoot, fileName))
 }
 
 func (s *session) AliasMap() dgo.AliasMap {
@@ -186,7 +190,7 @@ func (s *session) LoadFunction(he hieraapi.Entry) (fn dgo.Function, ok bool) {
 	}
 
 	fn, ok = l.Get(n).(dgo.Function)
-	return
+	return fn, ok
 }
 
 func (s *session) Scope() dgo.Keyed {
@@ -260,7 +264,6 @@ func (s *session) createFunctionLoader(l dgo.Loader) dgo.Loader {
 }
 
 func (s *session) createPluginLoader(p dgo.Loader) dgo.Loader {
-
 	var pluginFinder = func(l dgo.Loader, _ string) interface{} {
 		an := l.AbsoluteName()
 

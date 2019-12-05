@@ -1,3 +1,4 @@
+// Package hieraapi contains interfaces that are used throughout the hiera code base
 package hieraapi
 
 // HieraRoot is an option key that can be used to change the default root which is the current working directory

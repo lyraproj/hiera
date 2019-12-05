@@ -7,9 +7,11 @@ import (
 	"github.com/lyraproj/hierasdk/hiera"
 )
 
+// LookupKeyFunctions is the key that the MuxLookupKey function will use when finding the functions
+// that it delegates to.
 const LookupKeyFunctions = `hiera::lookup::providers`
 
-// MuxLookup performs a lookup using all LookupKey function slice registered under the LookupProviderKey key
+// MuxLookupKey performs a lookup using all LookupKey function slice registered under the LookupProviderKey key
 // in the given options map. The lookups are performed in the order the functions appear in the
 // slice. The first found value is returned.
 //

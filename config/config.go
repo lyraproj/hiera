@@ -1,3 +1,4 @@
+// Package config contains the code to load and resolve the Hiera configuration
 package config
 
 import (
@@ -61,6 +62,8 @@ const hieraTypeString = `{
 	default_hierarchy?:[]entry
 }`
 
+// New creates a new unresolved Config from the given path. If the path does not exist, the
+// default config is returned.
 func New(configPath string) hieraapi.Config {
 	content, err := ioutil.ReadFile(configPath)
 	if err != nil {

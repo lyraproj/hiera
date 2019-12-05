@@ -55,6 +55,57 @@ func (r *pluginRegistry) stopAll() {
 	r.plugins = nil
 }
 
+func createPipe(path, name string, fn func() (io.ReadCloser, error)) io.ReadCloser {
+	pipe, err := fn()
+	if err != nil {
+		panic(fmt.Errorf(`unable to create %s pipe to plugin %s: %s`, name, path, err.Error()))
+	}
+	return pipe
+}
+
+// copyErrToLog propagates everything written on the plugin's stderr to the StandardLogger of this process.
+func copyErrToLog(path string, cmdErr io.Reader, wGroup *sync.WaitGroup) {
+	defer wGroup.Done()
+	out := log.StandardLogger().Out
+	reader := bufio.NewReaderSize(cmdErr, 0x10000)
+	for {
+		line, pfx, err := reader.ReadLine()
+		if err != nil {
+			if err != io.EOF {
+				log.Errorf(`error reading stderr of plugin %s: %s`, path, err.Error())
+			}
+			return
+		}
+		_, _ = out.Write(line)
+		if !pfx {
+			_, _ = out.Write([]byte{'\n'})
+		}
+	}
+}
+
+func awaitMetaData(metaCh chan interface{}, cmdOut io.Reader, wGroup *sync.WaitGroup) {
+	defer wGroup.Done()
+	var meta map[string]interface{}
+	dc := json.NewDecoder(cmdOut)
+	err := dc.Decode(&meta)
+	if err != nil {
+		metaCh <- err
+	} else {
+		metaCh <- meta
+	}
+}
+
+func ignoreOut(cmdOut io.Reader, wGroup *sync.WaitGroup) {
+	defer wGroup.Done()
+	toss := make([]byte, 0x1000)
+	for {
+		_, err := cmdOut.Read(toss)
+		if err == io.EOF {
+			return
+		}
+	}
+}
+
 var DefaultUnixSocketDir = "/tmp"
 
 // getUnixSocketDir resolves value of unixSocketDir
@@ -90,11 +141,8 @@ func (r *pluginRegistry) startPlugin(path string) dgo.Value {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
-	var ok bool
-	var p *plugin
 	if r.plugins != nil {
-		p, ok = r.plugins[path]
-		if ok {
+		if p, ok := r.plugins[path]; ok {
 			return p.functionMap()
 		}
 	}
@@ -104,70 +152,27 @@ func (r *pluginRegistry) startPlugin(path string) dgo.Value {
 	cmd.Env = append(cmd.Env, `HIERA_PLUGIN_SOCKET_DIR=`+getUnixSocketDir(c))
 	cmd.Env = append(cmd.Env, `HIERA_PLUGIN_TRANSPORT=`+getPluginTransport(c))
 
-	createPipe := func(name string, fn func() (io.ReadCloser, error)) io.ReadCloser {
-		pipe, err := fn()
-		if err != nil {
-			panic(fmt.Errorf(`unable to create %s pipe to plugin %s: %s`, name, path, err.Error()))
-		}
-		return pipe
-	}
-
-	cmdErr := createPipe(`stderr`, cmd.StderrPipe)
-	cmdOut := createPipe(`stderr`, cmd.StdoutPipe)
-	err := cmd.Start()
-	if err != nil {
+	cmdErr := createPipe(path, `stderr`, cmd.StderrPipe)
+	cmdOut := createPipe(path, `stdout`, cmd.StdoutPipe)
+	if err := cmd.Start(); err != nil {
 		panic(fmt.Errorf(`unable to start plugin %s: %s`, path, err.Error()))
 	}
 
 	// Make sure the plugin process is killed if there is an error
 	defer func() {
-		r := recover()
-		if err != nil || r != nil {
+		if r := recover(); r != nil {
 			_ = cmd.Process.Kill()
-		}
-		if r != nil {
 			panic(r)
 		}
 	}()
 
-	p = &plugin{path: path, process: cmd.Process}
-
-	// start a go routine that propagates everything written on the plugin's stderr to
-	// the StandardLogger of this process.
+	p := &plugin{path: path, process: cmd.Process}
 	p.wGroup.Add(1)
-	go func() {
-		defer p.wGroup.Done()
-		out := log.StandardLogger().Out
-		reader := bufio.NewReaderSize(cmdErr, 0x10000)
-		for {
-			line, pfx, err := reader.ReadLine()
-			if err != nil {
-				if err != io.EOF {
-					log.Errorf(`error reading stderr of plugin %s: %s`, path, err.Error())
-				}
-				return
-			}
-			_, _ = out.Write(line)
-			if !pfx {
-				_, _ = out.Write([]byte{'\n'})
-			}
-		}
-	}()
+	go copyErrToLog(path, cmdErr, &p.wGroup)
 
-	// Start a go routine that awaits the initial meta-info from the plugin.
 	metaCh := make(chan interface{})
 	p.wGroup.Add(1)
-	go func() {
-		defer p.wGroup.Done()
-		var meta map[string]interface{}
-		dc := json.NewDecoder(cmdOut)
-		err := dc.Decode(&meta)
-		if err != nil {
-			metaCh <- err
-		} else {
-			metaCh <- meta
-		}
-	}()
+	go awaitMetaData(metaCh, cmdOut, &p.wGroup)
 
 	// Give plugin some time to respond with meta-info
 	timeout := time.After(time.Second * 3)
@@ -182,18 +187,10 @@ func (r *pluginRegistry) startPlugin(path string) dgo.Value {
 		meta = mv.(map[string]interface{})
 	}
 
-	// Ignore other stuff that is written on plugin's stdout
+	// start a go routine that ignores other stuff that is written on plugin's stdout
 	p.wGroup.Add(1)
-	go func() {
-		defer p.wGroup.Done()
-		toss := make([]byte, 0x1000)
-		for {
-			_, err := cmdOut.Read(toss)
-			if err == io.EOF {
-				return
-			}
-		}
-	}()
+	go ignoreOut(cmdOut, &p.wGroup)
+
 	if r.plugins == nil {
 		r.plugins = make(map[string]*plugin)
 	}

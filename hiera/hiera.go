@@ -1,3 +1,4 @@
+// Package hiera contains the Lookup functions to use when using Hiera as a library.
 package hiera
 
 import (
@@ -48,7 +49,7 @@ type CommandOptions struct {
 	ExplainOptions bool
 }
 
-// MergeLookup performs a lookup using the given parameters.
+// Lookup performs a lookup using the given parameters.
 //
 // ic - The lookup invocation
 //

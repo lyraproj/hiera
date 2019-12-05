@@ -11,18 +11,18 @@ import (
 	"github.com/lyraproj/hierasdk/hiera"
 )
 
-type DataHashProvider struct {
+type dataHashProvider struct {
 	hierarchyEntry hieraapi.Entry
 	providerFunc   hiera.DataHash
 	hashes         dgo.Map
 	hashesLock     sync.RWMutex
 }
 
-func (dh *DataHashProvider) Hierarchy() hieraapi.Entry {
+func (dh *dataHashProvider) Hierarchy() hieraapi.Entry {
 	return dh.hierarchyEntry
 }
 
-func (dh *DataHashProvider) LookupKey(key hieraapi.Key, ic hieraapi.Invocation, location hieraapi.Location) dgo.Value {
+func (dh *dataHashProvider) LookupKey(key hieraapi.Key, ic hieraapi.Invocation, location hieraapi.Location) dgo.Value {
 	root := key.Root()
 	if value := dh.dataValue(ic, location, root); value != nil {
 		ic.ReportFound(root, value)
@@ -32,7 +32,7 @@ func (dh *DataHashProvider) LookupKey(key hieraapi.Key, ic hieraapi.Invocation, 
 	return nil
 }
 
-func (dh *DataHashProvider) dataValue(ic hieraapi.Invocation, location hieraapi.Location, root string) dgo.Value {
+func (dh *dataHashProvider) dataValue(ic hieraapi.Invocation, location hieraapi.Location, root string) dgo.Value {
 	value := dh.dataHash(ic, location).Get(root)
 	if value == nil {
 		return nil
@@ -40,14 +40,14 @@ func (dh *DataHashProvider) dataValue(ic hieraapi.Invocation, location hieraapi.
 	return ic.Interpolate(value, true)
 }
 
-func (dh *DataHashProvider) providerFunction(ic hieraapi.Invocation) (pf hiera.DataHash) {
+func (dh *dataHashProvider) providerFunction(ic hieraapi.Invocation) (pf hiera.DataHash) {
 	if dh.providerFunc == nil {
 		dh.providerFunc = dh.loadFunction(ic)
 	}
 	return dh.providerFunc
 }
 
-func (dh *DataHashProvider) loadFunction(ic hieraapi.Invocation) hiera.DataHash {
+func (dh *dataHashProvider) loadFunction(ic hieraapi.Invocation) hiera.DataHash {
 	n := dh.hierarchyEntry.Function().Name()
 	switch n {
 	case `yaml_data`:
@@ -73,7 +73,7 @@ func (dh *DataHashProvider) loadFunction(ic hieraapi.Invocation) hiera.DataHash 
 	}
 }
 
-func (dh *DataHashProvider) dataHash(ic hieraapi.Invocation, location hieraapi.Location) (hash dgo.Map) {
+func (dh *dataHashProvider) dataHash(ic hieraapi.Invocation, location hieraapi.Location) (hash dgo.Map) {
 	key := ``
 	opts := dh.hierarchyEntry.Options()
 	if location != nil {
@@ -100,14 +100,14 @@ func (dh *DataHashProvider) dataHash(ic hieraapi.Invocation, location hieraapi.L
 	return
 }
 
-func (dh *DataHashProvider) FullName() string {
+func (dh *dataHashProvider) FullName() string {
 	return fmt.Sprintf(`data_hash function '%s'`, dh.hierarchyEntry.Function().Name())
 }
 
 // NewDataHashProvider creates a new provider with a data_hash function configured from the given entry
 func NewDataHashProvider(he hieraapi.Entry) hieraapi.DataProvider {
 	ls := he.Locations()
-	return &DataHashProvider{hierarchyEntry: he, hashes: vf.MapWithCapacity(len(ls), nil)}
+	return &dataHashProvider{hierarchyEntry: he, hashes: vf.MapWithCapacity(len(ls), nil)}
 }
 
 func optionsWithLocation(options dgo.Map, loc string) dgo.Map {
