@@ -11,6 +11,7 @@ import (
 	"github.com/lyraproj/hierasdk/hiera"
 )
 
+// JSONData is a data_hash provider that reads a JSON object from a file and returns it as a Map
 func JSONData(ctx hiera.ProviderContext) dgo.Map {
 	pv := ctx.Option(`path`)
 	if pv == nil {

@@ -10,16 +10,16 @@ import (
 	"github.com/lyraproj/hierasdk/hiera"
 )
 
-type LookupKeyProvider struct {
+type lookupKeyProvider struct {
 	hierarchyEntry hieraapi.Entry
 	providerFunc   hiera.LookupKey
 }
 
-func (dh *LookupKeyProvider) Hierarchy() hieraapi.Entry {
+func (dh *lookupKeyProvider) Hierarchy() hieraapi.Entry {
 	return dh.hierarchyEntry
 }
 
-func (dh *LookupKeyProvider) LookupKey(key hieraapi.Key, ic hieraapi.Invocation, location hieraapi.Location) dgo.Value {
+func (dh *lookupKeyProvider) LookupKey(key hieraapi.Key, ic hieraapi.Invocation, location hieraapi.Location) dgo.Value {
 	root := key.Root()
 	opts := dh.hierarchyEntry.Options()
 	if location != nil {
@@ -34,14 +34,14 @@ func (dh *LookupKeyProvider) LookupKey(key hieraapi.Key, ic hieraapi.Invocation,
 	return value
 }
 
-func (dh *LookupKeyProvider) providerFunction(ic hieraapi.Invocation) (pf hiera.LookupKey) {
+func (dh *lookupKeyProvider) providerFunction(ic hieraapi.Invocation) (pf hiera.LookupKey) {
 	if dh.providerFunc == nil {
 		dh.providerFunc = dh.loadFunction(ic)
 	}
 	return dh.providerFunc
 }
 
-func (dh *LookupKeyProvider) loadFunction(ic hieraapi.Invocation) (pf hiera.LookupKey) {
+func (dh *lookupKeyProvider) loadFunction(ic hieraapi.Invocation) (pf hiera.LookupKey) {
 	n := dh.hierarchyEntry.Function().Name()
 	switch n {
 	case `environment`:
@@ -58,11 +58,11 @@ func (dh *LookupKeyProvider) loadFunction(ic hieraapi.Invocation) (pf hiera.Look
 	return func(pc hiera.ProviderContext, key string) dgo.Value { return nil }
 }
 
-func (dh *LookupKeyProvider) FullName() string {
+func (dh *lookupKeyProvider) FullName() string {
 	return fmt.Sprintf(`lookup_key function '%s'`, dh.hierarchyEntry.Function().Name())
 }
 
 // NewLookupKeyProvider creates a new provider with a lookup_key function configured from the given entry
 func NewLookupKeyProvider(he hieraapi.Entry) hieraapi.DataProvider {
-	return &LookupKeyProvider{hierarchyEntry: he}
+	return &lookupKeyProvider{hierarchyEntry: he}
 }

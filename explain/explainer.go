@@ -1,3 +1,4 @@
+// Package explain contains the Hiera explainer logic
 package explain
 
 import (

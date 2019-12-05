@@ -38,15 +38,20 @@ func newCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "server",
 		Short: `Server - Start a Hiera REST server`,
-		Long:  "Server - Start a REST server that performs lookups in a Hiera data storage.\n  Responds to key lookups under the /lookup endpoint",
-		Run:   startServer,
-		Args:  cobra.NoArgs}
+		Long: `Server - Start a REST server that performs lookups in a Hiera data storage.
+  Responds to key lookups under the /lookup endpoint`,
+		Run:  startServer,
+		Args: cobra.NoArgs}
 
 	flags := cmd.Flags()
-	flags.StringVar(&logLevel, `loglevel`, `error`, `error/warn/info/debug`)
-	flags.StringVar(&config, `config`, `/hiera/hiera.yaml`, `path to the hiera config file. Overrides /hiera/hiera.yaml`)
-	flags.StringArrayVar(&cmdOpts.VarPaths, `vars`, nil, `path to a JSON or YAML file that contains key-value mappings to become variables for this lookup`)
-	flags.StringArrayVar(&cmdOpts.Variables, `var`, nil, `variable as a key:value or key=value where value is a literal expressed in Puppet DSL`)
+	flags.StringVar(&logLevel, `loglevel`, `error`,
+		`error/warn/info/debug`)
+	flags.StringVar(&config, `config`, `/hiera/hiera.yaml`,
+		`path to the hiera config file. Overrides /hiera/hiera.yaml`)
+	flags.StringArrayVar(&cmdOpts.VarPaths, `vars`, nil,
+		`path to a JSON or YAML file that contains key-value mappings to become variables for this lookup`)
+	flags.StringArrayVar(&cmdOpts.Variables, `var`, nil,
+		`variable as a key:value or key=value where value is a literal expressed in Puppet DSL`)
 	flags.StringVar(&addr, `addr`, ``, `ip address to listen on`)
 	flags.IntVar(&port, `port`, 8080, `port number to listen to`)
 	return cmd
@@ -68,6 +73,7 @@ func startServer(_ *cobra.Command, _ []string) {
 	})
 }
 
+// CreateRouter creates the http.Handler for the Hiera RESTful service
 func CreateRouter(ctx hieraapi.Session) http.Handler {
 	doLookup := func(w http.ResponseWriter, r *http.Request) {
 		ks := keyPattern.FindStringSubmatch(r.URL.Path)

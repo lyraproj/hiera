@@ -20,8 +20,6 @@ func (c *serverCtx) Explain(messageProducer func() string) {
 }
 
 func (c *serverCtx) Cache(key string, value dgo.Value) dgo.Value {
-	// TODO: Cache should be specific to a provider identity determined by the providers position in
-	//  the configured hierarchy
 	cache := c.invocation.TopProviderCache()
 	if old, loaded := cache.LoadOrStore(key, value); loaded {
 		// Replace old value

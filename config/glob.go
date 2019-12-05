@@ -27,6 +27,7 @@ var globType = tf.NewNamed(
 	reflect.TypeOf((*hieraapi.Location)(nil)).Elem(),
 	nil)
 
+// NewGlob returns a glob Location
 func NewGlob(pattern string) hieraapi.Location {
 	return glob(pattern)
 }
