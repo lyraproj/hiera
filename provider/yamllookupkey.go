@@ -7,6 +7,7 @@ import (
 	"github.com/lyraproj/hierasdk/hiera"
 )
 
+// YamlDataKey is the key that the YamlLookupKey function uses for its cache.
 var YamlDataKey = `yaml::data`
 
 // YamlLookupKey is a LookupKey function that uses the YamlData DataHash function to find the data and caches the result.

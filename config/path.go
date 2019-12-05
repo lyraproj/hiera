@@ -39,6 +39,7 @@ var pathType = tf.NewNamed(
 	reflect.TypeOf((*hieraapi.Location)(nil)).Elem(),
 	nil)
 
+// NewPath returns a path Location
 func NewPath(original string) hieraapi.Location {
 	return &path{original: original}
 }

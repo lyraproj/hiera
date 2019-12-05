@@ -13,15 +13,21 @@ import (
 	"github.com/lyraproj/hiera/hieraapi"
 )
 
+// RenderName is the name of the option value that describes how to render output
 type RenderName string
 
 const (
-	YAML   = RenderName(`yaml`)
-	JSON   = RenderName(`json`)
+	// YAML render output in YAML
+	YAML = RenderName(`yaml`)
+	// JSON render output in JSON
+	JSON = RenderName(`json`)
+	// Binary render output as binary data
 	Binary = RenderName(`binary`)
-	Text   = RenderName(`s`)
+	// Text render output as plain text
+	Text = RenderName(`s`)
 )
 
+// Render renders a value on a writer using a specified RenderName
 func Render(s hieraapi.Session, renderAs RenderName, value dgo.Value, out io.Writer) {
 	switch renderAs {
 	case JSON:
