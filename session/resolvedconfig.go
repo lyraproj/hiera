@@ -1,6 +1,8 @@
 package session
 
 import (
+	"strings"
+
 	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/hiera/hieraapi"
 	"github.com/lyraproj/hiera/internal"
@@ -13,6 +15,7 @@ type (
 		providers        []hieraapi.DataProvider
 		defaultProviders []hieraapi.DataProvider
 		lookupOptions    dgo.Map
+		moduleName       string
 	}
 )
 
@@ -30,8 +33,8 @@ func CreateProvider(e hieraapi.Entry) hieraapi.DataProvider {
 
 // Resolve resolves the given Config into a ResolvedConfig. Resolving means creating the proper
 // DataProviders for all Hierarchy entries
-func Resolve(ic hieraapi.Invocation, hc hieraapi.Config) hieraapi.ResolvedConfig {
-	r := &resolvedConfig{cfg: hc}
+func Resolve(ic hieraapi.Invocation, hc hieraapi.Config, moduleName string) hieraapi.ResolvedConfig {
+	r := &resolvedConfig{cfg: hc, moduleName: moduleName}
 	r.Resolve(ic)
 	return r
 }
@@ -49,8 +52,9 @@ func (r *resolvedConfig) DefaultHierarchy() []hieraapi.DataProvider {
 }
 
 func (r *resolvedConfig) LookupOptions(key hieraapi.Key) dgo.Map {
-	if r.lookupOptions != nil {
-		if m, ok := r.lookupOptions.Get(key.Root()).(dgo.Map); ok {
+	root := key.Root()
+	if r.lookupOptions != nil && r.moduleName == `` || strings.HasPrefix(root, r.moduleName+`::`) {
+		if m, ok := r.lookupOptions.Get(root).(dgo.Map); ok {
 			return m
 		}
 	}
@@ -68,7 +72,7 @@ func (r *resolvedConfig) Resolve(ic hieraapi.Invocation) {
 	v := lic.WithLookup(k, func() dgo.Value {
 		return ms.MergeLookup(r.Hierarchy(), lic, func(prv interface{}) dgo.Value {
 			pr := prv.(hieraapi.DataProvider)
-			return lic.MergeLookup(k, pr, ms)
+			return lic.MergeLocations(k, pr, ms)
 		})
 	})
 

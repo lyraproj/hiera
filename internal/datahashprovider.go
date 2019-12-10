@@ -95,7 +95,7 @@ func (dh *dataHashProvider) dataHash(ic hieraapi.Invocation, location hieraapi.L
 	if hash, ok = dh.hashes.Get(key).(dgo.Map); ok {
 		return hash
 	}
-	hash = dh.providerFunction(ic)(ic.ServerContext(dh.hierarchyEntry, opts))
+	hash = dh.providerFunction(ic)(ic.ServerContext(opts))
 	dh.hashes.Put(key, hash)
 	return
 }

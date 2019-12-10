@@ -23,7 +23,7 @@ func (dh *dataDigProvider) LookupKey(key hieraapi.Key, ic hieraapi.Invocation, l
 	if location != nil {
 		opts = optionsWithLocation(opts, location.Resolved())
 	}
-	value := dh.providerFunction(ic)(ic.ServerContext(dh.hierarchyEntry, opts), vf.Values(key.Parts()...))
+	value := dh.providerFunction(ic)(ic.ServerContext(opts), vf.Values(key.Parts()...))
 	if value != nil {
 		ic.ReportFound(key.Source(), value)
 		value = key.Bury(value)

@@ -10,6 +10,8 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/lyraproj/hiera/config"
+
 	"github.com/lyraproj/hiera/hiera"
 	"github.com/lyraproj/hiera/hieraapi"
 	"github.com/lyraproj/hiera/provider"
@@ -27,11 +29,11 @@ func main() {
 }
 
 var (
-	logLevel string
-	addr     string
-	config   string
-	cmdOpts  hiera.CommandOptions
-	port     int
+	logLevel   string
+	addr       string
+	configPath string
+	cmdOpts    hiera.CommandOptions
+	port       int
 )
 
 func newCommand() *cobra.Command {
@@ -46,8 +48,8 @@ func newCommand() *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringVar(&logLevel, `loglevel`, `error`,
 		`error/warn/info/debug`)
-	flags.StringVar(&config, `config`, `/hiera/hiera.yaml`,
-		`path to the hiera config file. Overrides /hiera/hiera.yaml`)
+	flags.StringVar(&configPath, `config`, `/hiera/`+config.FileName,
+		`path to the hiera config file. Overrides /hiera/`+config.FileName)
 	flags.StringArrayVar(&cmdOpts.VarPaths, `vars`, nil,
 		`path to a JSON or YAML file that contains key-value mappings to become variables for this lookup`)
 	flags.StringArrayVar(&cmdOpts.Variables, `var`, nil,
@@ -62,7 +64,7 @@ var keyPattern = regexp.MustCompile(`^/lookup/(.*)$`)
 func startServer(_ *cobra.Command, _ []string) {
 	configOptions := map[string]interface{}{
 		provider.LookupKeyFunctions: []sdk.LookupKey{provider.ConfigLookupKey, provider.Environment},
-		hieraapi.HieraConfig:        config}
+		hieraapi.HieraConfig:        configPath}
 
 	hiera.DoWithParent(context.Background(), provider.MuxLookupKey, configOptions, func(hs hieraapi.Session) {
 		router := CreateRouter(hs)

@@ -32,4 +32,10 @@ type ServerContext interface {
 
 	// Invocation returns the active invocation.
 	Invocation() Invocation
+
+	// Returns a copy of this ServerContext with an Invocation that is configured for lookup of data
+	ForData() ServerContext
+
+	// Returns a copy of this ServerContext with an Invocation that is configured for lookup of lookup_options
+	ForLookupOptions() ServerContext
 }
