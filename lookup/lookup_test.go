@@ -139,19 +139,17 @@ func TestLookup_explain(t *testing.T) {
 		require.NoError(t, err)
 		require.Regexp(t,
 			`\ASearching for "interpolate_ca"
-  Merge strategy "first found strategy"
-    data_hash function 'yaml_data'
-      Path "[^"]*/testdata/hiera/common\.yaml"
-        Original path: "common\.yaml"
-        No such key: "interpolate_ca"
-    data_hash function 'yaml_data'
-      Path "[^"]*/testdata/hiera/named_by_fact\.yaml"
-        Original path: "named_%\{data_file\}.yaml"
-        Interpolation on "This is %\{c\.a\}"
-          Sub key: "a"
-            Found key: "a" value: "value of c.a"
-        Found key: "interpolate_ca" value: "This is value of c\.a"
-    Merged result: "This is value of c\.a"
+  data_hash function 'yaml_data'
+    Path "[^"]*/testdata/hiera/common\.yaml"
+      Original path: "common\.yaml"
+      No such key: "interpolate_ca"
+  data_hash function 'yaml_data'
+    Path "[^"]*/testdata/hiera/named_by_fact\.yaml"
+      Original path: "named_%\{data_file\}.yaml"
+      Interpolation on "This is %\{c\.a\}"
+        Sub key: "a"
+          Found key: "a" value: "value of c.a"
+      Found key: "interpolate_ca" value: "This is value of c\.a"
 \z`, filepath.ToSlash(string(result)))
 	})
 }
@@ -165,46 +163,44 @@ func TestLookup_explain_yaml(t *testing.T) {
 branches:
   - __type: hiera\.explainLookup
     branches:
-      - __type: hiera\.explainMerge
+      - __type: hiera\.explainDataProvider
         branches:
-          - __type: hiera\.explainDataProvider
+          - __type: hiera\.explainLocation
+            event: 5
+            key: interpolate_ca
+            location:
+                __type: hiera\.path
+                original: common\.yaml
+                resolved: .*/testdata/hiera/common\.yaml
+                exists: true
+        providerName: data_hash function 'yaml_data'
+      - __type: hiera\.explainDataProvider
+        branches:
+          - __type: hiera\.explainLocation
             branches:
-              - __type: hiera\.explainLocation
-                event: 5
-                key: interpolate_ca
-                location:
-                    __type: hiera\.path
-                    original: common\.yaml
-                    resolved: .*/testdata/hiera/common\.yaml
-                    exists: true
-            providerName: data_hash function 'yaml_data'
-          - __type: hiera\.explainDataProvider
-            branches:
-              - __type: hiera\.explainLocation
+              - __type: hiera\.explainInterpolate
                 branches:
-                  - __type: hiera\.explainInterpolate
+                  - __type: hiera\.explainSubLookup
                     branches:
-                      - __type: hiera\.explainSubLookup
-                        branches:
-                          - __type: hiera\.explainKeySegment
-                            event: 1
-                            key: a
-                            value: value of c\.a
-                            segment: a
-                        subKey: c\.a
-                    expression: This is %\{c\.a\}
-                event: 1
-                key: interpolate_ca
-                value: This is value of c\.a
-                location:
-                    __type: hiera\.path
-                    original: named_%\{data_file\}\.yaml
-                    resolved: .*/testdata/hiera/named_by_fact\.yaml
-                    exists: true
-            providerName: data_hash function 'yaml_data'
-        event: 6
-        value: This is value of c\.a
+                      - __type: hiera\.explainKeySegment
+                        event: 1
+                        key: a
+                        value: value of c\.a
+                        segment: a
+                    subKey: c\.a
+                expression: This is %\{c\.a\}
+            event: 1
+            key: interpolate_ca
+            value: This is value of c\.a
+            location:
+                __type: hiera\.path
+                original: named_%\{data_file\}\.yaml
+                resolved: .*/testdata/hiera/named_by_fact\.yaml
+                exists: true
+        providerName: data_hash function 'yaml_data'
+    event: 6
     key: interpolate_ca
+    value: This is value of c\.a
 \z`, filepath.ToSlash(string(result)))
 	})
 }
@@ -239,7 +235,6 @@ func TestLookup_explain_options(t *testing.T) {
         "convert_to": "Sensitive"
       \}
     \}
-Using merge options from "lookup_options" hash
 \z`, filepath.ToSlash(string(result)))
 	})
 }

@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/lyraproj/hiera/config"
+
 	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/dgo/loader"
 	"github.com/lyraproj/dgo/streamer"
@@ -110,10 +112,10 @@ func addHieraConfig(options dgo.Map) {
 	var fileName string
 	if r := options.Get(hieraapi.HieraConfigFileName); r != nil {
 		fileName = r.String()
-	} else if config, ok := os.LookupEnv("HIERA_CONFIGFILE"); ok {
-		fileName = config
+	} else if configFile, ok := os.LookupEnv("HIERA_CONFIGFILE"); ok {
+		fileName = configFile
 	} else {
-		fileName = `hiera.yaml`
+		fileName = config.FileName
 	}
 	options.Put(hieraapi.HieraConfig, filepath.Join(hieraRoot, fileName))
 }
@@ -133,12 +135,7 @@ func (s *session) Invocation(si interface{}, explainer hieraapi.Explainer) hiera
 	} else {
 		scope = &nestedScope{s.Scope(), hieraapi.ToMap(`invocation scope`, si)}
 	}
-	return &ivContext{
-		Session:    s,
-		nameStack:  []string{},
-		scope:      scope,
-		configPath: s.SessionOptions().Get(hieraapi.HieraConfig).String(),
-		explainer:  explainer}
+	return newInvocation(s, scope, explainer)
 }
 
 // KillPlugins will ensure that all plugins started by this executable are gracefully terminated if possible or

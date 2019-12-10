@@ -53,3 +53,11 @@ func (c *serverCtx) CachedEntries(consumer func(key string, value dgo.Value)) {
 func (c *serverCtx) Invocation() hieraapi.Invocation {
 	return c.invocation
 }
+
+func (c *serverCtx) ForData() hieraapi.ServerContext {
+	return &serverCtx{ProviderContext: c.ProviderContext, invocation: c.invocation.ForData()}
+}
+
+func (c *serverCtx) ForLookupOptions() hieraapi.ServerContext {
+	return &serverCtx{ProviderContext: c.ProviderContext, invocation: c.invocation.ForLookupOptions()}
+}

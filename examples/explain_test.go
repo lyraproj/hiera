@@ -32,21 +32,19 @@ func TestExplain(t *testing.T) {
 		}
 
 		expectedExplanation := filepath.FromSlash(`Searching for "ipl_c"
-  Merge strategy "first found strategy"
-    data_hash function 'yaml_data'
-      Path "testdata/data.yaml"
-        Original path: "data.yaml"
-        path not found
-    data_hash function 'yaml_data'
-      Path "testdata/data/common.yaml"
-        Original path: "common.yaml"
-        Interpolation on "x = %{c.x}, y = %{c.y}"
-          Sub key: "x"
-            Found key: "x" value: 10
-          Sub key: "y"
-            Found key: "y" value: 20
-        Found key: "ipl_c" value: "x = 10, y = 20"
-    Merged result: "x = 10, y = 20"`)
+  data_hash function 'yaml_data'
+    Path "testdata/data.yaml"
+      Original path: "data.yaml"
+      path not found
+  data_hash function 'yaml_data'
+    Path "testdata/data/common.yaml"
+      Original path: "common.yaml"
+      Interpolation on "x = %{c.x}, y = %{c.y}"
+        Sub key: "x"
+          Found key: "x" value: 10
+        Sub key: "y"
+          Found key: "y" value: 20
+      Found key: "ipl_c" value: "x = 10, y = 20"`)
 
 		actualExplanation := explainer.String()
 		if expectedExplanation != explainer.String() {
@@ -84,21 +82,19 @@ func TestExplain_withOptions(t *testing.T) {
         Original path: "common.yaml"
         No such key: "lookup_options"
 Searching for "ipl_c"
-  Merge strategy "first found strategy"
-    data_hash function 'yaml_data'
-      Path "testdata/data.yaml"
-        Original path: "data.yaml"
-        path not found
-    data_hash function 'yaml_data'
-      Path "testdata/data/common.yaml"
-        Original path: "common.yaml"
-        Interpolation on "x = %{c.x}, y = %{c.y}"
-          Sub key: "x"
-            Found key: "x" value: 10
-          Sub key: "y"
-            Found key: "y" value: 20
-        Found key: "ipl_c" value: "x = 10, y = 20"
-    Merged result: "x = 10, y = 20"`)
+  data_hash function 'yaml_data'
+    Path "testdata/data.yaml"
+      Original path: "data.yaml"
+      path not found
+  data_hash function 'yaml_data'
+    Path "testdata/data/common.yaml"
+      Original path: "common.yaml"
+      Interpolation on "x = %{c.x}, y = %{c.y}"
+        Sub key: "x"
+          Found key: "x" value: 10
+        Sub key: "y"
+          Found key: "y" value: 20
+      Found key: "ipl_c" value: "x = 10, y = 20"`)
 
 		actualExplanation := explainer.String()
 		if expectedExplanation != explainer.String() {

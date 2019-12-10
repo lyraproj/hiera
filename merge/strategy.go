@@ -109,18 +109,16 @@ func (d *firstFound) MergeLookup(vs interface{}, ic hieraapi.Invocation, f func(
 		return variantLookup(vsr.Index(0), f)
 	default:
 		var v dgo.Value
-		return ic.WithMerge(d, func() dgo.Value {
-			for idx := 0; idx < top; idx++ {
-				v = variantLookup(vsr.Index(idx), f)
-				if v != nil {
-					break
-				}
-			}
+		for idx := 0; idx < top; idx++ {
+			v = variantLookup(vsr.Index(idx), f)
 			if v != nil {
-				ic.ReportMergeResult(v)
+				break
 			}
-			return v
-		})
+		}
+		if v != nil {
+			ic.ReportMergeResult(v)
+		}
+		return v
 	}
 }
 
