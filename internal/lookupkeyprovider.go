@@ -25,7 +25,7 @@ func (dh *lookupKeyProvider) LookupKey(key hieraapi.Key, ic hieraapi.Invocation,
 	if location != nil {
 		opts = optionsWithLocation(opts, location.Resolved())
 	}
-	value := dh.providerFunction(ic)(ic.ServerContext(dh.hierarchyEntry, opts), root)
+	value := dh.providerFunction(ic)(ic.ServerContext(opts), root)
 	if value != nil {
 		ic.ReportFound(root, value)
 	} else {

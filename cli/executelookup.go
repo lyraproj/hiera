@@ -11,7 +11,7 @@ func ExecuteLookup(args ...string) (output []byte, err error) {
 	cmdOpts = hiera.CommandOptions{}
 	dflt = OptString{}
 	logLevel = ``
-	config = ``
+	configPath = ``
 	facts = nil
 
 	cmd := NewCommand()

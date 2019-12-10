@@ -1,3 +1,6 @@
 hello: yaml data says hello
 ipl_a: interpolate <%{a}>
 ipl_c: x = %{c.x}, y = %{c.y}
+
+one::merge:
+  a: "value of one::merge a"

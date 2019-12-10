@@ -62,6 +62,9 @@ const hieraTypeString = `{
 	default_hierarchy?:[]entry
 }`
 
+// FileName is the default file name for the Hiera configuration file.
+const FileName = `hiera.yaml`
+
 // New creates a new unresolved Config from the given path. If the path does not exist, the
 // default config is returned.
 func New(configPath string) hieraapi.Config {

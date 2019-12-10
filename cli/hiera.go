@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/lyraproj/dgo/vf"
+	"github.com/lyraproj/hiera/config"
 	"github.com/lyraproj/hiera/hiera"
 	"github.com/lyraproj/hiera/hieraapi"
 	"github.com/lyraproj/hiera/provider"
@@ -67,11 +68,11 @@ func (s *OptString) StringPointer() *string {
 }
 
 var (
-	cmdOpts  hiera.CommandOptions
-	dflt     OptString
-	logLevel string
-	config   string
-	facts    []string
+	cmdOpts    hiera.CommandOptions
+	dflt       OptString
+	logLevel   string
+	configPath string
+	facts      []string
 )
 
 // NewCommand creates the hiera Command
@@ -90,8 +91,8 @@ func NewCommand() *cobra.Command {
 		`error/warn/info/debug`)
 	flags.StringVar(&cmdOpts.Merge, `merge`, `first`,
 		`first/unique/hash/deep`)
-	flags.StringVar(&config, `config`, ``,
-		`path to the hiera config file. Overrides <current directory>/hiera.yaml`)
+	flags.StringVar(&configPath, `config`, ``,
+		`path to the hiera config file. Overrides <current directory>/`+config.FileName)
 	flags.Var(&dflt, `default`,
 		`a value to return if Hiera can't find a value in data`)
 	flags.StringVar(&cmdOpts.Type, `type`, ``,
@@ -120,8 +121,8 @@ func cmdLookup(cmd *cobra.Command, args []string) error {
 	cfgOpts.Put(
 		provider.LookupKeyFunctions, []sdk.LookupKey{provider.ConfigLookupKey, provider.Environment})
 
-	if config != `` {
-		cfgOpts.Put(hieraapi.HieraConfig, config)
+	if configPath != `` {
+		cfgOpts.Put(hieraapi.HieraConfig, configPath)
 	}
 	if len(facts) > 0 {
 		cmdOpts.VarPaths = append(cmdOpts.VarPaths, facts...)

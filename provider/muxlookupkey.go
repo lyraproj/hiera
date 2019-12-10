@@ -4,6 +4,7 @@ import (
 	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/dgo/vf"
 	"github.com/lyraproj/hiera/hieraapi"
+	"github.com/lyraproj/hiera/merge"
 	"github.com/lyraproj/hierasdk/hiera"
 )
 
@@ -18,20 +19,34 @@ const LookupKeyFunctions = `hiera::lookup::providers`
 // The intended use for this function is when a very simplistic way of configuring Hiera is desired that
 // requires no configuration files.
 func MuxLookupKey(pc hiera.ProviderContext, key string) dgo.Value {
-	iv := pc.(hieraapi.ServerContext).Invocation()
-	if pv := iv.SessionOptions().Get(LookupKeyFunctions); pv != nil {
-		if rpv, ok := pv.(dgo.Array); ok {
-			args := vf.MutableValues(pc, key)
-			found := rpv.Find(func(e dgo.Value) interface{} {
-				if lk, ok := e.(dgo.Function); ok {
-					return lk.Call(args)[0]
-				}
-				return nil
-			})
-			if found != nil {
-				return vf.Value(found)
-			}
-		}
+	sc, ok := pc.(hieraapi.ServerContext)
+	ic := sc.Invocation()
+	if !ok {
+		return nil
 	}
-	return nil
+	var rpv dgo.Array
+	if rpv, ok = ic.SessionOptions().Get(LookupKeyFunctions).(dgo.Array); !ok {
+		return nil
+	}
+	spv := rpv.AppendToSlice(make([]dgo.Value, 0, rpv.Len()))
+
+	luSc := sc.ForLookupOptions()
+	args := vf.MutableValues(luSc, key)
+	luFunc := func(pv interface{}) dgo.Value {
+		if lk, ok := pv.(dgo.Function); ok {
+			return lk.Call(args)[0]
+		}
+		return nil
+	}
+	luOpts, _ := merge.GetStrategy(`deep`, nil).MergeLookup(spv, luSc.Invocation(), luFunc).(dgo.Map)
+
+	sc = sc.ForData()
+	args.Set(0, sc)
+	ic = sc.Invocation()
+	return ic.WithLookup(hieraapi.NewKey(key), func() dgo.Value {
+		ic.SetMergeStrategy(sc.Option(`merge`), luOpts)
+		return ic.LookupAndConvertData(func() dgo.Value {
+			return ic.MergeStrategy().MergeLookup(spv, ic, luFunc)
+		})
+	})
 }
