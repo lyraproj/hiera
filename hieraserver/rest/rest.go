@@ -50,7 +50,7 @@ func newCommand() *cobra.Command {
 	flags.StringVar(&config, `config`, `/hiera/hiera.yaml`, `path to the hiera config file. Overrides /hiera/hiera.yaml`)
 	flags.StringArrayVar(&cmdOpts.VarPaths, `vars`, nil, `path to a JSON or YAML file that contains key-value mappings to become variables for this lookup`)
 	flags.StringArrayVar(&cmdOpts.Variables, `var`, nil, `variable as a key:value or key=value where value is a literal expressed in Puppet DSL`)
-	flags.StringVar(&addr, `addr`, `127.0.0.1`, `ip address to listen on`)
+	flags.StringVar(&addr, `addr`, ``, `ip address to listen on`)
 	flags.IntVar(&port, `port`, 8080, `port number to listen to`)
 	return cmd
 }
