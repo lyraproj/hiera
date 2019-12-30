@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -40,6 +41,7 @@ type plugin struct {
 	process   *os.Process
 	path      string
 	addr      string
+	network   string
 	functions map[string]interface{}
 }
 
@@ -230,6 +232,11 @@ func (p *plugin) initialize(meta map[string]interface{}) {
 	if !ok {
 		panic(fmt.Errorf(`plugin %s did not provide a valid address`, p.path))
 	}
+	p.network, ok = meta[`network`].(string)
+	if !ok {
+		log.Printf(`plugin %s did not provide a valid network, assuming tcp`, p.path)
+		p.network = `tcp`
+	}
 	p.functions, ok = meta[`functions`].(map[string]interface{})
 	if !ok {
 		panic(fmt.Errorf(`plugin %s did not provide a valid functions map`, p.path))
@@ -312,7 +319,14 @@ func makeOptions(sc hieraapi.ServerContext) url.Values {
 }
 
 func (p *plugin) callPlugin(luType, name string, params url.Values) px.Value {
-	ad, err := url.Parse(fmt.Sprintf(`http://%s/%s/%s`, p.addr, luType, name))
+	var ad *url.URL
+	var err error
+
+	if p.network == "unix" {
+		ad, err = url.Parse(fmt.Sprintf(`http://%s/%s/%s`, p.network, luType, name))
+	} else {
+		ad, err = url.Parse(fmt.Sprintf(`http://%s/%s/%s`, p.addr, luType, name))
+	}
 	if err != nil {
 		panic(err)
 	}
@@ -320,7 +334,14 @@ func (p *plugin) callPlugin(luType, name string, params url.Values) px.Value {
 		ad.RawQuery = params.Encode()
 	}
 	us := ad.String()
-	client := http.Client{Timeout: time.Duration(time.Second * 5)}
+	client := http.Client{
+		Timeout: time.Duration(time.Second * 5),
+		Transport: &http.Transport{
+			Dial: func(_, _ string) (net.Conn, error) {
+				return net.Dial(p.network, p.addr)
+			},
+		},
+	}
 	resp, err := client.Get(us)
 	if err != nil {
 		log.Error(err.Error())
