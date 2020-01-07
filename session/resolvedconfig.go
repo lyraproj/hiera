@@ -53,7 +53,7 @@ func (r *resolvedConfig) DefaultHierarchy() []hieraapi.DataProvider {
 
 func (r *resolvedConfig) LookupOptions(key hieraapi.Key) dgo.Map {
 	root := key.Root()
-	if r.lookupOptions != nil && r.moduleName == `` || strings.HasPrefix(root, r.moduleName+`::`) {
+	if r.lookupOptions != nil && (r.moduleName == `` || strings.HasPrefix(root, r.moduleName+`::`)) {
 		if m, ok := r.lookupOptions.Get(root).(dgo.Map); ok {
 			return m
 		}

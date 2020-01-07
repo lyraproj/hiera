@@ -166,7 +166,7 @@ branches:
       - __type: hiera\.explainDataProvider
         branches:
           - __type: hiera\.explainLocation
-            event: 5
+            event: not_found
             key: interpolate_ca
             location:
                 __type: hiera\.path
@@ -183,13 +183,13 @@ branches:
                   - __type: hiera\.explainSubLookup
                     branches:
                       - __type: hiera\.explainKeySegment
-                        event: 1
+                        event: found
                         key: a
                         value: value of c\.a
                         segment: a
                     subKey: c\.a
                 expression: This is %\{c\.a\}
-            event: 1
+            event: found
             key: interpolate_ca
             value: This is value of c\.a
             location:
@@ -198,7 +198,7 @@ branches:
                 resolved: .*/testdata/hiera/named_by_fact\.yaml
                 exists: true
         providerName: data_hash function 'yaml_data'
-    event: 6
+    event: result
     key: interpolate_ca
     value: This is value of c\.a
 \z`, filepath.ToSlash(string(result)))
