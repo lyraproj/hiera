@@ -33,7 +33,14 @@ func ModuleLookupKey(pc hiera.ProviderContext, key string) dgo.Value {
 		} else {
 			mp = loadModuleProvider(sc.Invocation(), mpm, modName)
 		}
-		return mp.Call(vf.MutableValues(pc, key))[0]
+		iv := sc.Invocation()
+		return iv.WithModule(modName, func() dgo.Value {
+			if mp == notFoundLookupKeyFunc {
+				iv.ReportModuleNotFound()
+				return nil
+			}
+			return mp.Call(vf.MutableValues(pc, key))[0]
+		})
 	}
 	return nil
 }
@@ -52,7 +59,7 @@ func moduleProviders(sc hieraapi.ServerContext) dgo.Map {
 var notFoundLookupKeyFunc = vf.Value(func(pc hiera.ProviderContext, key string) dgo.Value { return nil }).(dgo.Function)
 
 func loadModuleProvider(ic hieraapi.Invocation, mpm dgo.Map, moduleName string) dgo.Function {
-	mp := notFoundLookupKeyFunc
+	var mp dgo.Function = notFoundLookupKeyFunc
 	if modulePath, ok := ic.SessionOptions().Get(ModulePath).(dgo.String); ok {
 		for _, path := range filepath.SplitList(modulePath.GoString()) {
 			if loaded := loadModule(path, moduleName); loaded != nil {

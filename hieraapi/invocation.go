@@ -68,6 +68,9 @@ type Invocation interface {
 	// ReportMergeSource reports the source of the current merge (explicit options or lookup options)
 	ReportMergeSource(source string)
 
+	// ReportModuleNotFound reports that the current module was not found
+	ReportModuleNotFound()
+
 	// ReportNotFound reports that the given key was not found
 	ReportNotFound(key interface{})
 
@@ -97,6 +100,10 @@ type Invocation interface {
 	// WithMerge pushes the given strategy to the explanation stack and calls the producer, then pops the
 	// strategy again before returning.
 	WithMerge(ms MergeStrategy, f dgo.Producer) dgo.Value
+
+	// WithModule pushes the given module to the explanation stack and calls the producer, then pops the
+	// module again before returning.
+	WithModule(moduleName string, f dgo.Producer) dgo.Value
 
 	// WithSegment pushes the given segment to the explanation stack and calls the producer, then pops the
 	// segment again before returning.

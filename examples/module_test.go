@@ -41,5 +41,26 @@ func TestHelloWorld_globalAndModules(t *testing.T) {
 		if result == nil || `{"a":"value of one::merge a","b":"value of one::merge b"}` != result.String() {
 			t.Fatalf("unexpected result %v", result)
 		}
+
+		// A lookup of "three::a" will not find a value because the "three" directory does not contain a hiera.yaml
+		result = hiera.Lookup(hs.Invocation(nil, nil), `three::a`, nil, nil)
+		if result != nil {
+			t.Fatalf("unexpected result %v", result)
+		}
+	})
+}
+
+// TestHelloWorld_globalAndModules_nonExistentPath uses a path that doesn't appoint a directory.
+func TestHelloWorld_globalAndModules_nonExistentPath(t *testing.T) {
+	configOptions := vf.Map(
+		provider.LookupKeyFunctions, []sdk.LookupKey{provider.ConfigLookupKey, provider.ModuleLookupKey},
+		hieraapi.HieraRoot, `testdata`,
+		provider.ModulePath, filepath.Join(`testdata`, `nomodules`))
+
+	hiera.DoWithParent(context.Background(), provider.MuxLookupKey, configOptions, func(hs hieraapi.Session) {
+		result := hiera.Lookup(hs.Invocation(nil, nil), `one::a`, nil, nil)
+		if result != nil {
+			t.Fatalf("unexpected result %v", result)
+		}
 	})
 }
