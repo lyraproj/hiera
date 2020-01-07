@@ -70,18 +70,18 @@ func (r *pluginRegistry) stopAll() {
 }
 
 // attempts to extract unix socket variable form context
-func extractUnixSocketFromContext(c px.Context) string {
+func extractUnixSocketDirFromContext(c px.Context) string {
 	pl, ok := c.DefiningLoader().(*pluginLoader)
 	if !ok {
 		return ""
 	}
 
-	socket, ok := pl.he.OptionsMap()["unixSocket"]
+	socketDir, ok := pl.he.OptionsMap()["unixSocketDir"]
 	if !ok {
 		return ""
 	}
 
-	return socket.String()
+	return socketDir.String()
 }
 
 // startPlugin will start the plugin loaded from the given path and register the functions that it makes available
@@ -102,8 +102,8 @@ func (r *pluginRegistry) startPlugin(c px.Context, path string, loader px.Defini
 	cmd := exec.Command(path)
 	cmd.Env = []string{`HIERA_MAGIC_COOKIE=` + strconv.Itoa(hiera.MagicCookie)}
 
-	if socket := extractUnixSocketFromContext(c); socket != "" {
-		cmd.Env = append(cmd.Env, `HIERA_PLUGIN_SOCKET=`+socket)
+	if socketDir := extractUnixSocketDirFromContext(c); socketDir != "" {
+		cmd.Env = append(cmd.Env, `HIERA_PLUGIN_SOCKET_DIR=`+socketDir)
 	}
 
 	createPipe := func(name string, fn func() (io.ReadCloser, error)) io.ReadCloser {
