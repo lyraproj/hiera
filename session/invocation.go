@@ -292,76 +292,85 @@ func (ic *ivContext) ServerContext(options dgo.Map) hieraapi.ServerContext {
 	return &serverCtx{ProviderContext: hiera.ProviderContextFromMap(options), invocation: ic}
 }
 
-func (ic *ivContext) WithDataProvider(p hieraapi.DataProvider, actor dgo.Producer) dgo.Value {
+func (ic *ivContext) WithDataProvider(p hieraapi.DataProvider, producer dgo.Producer) dgo.Value {
 	if ic.explainer == nil {
-		return actor()
+		return producer()
 	}
 	defer ic.explainer.Pop()
 	ic.explainer.PushDataProvider(p)
-	return actor()
+	return producer()
 }
 
-func (ic *ivContext) WithInterpolation(expr string, actor dgo.Producer) dgo.Value {
+func (ic *ivContext) WithInterpolation(expr string, producer dgo.Producer) dgo.Value {
 	if ic.explainer == nil {
-		return actor()
+		return producer()
 	}
 	defer ic.explainer.Pop()
 	ic.explainer.PushInterpolation(expr)
-	return actor()
+	return producer()
 }
 
-func (ic *ivContext) WithInvalidKey(key interface{}, actor dgo.Producer) dgo.Value {
+func (ic *ivContext) WithInvalidKey(key interface{}, producer dgo.Producer) dgo.Value {
 	if ic.explainer == nil {
-		return actor()
+		return producer()
 	}
 	defer ic.explainer.Pop()
 	ic.explainer.PushInvalidKey(key)
-	return actor()
+	return producer()
 }
 
-func (ic *ivContext) WithLocation(loc hieraapi.Location, actor dgo.Producer) dgo.Value {
+func (ic *ivContext) WithLocation(loc hieraapi.Location, producer dgo.Producer) dgo.Value {
 	if ic.explainer == nil {
-		return actor()
+		return producer()
 	}
 	defer ic.explainer.Pop()
 	ic.explainer.PushLocation(loc)
-	return actor()
+	return producer()
 }
 
-func (ic *ivContext) WithLookup(key hieraapi.Key, actor dgo.Producer) dgo.Value {
+func (ic *ivContext) WithLookup(key hieraapi.Key, producer dgo.Producer) dgo.Value {
 	if ic.explainer == nil {
-		return actor()
+		return producer()
 	}
 	defer ic.explainer.Pop()
 	ic.explainer.PushLookup(key)
-	return actor()
+	return producer()
 }
 
-func (ic *ivContext) WithMerge(ms hieraapi.MergeStrategy, actor dgo.Producer) dgo.Value {
+func (ic *ivContext) WithMerge(ms hieraapi.MergeStrategy, producer dgo.Producer) dgo.Value {
 	if ic.explainer == nil {
-		return actor()
+		return producer()
 	}
 	defer ic.explainer.Pop()
 	ic.explainer.PushMerge(ms)
-	return actor()
+	return producer()
 }
 
-func (ic *ivContext) WithSegment(seg interface{}, actor dgo.Producer) dgo.Value {
+func (ic *ivContext) WithModule(moduleName string, producer dgo.Producer) dgo.Value {
 	if ic.explainer == nil {
-		return actor()
+		return producer()
+	}
+	defer ic.explainer.Pop()
+	ic.explainer.PushModule(moduleName)
+	return producer()
+}
+
+func (ic *ivContext) WithSegment(seg interface{}, producer dgo.Producer) dgo.Value {
+	if ic.explainer == nil {
+		return producer()
 	}
 	defer ic.explainer.Pop()
 	ic.explainer.PushSegment(seg)
-	return actor()
+	return producer()
 }
 
-func (ic *ivContext) WithSubLookup(key hieraapi.Key, actor dgo.Producer) dgo.Value {
+func (ic *ivContext) WithSubLookup(key hieraapi.Key, producer dgo.Producer) dgo.Value {
 	if ic.explainer == nil {
-		return actor()
+		return producer()
 	}
 	defer ic.explainer.Pop()
 	ic.explainer.PushSubLookup(key)
-	return actor()
+	return producer()
 }
 
 func (ic *ivContext) ForConfig() hieraapi.Invocation {
@@ -426,6 +435,12 @@ func (ic *ivContext) ReportMergeResult(value dgo.Value) {
 func (ic *ivContext) ReportMergeSource(source string) {
 	if ic.explainer != nil {
 		ic.explainer.AcceptMergeSource(source)
+	}
+}
+
+func (ic *ivContext) ReportModuleNotFound() {
+	if ic.explainer != nil {
+		ic.explainer.AcceptModuleNotFound()
 	}
 }
 

@@ -26,6 +26,9 @@ type Explainer interface {
 	// AcceptMergeSource accepts information that about as source for merge options such as the lookup_options hash
 	AcceptMergeSource(mergeSource string)
 
+	// AcceptModuleNotFound accepts that the current module was not found
+	AcceptModuleNotFound()
+
 	// AcceptNotFound accepts information that a key was not found
 	AcceptNotFound(key interface{})
 
@@ -46,6 +49,8 @@ type Explainer interface {
 	PushLookup(key Key)
 
 	PushMerge(mrg MergeStrategy)
+
+	PushModule(moduleName string)
 
 	PushSegment(seg interface{})
 

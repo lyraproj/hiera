@@ -14,16 +14,21 @@ import (
 	"github.com/lyraproj/hiera/merge"
 )
 
-type event int
+type event string
 
 const (
-	found = event(iota) + 1
-	foundInDefaults
-	foundInOverrides
-	locationNotFound
-	notFound
-	result
+	found            = `found`
+	foundInDefaults  = `found_in_defaults`
+	foundInOverrides = `found_in_overrides`
+	locationNotFound = `location_not_found`
+	moduleNotFound   = `module_not_found`
+	notFound         = `not_found`
+	result           = `result`
 )
+
+func (e event) String() (s string) {
+	return string(e)
+}
 
 type explainNode interface {
 	dgo.Value
@@ -39,6 +44,7 @@ type explainNode interface {
 	initialize(dgo.Map)
 	key() string
 	locationNotFound()
+	moduleNotFound()
 	notFound(k interface{})
 	parent() explainNode
 	result(result dgo.Value)
@@ -94,8 +100,8 @@ func initialize(en explainNode, ih dgo.Map) {
 		})
 		en.setTexts(ts)
 	}
-	if v, ok := ih.Get(`event`).(dgo.Integer); ok {
-		en.setEvent(event(v.GoInt()))
+	if v, ok := ih.Get(`event`).(dgo.String); ok {
+		en.setEvent(event(v.GoString()))
 	}
 	en.setValue(ih.Get(`value`))
 	if v, ok := ih.Get(`key`).(dgo.String); ok {
@@ -108,8 +114,8 @@ func initMap(en explainNode) dgo.Map {
 	if bs := en.branches(); len(bs) > 0 {
 		m.Put(`branches`, vf.Array(bs))
 	}
-	if e := en.event(); e != event(0) {
-		m.Put(`event`, int(e))
+	if e := en.event(); e != event(``) {
+		m.Put(`event`, e.String())
 	}
 	if k := en.key(); k != `` {
 		m.Put(`key`, k)
@@ -221,6 +227,10 @@ func (en *explainTreeNode) key() string {
 
 func (en *explainTreeNode) locationNotFound() {
 	en.e = locationNotFound
+}
+
+func (en *explainTreeNode) moduleNotFound() {
+	en.e = moduleNotFound
 }
 
 func (en *explainTreeNode) notFound(k interface{}) {
@@ -672,6 +682,57 @@ func (en *explainMergeSource) String() string {
 	return util.ToIndentedString(en)
 }
 
+type explainModule struct {
+	explainTreeNode
+	moduleName string
+}
+
+var explainModuleType = tf.NewNamed(
+	`hiera.explainModule`,
+	func(value dgo.Value) dgo.Value { return createFunc(value, &explainModule{}) },
+	extractFunc,
+	reflect.TypeOf(&explainModule{}),
+	explainNodeRType,
+	nil)
+
+func (en *explainModule) Type() dgo.Type {
+	return tf.ExactNamed(explainModuleType, en)
+}
+
+func (en *explainModule) initialize(ih dgo.Map) {
+	initialize(en, ih)
+	if ms, ok := ih.Get(`moduleName`).(dgo.String); ok {
+		en.moduleName = ms.GoString()
+	}
+}
+
+func (en *explainModule) initMap() dgo.Map {
+	m := initMap(en)
+	m.Put(`moduleName`, en.moduleName)
+	return m
+}
+
+func (en *explainModule) Equals(value interface{}) bool {
+	return en == value
+}
+
+func (en *explainModule) AppendTo(w dgo.Indenter) {
+	switch en.e {
+	case moduleNotFound:
+		w.NewLine()
+		w.Append(`Module "`)
+		w.Append(en.moduleName)
+		w.Append(`" not found`)
+	default:
+		en.dumpBranches(w)
+		en.dumpOutcome(w)
+	}
+}
+
+func (en *explainModule) String() string {
+	return util.ToIndentedString(en)
+}
+
 type explainSubLookup struct {
 	explainTreeNode
 	subKey hieraapi.Key
@@ -808,6 +869,10 @@ func (ex *explainer) AcceptMergeSource(mergeSource string) {
 	ex.current.appendBranch(en)
 }
 
+func (ex *explainer) AcceptModuleNotFound() {
+	ex.current.moduleNotFound()
+}
+
 func (ex *explainer) AcceptNotFound(key interface{}) {
 	ex.current.notFound(key)
 }
@@ -820,62 +885,46 @@ func (ex *explainer) AcceptText(text string) {
 	ex.current.appendText(text)
 }
 
-func (ex *explainer) PushDataProvider(pvd hieraapi.DataProvider) {
-	en := &explainDataProvider{providerName: pvd.FullName()}
-	en.p = ex.current
+func (ex *explainer) push(en explainNode) {
+	en.setParent(ex.current)
 	ex.current.appendBranch(en)
 	ex.current = en
+}
+
+func (ex *explainer) PushDataProvider(pvd hieraapi.DataProvider) {
+	ex.push(&explainDataProvider{providerName: pvd.FullName()})
 }
 
 func (ex *explainer) PushInterpolation(expr string) {
-	en := &explainInterpolate{expression: expr}
-	en.p = ex.current
-	ex.current.appendBranch(en)
-	ex.current = en
+	ex.push(&explainInterpolate{expression: expr})
 }
 
 func (ex *explainer) PushInvalidKey(key interface{}) {
-	en := &explainInvalidKey{}
-	en.k = keyToString(key)
-	en.p = ex.current
-	ex.current.appendBranch(en)
-	ex.current = en
+	ex.push(&explainInvalidKey{explainTreeNode{k: keyToString(key)}})
 }
 
 func (ex *explainer) PushLocation(loc hieraapi.Location) {
-	en := &explainLocation{location: loc}
-	en.p = ex.current
-	ex.current.appendBranch(en)
-	ex.current = en
+	ex.push(&explainLocation{location: loc})
 }
 
 func (ex *explainer) PushLookup(key hieraapi.Key) {
-	en := &explainLookup{}
-	en.p = ex.current
-	en.k = keyToString(key)
-	ex.current.appendBranch(en)
-	ex.current = en
+	ex.push(&explainLookup{explainTreeNode{k: keyToString(key)}})
 }
 
 func (ex *explainer) PushMerge(mrg hieraapi.MergeStrategy) {
-	en := &explainMerge{merge: mrg}
-	en.p = ex.current
-	ex.current.appendBranch(en)
-	ex.current = en
+	ex.push(&explainMerge{merge: mrg})
+}
+
+func (ex *explainer) PushModule(mn string) {
+	ex.push(&explainModule{moduleName: mn})
 }
 
 func (ex *explainer) PushSegment(seg interface{}) {
-	en := &explainKeySegment{segment: seg}
-	en.p = ex.current
-	ex.current.appendBranch(en)
-	ex.current = en
+	ex.push(&explainKeySegment{segment: seg})
 }
 
 func (ex *explainer) PushSubLookup(key hieraapi.Key) {
-	en := &explainSubLookup{subKey: key}
-	en.p = ex.current
-	ex.current.appendBranch(en)
-	ex.current = en
+	ex.push(&explainSubLookup{subKey: key})
 }
 
 func (ex *explainer) Pop() {
