@@ -279,7 +279,7 @@ func (s *session) createPluginLoader(p dgo.Loader) dgo.Loader {
 		} else {
 			return nil
 		}
-		return allPlugins.startPlugin(an[ix+7:])
+		return allPlugins.startPlugin(s.SessionOptions(), an[ix+7:])
 	}
 
 	var pluginNamespace func(l dgo.Loader, name string) dgo.Loader
