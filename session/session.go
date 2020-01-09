@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/lyraproj/dgo/streamer/pcore"
+
 	"github.com/lyraproj/hiera/config"
 
 	"github.com/lyraproj/dgo/dgo"
@@ -65,7 +67,7 @@ func New(parent context.Context, topProvider hiera.LookupKey, oif interface{}, l
 		case "dgo":
 			dialect = streamer.DgoDialect()
 		case "pcore":
-			panic(errors.New(`pcore dialect is not yet implemented`))
+			dialect = pcore.Dialect()
 		default:
 			panic(fmt.Errorf(`unknown dialect '%s'`, ds))
 		}
