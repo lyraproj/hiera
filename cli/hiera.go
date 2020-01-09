@@ -72,6 +72,7 @@ var (
 	dflt       OptString
 	logLevel   string
 	configPath string
+	dialect    string
 	facts      []string
 )
 
@@ -97,6 +98,8 @@ func NewCommand() *cobra.Command {
 		`a value to return if Hiera can't find a value in data`)
 	flags.StringVar(&cmdOpts.Type, `type`, ``,
 		`assert that the value has the specified type`)
+	flags.StringVar(&dialect, `dialect`, `pcore`,
+		`dialect to use for rich data serialization and parsing of types pcore|dgo'`)
 	flags.StringVar(&cmdOpts.RenderAs, `render-as`, ``,
 		`s/json/yaml/binary: Specify the output format of the results; s means plain text`)
 	flags.BoolVar(&cmdOpts.ExplainData, `explain`, false,
@@ -118,6 +121,7 @@ func cmdLookup(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 	cmdOpts.Default = dflt.StringPointer()
 	cfgOpts := vf.MutableMap()
+	cfgOpts.Put(hieraapi.HieraDialect, dialect)
 	cfgOpts.Put(
 		provider.LookupKeyFunctions, []sdk.LookupKey{provider.ConfigLookupKey, provider.Environment})
 
