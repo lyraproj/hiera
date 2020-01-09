@@ -457,10 +457,10 @@ func extractOptFromContext(c px.Context, key string) string {
 		return ""
 	}
 
-	socketDir, ok := pl.he.OptionsMap()[key]
+	opt, ok := pl.he.OptionsMap()[key]
 	if !ok {
 		return ""
 	}
 
-	return socketDir.String()
+	return opt.String()
 }
