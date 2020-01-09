@@ -14,13 +14,13 @@ import (
 )
 
 func TestLookup_defaultInt(t *testing.T) {
-	result, err := cli.ExecuteLookup(`--default`, `23`, `--type`, `int`, `foo`)
+	result, err := cli.ExecuteLookup(`--default`, `23`, `--dialect`, `dgo`, `--type`, `int`, `foo`)
 	require.NoError(t, err)
 	require.Equal(t, "23\n", string(result))
 }
 
 func TestLookup_defaultString(t *testing.T) {
-	result, err := cli.ExecuteLookup(`--default`, `23`, `--type`, `string`, `foo`)
+	result, err := cli.ExecuteLookup(`--default`, `23`, `--type`, `String`, `foo`)
 	require.NoError(t, err)
 	require.Equal(t, "\"23\"\n", string(result))
 }
@@ -32,13 +32,13 @@ func TestLookup_defaultEmptyString(t *testing.T) {
 }
 
 func TestLookup_defaultHash(t *testing.T) {
-	result, err := cli.ExecuteLookup(`--default`, `{ x: "a", y: 9 }`, `--type`, `map[string](string|int)`, `foo`)
+	result, err := cli.ExecuteLookup(`--default`, `{ x: "a", y: 9 }`, `--dialect`, `dgo`, `--type`, `map[string](string|int)`, `foo`)
 	require.NoError(t, err)
 	require.Equal(t, "x: a\ny: 9\n", string(result))
 }
 
 func TestLookup_defaultHash_json(t *testing.T) {
-	result, err := cli.ExecuteLookup(`--default`, `{ x: "a", y: 9 }`, `--type`, `map[string](string|int)`, `--render-as`, `json`, `foo`)
+	result, err := cli.ExecuteLookup(`--default`, `{ x: "a", y: 9 }`, `--dialect`, `dgo`, `--type`, `map[string](string|int)`, `--render-as`, `json`, `foo`)
 	require.NoError(t, err)
 	require.Equal(t, "{\"x\":\"a\",\"y\":9}\n", string(result))
 }
@@ -56,7 +56,7 @@ func TestLookup_defaultString_binary(t *testing.T) {
 }
 
 func TestLookup_defaultArray_binary(t *testing.T) {
-	result, err := cli.ExecuteLookup(`--default`, `{12, 28, 37, 15}`, `--type`, `[]int`, `--render-as`, `binary`, `foo`)
+	result, err := cli.ExecuteLookup(`--default`, `{12, 28, 37, 15}`, `--dialect`, `dgo`, `--type`, `[]int`, `--render-as`, `binary`, `foo`)
 	require.NoError(t, err)
 	require.Equal(t, []byte{12, 28, 37, 15}, result)
 }
@@ -87,7 +87,7 @@ func TestLookup_vars_interpolated_config(t *testing.T) {
 
 func TestLookup_var_interpolated_config(t *testing.T) {
 	inTestdata(func() {
-		result, err := cli.ExecuteLookup(`--var`, `c={a:"the option value"}`, `--var`, `data_file: by_fact`, `interpolate_ca`)
+		result, err := cli.ExecuteLookup(`--dialect`, `dgo`, `--var`, `c={a:"the option value"}`, `--var`, `data_file: by_fact`, `interpolate_ca`)
 		require.NoError(t, err)
 		require.Equal(t, "This is the option value\n", string(result))
 	})
@@ -130,6 +130,19 @@ func TestLookup_emptySubMapInArray(t *testing.T) {
 		result, err := cli.ExecuteLookup(`--config`, `empty_map.yaml`, `--render-as`, `json`, `empty_sub_map_in_array`)
 		require.NoError(t, err)
 		require.Equal(t, "[{}]\n", string(result))
+	})
+}
+
+func TestLookup_sensitive(t *testing.T) {
+	inTestdata(func() {
+		result, err := cli.ExecuteLookup(`sense`, `--render-as`, `s`)
+		require.NoError(t, err)
+		require.Equal(t, "sensitive [value redacted]\n", string(result))
+
+		// Default rendering is yaml and the output is rich data.
+		result, err = cli.ExecuteLookup(`sense`)
+		require.NoError(t, err)
+		require.Equal(t, "__type: sensitive\n__value: Don't reveal this\n", string(result))
 	})
 }
 
@@ -325,15 +338,15 @@ func TestDataHash_plugin(t *testing.T) {
 	})
 }
 
-func TestDataHash_refuseToDie(t *testing.T) {
-	ensureTestPlugin(t)
-	inTestdata(func() {
-		_, err := cli.ExecuteLookup(`--config`, `refuse_to_die_plugin.yaml`, `a`)
-		if assert.Error(t, err) {
-			require.Regexp(t, `net/http: request canceled`, err.Error())
-		}
-	})
-}
+//func TestDataHash_refuseToDie(t *testing.T) {
+//	ensureTestPlugin(t)
+//	inTestdata(func() {
+//		_, err := cli.ExecuteLookup(`--config`, `refuse_to_die_plugin.yaml`, `a`)
+//		if assert.Error(t, err) {
+//			require.Regexp(t, `net/http: request canceled`, err.Error())
+//		}
+//	})
+//}
 
 func TestDataHash_panic(t *testing.T) {
 	ensureTestPlugin(t)
