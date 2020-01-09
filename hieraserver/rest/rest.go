@@ -158,7 +158,7 @@ func loadCertPool(pemFile string) (*x509.CertPool, error) {
 	certPool := x509.NewCertPool()
 	ok := certPool.AppendCertsFromPEM(data)
 	if !ok {
-		return nil, fmt.Errorf("Failed to load certificate %q", pemFile)
+		return nil, fmt.Errorf("failed to load certificate %q", pemFile)
 	}
 
 	return certPool, nil
