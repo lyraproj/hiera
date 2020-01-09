@@ -23,7 +23,6 @@ import (
 	"github.com/lyraproj/dgo/streamer"
 	"github.com/lyraproj/dgo/vf"
 	"github.com/lyraproj/hierasdk/hiera"
-	"github.com/lyraproj/pcore/px"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -106,40 +105,38 @@ func ignoreOut(cmdOut io.Reader, wGroup *sync.WaitGroup) {
 	}
 }
 
-var DefaultUnixSocketDir = "/tmp"
+var defaultUnixSocketDir = "/tmp"
 
 // getUnixSocketDir resolves value of unixSocketDir
-func getUnixSocketDir(c px.Context) string {
-	v := extractOptFromContext(c, "unixSocketDir")
-
-	if v == "" {
-		v = os.Getenv(`TMPDIR`)
-		if v == "" {
-			v = DefaultUnixSocketDir
-		}
+func getUnixSocketDir(opts dgo.Map) string {
+	if v, ok := opts.Get("unixSocketDir").(dgo.String); ok {
+		return v.GoString()
 	}
-	return v
-}
-
-var DefaultPluginTransport = "unix"
-
-// getPluginTransport resolves value of pluginTransport
-func getPluginTransport(c px.Context) string {
-	v := extractOptFromContext(c, "pluginTransport")
-
-	switch v {
-	case
-		"unix",
-		"tcp":
+	if v := os.Getenv("TMPDIR"); v != "" {
 		return v
 	}
+	return defaultUnixSocketDir
+}
 
-	return DefaultPluginTransport
+var defaultPluginTransport = "unix"
+
+// getPluginTransport resolves value of pluginTransport
+func getPluginTransport(opts dgo.Map) string {
+	if v, ok := opts.Get("pluginTransport").(dgo.String); ok {
+		s := v.GoString()
+		switch s {
+		case
+			"unix",
+			"tcp":
+			return s
+		}
+	}
+	return defaultPluginTransport
 }
 
 // startPlugin will start the plugin loaded from the given path and register the functions that it makes available
 // with the given loader.
-func (r *pluginRegistry) startPlugin(path string) dgo.Value {
+func (r *pluginRegistry) startPlugin(opts dgo.Map, path string) dgo.Value {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
@@ -151,8 +148,8 @@ func (r *pluginRegistry) startPlugin(path string) dgo.Value {
 
 	cmd := exec.Command(path)
 	cmd.Env = []string{`HIERA_MAGIC_COOKIE=` + strconv.Itoa(hiera.MagicCookie)}
-	cmd.Env = append(cmd.Env, `HIERA_PLUGIN_SOCKET_DIR=`+getUnixSocketDir(c))
-	cmd.Env = append(cmd.Env, `HIERA_PLUGIN_TRANSPORT=`+getPluginTransport(c))
+	cmd.Env = append(cmd.Env, `HIERA_PLUGIN_SOCKET_DIR=`+getUnixSocketDir(opts))
+	cmd.Env = append(cmd.Env, `HIERA_PLUGIN_TRANSPORT=`+getPluginTransport(opts))
 
 	cmdErr := createPipe(path, `stderr`, cmd.StderrPipe)
 	cmdOut := createPipe(path, `stdout`, cmd.StdoutPipe)
@@ -316,7 +313,7 @@ func makeOptions(pc hiera.ProviderContext) url.Values {
 	return params
 }
 
-func (p *plugin) callPlugin(luType, name string, params url.Values) px.Value {
+func (p *plugin) callPlugin(luType, name string, params url.Values) dgo.Value {
 	var ad *url.URL
 	var err error
 
@@ -333,7 +330,7 @@ func (p *plugin) callPlugin(luType, name string, params url.Values) px.Value {
 	}
 	us := ad.String()
 	client := http.Client{
-		Timeout: time.Duration(time.Second * 5),
+		Timeout: time.Second * 5,
 		Transport: &http.Transport{
 			Dial: func(_, _ string) (net.Conn, error) {
 				return net.Dial(p.network, p.addr)
@@ -365,18 +362,4 @@ func (p *plugin) callPlugin(luType, name string, params url.Values) px.Value {
 		}
 	}
 	panic(err)
-}
-
-func extractOptFromContext(c px.Context, key string) string {
-	pl, ok := c.DefiningLoader().(*pluginLoader)
-	if !ok {
-		return ""
-	}
-
-	opt, ok := pl.he.OptionsMap()[key]
-	if !ok {
-		return ""
-	}
-
-	return opt.String()
 }

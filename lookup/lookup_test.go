@@ -338,15 +338,15 @@ func TestDataHash_plugin(t *testing.T) {
 	})
 }
 
-//func TestDataHash_refuseToDie(t *testing.T) {
-//	ensureTestPlugin(t)
-//	inTestdata(func() {
-//		_, err := cli.ExecuteLookup(`--config`, `refuse_to_die_plugin.yaml`, `a`)
-//		if assert.Error(t, err) {
-//			require.Regexp(t, `net/http: request canceled`, err.Error())
-//		}
-//	})
-//}
+func TestDataHash_refuseToDie(t *testing.T) {
+	ensureTestPlugin(t)
+	inTestdata(func() {
+		_, err := cli.ExecuteLookup(`--config`, `refuse_to_die_plugin.yaml`, `a`)
+		if assert.Error(t, err) {
+			require.Regexp(t, `net/http: request canceled`, err.Error())
+		}
+	})
+}
 
 func TestDataHash_panic(t *testing.T) {
 	ensureTestPlugin(t)
