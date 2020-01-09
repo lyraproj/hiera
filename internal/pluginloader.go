@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -40,6 +41,7 @@ type plugin struct {
 	process   *os.Process
 	path      string
 	addr      string
+	network   string
 	functions map[string]interface{}
 }
 
@@ -67,6 +69,35 @@ func (r *pluginRegistry) stopAll() {
 	r.plugins = nil
 }
 
+var DefaultUnixSocketDir = "/tmp"
+
+// getUnixSocketDir resolves value of unixSocketDir
+func getUnixSocketDir(c px.Context) string {
+	v := extractOptFromContext(c, "unixSocketDir")
+
+	if v == "" {
+		return DefaultUnixSocketDir
+	}
+
+	return v
+}
+
+var DefaultPluginTransport = "unix"
+
+// getPluginTransport resolves value of pluginTransport
+func getPluginTransport(c px.Context) string {
+	v := extractOptFromContext(c, "pluginTransport")
+
+	switch v {
+	case
+		"unix",
+		"tcp":
+		return v
+	}
+
+	return DefaultPluginTransport
+}
+
 // startPlugin will start the plugin loaded from the given path and register the functions that it makes available
 // with the given loader.
 func (r *pluginRegistry) startPlugin(c px.Context, path string, loader px.DefiningLoader) {
@@ -84,6 +115,8 @@ func (r *pluginRegistry) startPlugin(c px.Context, path string, loader px.Defini
 
 	cmd := exec.Command(path)
 	cmd.Env = []string{`HIERA_MAGIC_COOKIE=` + strconv.Itoa(hiera.MagicCookie)}
+	cmd.Env = append(cmd.Env, `HIERA_PLUGIN_SOCKET_DIR=`+getUnixSocketDir(c))
+	cmd.Env = append(cmd.Env, `HIERA_PLUGIN_TRANSPORT=`+getPluginTransport(c))
 
 	createPipe := func(name string, fn func() (io.ReadCloser, error)) io.ReadCloser {
 		pipe, err := fn()
@@ -230,6 +263,11 @@ func (p *plugin) initialize(meta map[string]interface{}) {
 	if !ok {
 		panic(fmt.Errorf(`plugin %s did not provide a valid address`, p.path))
 	}
+	p.network, ok = meta[`network`].(string)
+	if !ok {
+		log.Printf(`plugin %s did not provide a valid network, assuming tcp`, p.path)
+		p.network = `tcp`
+	}
 	p.functions, ok = meta[`functions`].(map[string]interface{})
 	if !ok {
 		panic(fmt.Errorf(`plugin %s did not provide a valid functions map`, p.path))
@@ -312,7 +350,14 @@ func makeOptions(sc hieraapi.ServerContext) url.Values {
 }
 
 func (p *plugin) callPlugin(luType, name string, params url.Values) px.Value {
-	ad, err := url.Parse(fmt.Sprintf(`http://%s/%s/%s`, p.addr, luType, name))
+	var ad *url.URL
+	var err error
+
+	if p.network == "unix" {
+		ad, err = url.Parse(fmt.Sprintf(`http://%s/%s/%s`, p.network, luType, name))
+	} else {
+		ad, err = url.Parse(fmt.Sprintf(`http://%s/%s/%s`, p.addr, luType, name))
+	}
 	if err != nil {
 		panic(err)
 	}
@@ -320,7 +365,14 @@ func (p *plugin) callPlugin(luType, name string, params url.Values) px.Value {
 		ad.RawQuery = params.Encode()
 	}
 	us := ad.String()
-	client := http.Client{Timeout: time.Duration(time.Second * 5)}
+	client := http.Client{
+		Timeout: time.Duration(time.Second * 5),
+		Transport: &http.Transport{
+			Dial: func(_, _ string) (net.Conn, error) {
+				return net.Dial(p.network, p.addr)
+			},
+		},
+	}
 	resp, err := client.Get(us)
 	if err != nil {
 		log.Error(err.Error())
@@ -397,4 +449,18 @@ func loadPluginFunction(c px.Context, n string, he hieraapi.Entry) (fn px.Functi
 		}
 	})
 	return
+}
+
+func extractOptFromContext(c px.Context, key string) string {
+	pl, ok := c.DefiningLoader().(*pluginLoader)
+	if !ok {
+		return ""
+	}
+
+	opt, ok := pl.he.OptionsMap()[key]
+	if !ok {
+		return ""
+	}
+
+	return opt.String()
 }
