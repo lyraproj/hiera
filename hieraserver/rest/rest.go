@@ -87,9 +87,7 @@ func startServer(cmd *cobra.Command, _ []string) {
 			Handler: router,
 		}
 
-		var err error
-		var tlsConfig *tls.Config
-		tlsConfig, err = makeTLSconfig()
+		tlsConfig, err := makeTLSconfig()
 		if err != nil {
 			panic(err)
 		}
@@ -161,7 +159,7 @@ func loadCertPool(pemFile string) (*x509.CertPool, error) {
 	certPool := x509.NewCertPool()
 	ok := certPool.AppendCertsFromPEM(data)
 	if !ok {
-		return nil, fmt.Errorf("Failed to load certificate %s", pemFile)
+		return nil, fmt.Errorf("Failed to load certificate %q", pemFile)
 	}
 
 	return certPool, nil
