@@ -3,8 +3,11 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"regexp"
@@ -29,11 +32,15 @@ func main() {
 }
 
 var (
-	logLevel string
-	addr     string
-	config   string
-	cmdOpts  hiera.CommandOptions
-	port     int
+	logLevel         string
+	addr             string
+	config           string
+	sslKey           string
+	sslCert          string
+	clientCA         string
+	clientCertVerify bool
+	cmdOpts          hiera.CommandOptions
+	port             int
 )
 
 func newCommand() *cobra.Command {
@@ -51,6 +58,10 @@ func newCommand() *cobra.Command {
 	flags.StringArrayVar(&cmdOpts.VarPaths, `vars`, nil, `path to a JSON or YAML file that contains key-value mappings to become variables for this lookup`)
 	flags.StringArrayVar(&cmdOpts.Variables, `var`, nil, `variable as a key:value or key=value where value is a literal expressed in Puppet DSL`)
 	flags.StringVar(&addr, `addr`, ``, `ip address to listen on`)
+	flags.StringVar(&sslKey, `ssl-key`, ``, `ssl private key`)
+	flags.StringVar(&sslCert, `ssl-cert`, ``, `ssl certificate`)
+	flags.StringVar(&clientCA, `ca`, ``, `certificate authority to use to verify clients`)
+	flags.BoolVar(&clientCertVerify, `clientCertVerify`, false, `verify client certificate`)
 	flags.IntVar(&port, `port`, 8080, `port number to listen to`)
 	return cmd
 }
@@ -70,7 +81,23 @@ func startServer(cmd *cobra.Command, _ []string) {
 	hiera.DoWithParent(context.Background(), provider.MuxLookupKey, configOptions, func(ctx px.Context) {
 		ctx.Set(`logLevel`, px.LogLevelFromString(logLevel))
 		router := CreateRouter(ctx)
-		err := http.ListenAndServe(addr+":"+strconv.Itoa(port), router)
+
+		server := &http.Server{
+			Addr:    addr + ":" + strconv.Itoa(port),
+			Handler: router,
+		}
+
+		tlsConfig, err := makeTLSconfig()
+		if err != nil {
+			panic(err)
+		}
+
+		if tlsConfig == nil {
+			err = server.ListenAndServe()
+		} else {
+			server.TLSConfig = tlsConfig
+			err = server.ListenAndServeTLS("", "")
+		}
 		if err != nil {
 			panic(err)
 		}
@@ -121,4 +148,48 @@ func CreateRouter(ctx px.Context) http.Handler {
 	router := http.NewServeMux()
 	router.HandleFunc("/lookup/", doLookup)
 	return router
+}
+
+func loadCertPool(pemFile string) (*x509.CertPool, error) {
+	data, err := ioutil.ReadFile(pemFile)
+	if err != nil {
+		return nil, err
+	}
+
+	certPool := x509.NewCertPool()
+	ok := certPool.AppendCertsFromPEM(data)
+	if !ok {
+		return nil, fmt.Errorf("Failed to load certificate %q", pemFile)
+	}
+
+	return certPool, nil
+}
+
+func makeTLSconfig() (*tls.Config, error) {
+	tlsConfig := new(tls.Config)
+	if sslCert == "" || sslKey == "" {
+		return tlsConfig, nil
+	}
+
+	cert, err := tls.LoadX509KeyPair(sslCert, sslKey)
+	if err != nil {
+		return tlsConfig, err
+	}
+
+	tlsConfig.Certificates = []tls.Certificate{cert}
+
+	if clientCertVerify {
+		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
+	}
+
+	if clientCA != "" {
+		certPool, err := loadCertPool(clientCA)
+		if err != nil {
+			return tlsConfig, err
+		}
+
+		tlsConfig.ClientCAs = certPool
+	}
+
+	return tlsConfig, nil
 }
