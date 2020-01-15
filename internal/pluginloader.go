@@ -76,9 +76,11 @@ func getUnixSocketDir(c px.Context) string {
 	v := extractOptFromContext(c, "unixSocketDir")
 
 	if v == "" {
-		return DefaultUnixSocketDir
+		v = os.Getenv(`TMPDIR`)
+		if v == "" {
+			v = DefaultUnixSocketDir
+		}
 	}
-
 	return v
 }
 
