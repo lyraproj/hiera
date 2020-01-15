@@ -1,4 +1,4 @@
-package hieraapi_test
+package api_test
 
 import (
 	"context"
@@ -6,16 +6,16 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/lyraproj/hiera/api"
 	"github.com/lyraproj/hiera/hiera"
-	"github.com/lyraproj/hiera/hieraapi"
 	"github.com/stretchr/testify/require"
 )
 
 func TestConfigLookup_default(t *testing.T) {
 	wd, err := os.Getwd()
 	require.NoError(t, err)
-	options := map[string]string{hieraapi.HieraRoot: filepath.Join(wd, `testdata`, `defaultconfig`)}
-	hiera.DoWithParent(context.Background(), nil, options, func(hs hieraapi.Session) {
+	options := map[string]string{api.HieraRoot: filepath.Join(wd, `testdata`, `defaultconfig`)}
+	hiera.DoWithParent(context.Background(), nil, options, func(hs api.Session) {
 		require.Equal(t, `value of first`, hiera.Lookup(hs.Invocation(nil, nil), `first`, nil, nil).String())
 	})
 }
@@ -23,8 +23,8 @@ func TestConfigLookup_default(t *testing.T) {
 func TestConfigLookup_lyra_default(t *testing.T) {
 	wd, err := os.Getwd()
 	require.NoError(t, err)
-	options := map[string]string{hieraapi.HieraRoot: filepath.Join(wd, `testdata`, `defaultlyraconfig`)}
-	hiera.DoWithParent(context.Background(), nil, options, func(hs hieraapi.Session) {
+	options := map[string]string{api.HieraRoot: filepath.Join(wd, `testdata`, `defaultlyraconfig`)}
+	hiera.DoWithParent(context.Background(), nil, options, func(hs api.Session) {
 		require.Equal(t, `value of first`, hiera.Lookup(hs.Invocation(nil, nil), `first`, nil, nil).String())
 	})
 }
@@ -57,12 +57,12 @@ func testExplicit(t *testing.T, key, merge, expected string) {
 	t.Helper()
 	wd, err := os.Getwd()
 	require.NoError(t, err)
-	options := map[string]string{hieraapi.HieraRoot: filepath.Join(wd, `testdata`, `explicit`)}
+	options := map[string]string{api.HieraRoot: filepath.Join(wd, `testdata`, `explicit`)}
 	var luOpts map[string]string
 	if merge != `` {
 		luOpts = map[string]string{`merge`: merge}
 	}
-	hiera.DoWithParent(context.Background(), nil, options, func(hs hieraapi.Session) {
+	hiera.DoWithParent(context.Background(), nil, options, func(hs api.Session) {
 		require.Equal(t, expected, hiera.Lookup(hs.Invocation(nil, nil), key, nil, luOpts).String())
 	})
 }

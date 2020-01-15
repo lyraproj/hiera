@@ -10,7 +10,7 @@ import (
 	"github.com/lyraproj/dgo/tf"
 	"github.com/lyraproj/dgo/util"
 	"github.com/lyraproj/dgo/vf"
-	"github.com/lyraproj/hiera/hieraapi"
+	"github.com/lyraproj/hiera/api"
 )
 
 type path struct {
@@ -36,11 +36,11 @@ var pathType = tf.NewNamed(
 			`exists`, p.exists)
 	},
 	reflect.TypeOf(&path{}),
-	reflect.TypeOf((*hieraapi.Location)(nil)).Elem(),
+	reflect.TypeOf((*api.Location)(nil)).Elem(),
 	nil)
 
 // NewPath returns a path Location
-func NewPath(original string) hieraapi.Location {
+func NewPath(original string) api.Location {
 	return &path{original: original}
 }
 
@@ -64,19 +64,19 @@ func (p *path) Exists() bool {
 	return p.exists
 }
 
-func (p *path) Kind() hieraapi.LocationKind {
-	return hieraapi.LcPath
+func (p *path) Kind() api.LocationKind {
+	return api.LcPath
 }
 
 func (p *path) String() string {
 	return fmt.Sprintf("path{ original:%s, resolved:%s, exist:%v}", p.original, p.resolved, p.exists)
 }
 
-func (p *path) Resolve(ic hieraapi.Invocation, dataDir string) []hieraapi.Location {
+func (p *path) Resolve(ic api.Invocation, dataDir string) []api.Location {
 	r, _ := ic.InterpolateString(p.original, false)
 	rp := filepath.Join(dataDir, r.String())
 	_, err := os.Stat(rp)
-	return []hieraapi.Location{&path{p.original, rp, err == nil}}
+	return []api.Location{&path{p.original, rp, err == nil}}
 }
 
 func (p *path) Original() string {

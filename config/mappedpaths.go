@@ -10,7 +10,7 @@ import (
 	"github.com/lyraproj/dgo/tf"
 	"github.com/lyraproj/dgo/util"
 	"github.com/lyraproj/dgo/vf"
-	"github.com/lyraproj/hiera/hieraapi"
+	"github.com/lyraproj/hiera/api"
 )
 
 type mappedPaths struct {
@@ -41,7 +41,7 @@ var mappedPathsType = tf.NewNamed(
 			`template`, p.template)
 	},
 	reflect.TypeOf(&mappedPaths{}),
-	reflect.TypeOf((*hieraapi.Location)(nil)).Elem(),
+	reflect.TypeOf((*api.Location)(nil)).Elem(),
 	nil)
 
 // NewMappedPaths returns a Location that initially consist of three strings:
@@ -52,7 +52,7 @@ var mappedPathsType = tf.NewNamed(
 //
 // template: Template containing interpolation of the key
 //
-func NewMappedPaths(sourceVar, key, template string) hieraapi.Location {
+func NewMappedPaths(sourceVar, key, template string) api.Location {
 	return &mappedPaths{sourceVar: sourceVar, key: key, template: template}
 }
 
@@ -71,8 +71,8 @@ func (m *mappedPaths) HashCode() int {
 	return util.StringHash(m.sourceVar)*31 + util.StringHash(m.key)*31 + util.StringHash(m.template)
 }
 
-func (m *mappedPaths) Kind() hieraapi.LocationKind {
-	return hieraapi.LcMappedPaths
+func (m *mappedPaths) Kind() api.LocationKind {
+	return api.LcMappedPaths
 }
 
 func (m *mappedPaths) Original() string {
@@ -87,7 +87,7 @@ func (m *mappedPaths) Type() dgo.Type {
 	return mappedPathsType
 }
 
-func (m *mappedPaths) Resolve(ic hieraapi.Invocation, dataDir string) []hieraapi.Location {
+func (m *mappedPaths) Resolve(ic api.Invocation, dataDir string) []api.Location {
 	var mappedVars dgo.Array
 	v := ic.InterpolateInScope(m.sourceVar, false)
 	switch v := v.(type) {
@@ -96,9 +96,9 @@ func (m *mappedPaths) Resolve(ic hieraapi.Invocation, dataDir string) []hieraapi
 	case dgo.Array:
 		mappedVars = v
 	default:
-		return []hieraapi.Location{}
+		return []api.Location{}
 	}
-	paths := make([]hieraapi.Location, mappedVars.Len())
+	paths := make([]api.Location, mappedVars.Len())
 
 	mappedVars.EachWithIndex(func(mv dgo.Value, i int) {
 		ic.DoWithScope(&scopeWithVar{ic.Scope(), vf.String(m.key), mv}, func() {

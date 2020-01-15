@@ -13,8 +13,8 @@ import (
 
 	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/dgo/util"
+	"github.com/lyraproj/hiera/api"
 	"github.com/lyraproj/hiera/config"
-	"github.com/lyraproj/hiera/hieraapi"
 	"github.com/lyraproj/hierasdk/hiera"
 )
 
@@ -30,13 +30,13 @@ const (
 )
 
 type ivContext struct {
-	hieraapi.Session
+	api.Session
 	nameStack []string
 	scope     dgo.Keyed
 	luOpts    dgo.Map
-	strategy  hieraapi.MergeStrategy
-	configs   map[string]hieraapi.ResolvedConfig
-	explainer hieraapi.Explainer
+	strategy  api.MergeStrategy
+	configs   map[string]api.ResolvedConfig
+	explainer api.Explainer
 	mode      invocationMode
 	redacted  bool
 }
@@ -46,12 +46,12 @@ type nestedScope struct {
 	scope       dgo.Keyed
 }
 
-func newInvocation(s hieraapi.Session, scope dgo.Keyed, explainer hieraapi.Explainer) hieraapi.Invocation {
+func newInvocation(s api.Session, scope dgo.Keyed, explainer api.Explainer) api.Invocation {
 	return &ivContext{
 		Session:   s,
 		nameStack: []string{},
 		scope:     scope,
-		configs:   map[string]hieraapi.ResolvedConfig{},
+		configs:   map[string]api.ResolvedConfig{},
 		explainer: explainer,
 		mode:      topLevelMode}
 }
@@ -63,10 +63,10 @@ func (ns *nestedScope) Get(key interface{}) dgo.Value {
 	return ns.parentScope.Get(key)
 }
 
-func (ic *ivContext) Config(configPath string, moduleName string) hieraapi.ResolvedConfig {
+func (ic *ivContext) Config(configPath string, moduleName string) api.ResolvedConfig {
 	sc := ic.SharedCache()
 	if configPath == `` {
-		configPath = ic.SessionOptions().Get(hieraapi.HieraConfig).String()
+		configPath = ic.SessionOptions().Get(api.HieraConfig).String()
 	}
 
 	if rc, ok := ic.configs[configPath]; ok {
@@ -75,7 +75,7 @@ func (ic *ivContext) Config(configPath string, moduleName string) hieraapi.Resol
 
 	cp := hieraConfigsPrefix + configPath
 	if val, ok := sc.Load(cp); ok {
-		rc := Resolve(ic, val.(hieraapi.Config), moduleName)
+		rc := Resolve(ic, val.(api.Config), moduleName)
 		ic.configs[configPath] = rc
 		return rc
 	}
@@ -85,7 +85,7 @@ func (ic *ivContext) Config(configPath string, moduleName string) hieraapi.Resol
 	myLock := sync.RWMutex{}
 	myLock.Lock()
 
-	var conf hieraapi.Config
+	var conf api.Config
 	if lv, loaded := sc.LoadOrStore(lc, &myLock); loaded {
 		// myLock was not stored so unlock it
 		myLock.Unlock()
@@ -95,10 +95,10 @@ func (ic *ivContext) Config(configPath string, moduleName string) hieraapi.Resol
 			// this lock
 			lock.RLock()
 			val, _ := sc.Load(cp)
-			conf = val.(hieraapi.Config)
+			conf = val.(api.Config)
 			lock.RUnlock()
 		} else {
-			conf = lv.(hieraapi.Config)
+			conf = lv.(api.Config)
 		}
 	} else {
 		conf = config.New(configPath)
@@ -199,14 +199,14 @@ func (ic *ivContext) LookupAndConvertData(fn func() dgo.Value) dgo.Value {
 	return v
 }
 
-func (ic *ivContext) MergeHierarchy(key hieraapi.Key, pvs []hieraapi.DataProvider, merge hieraapi.MergeStrategy) dgo.Value {
+func (ic *ivContext) MergeHierarchy(key api.Key, pvs []api.DataProvider, merge api.MergeStrategy) dgo.Value {
 	return merge.MergeLookup(pvs, ic, func(pv interface{}) dgo.Value {
-		pr := pv.(hieraapi.DataProvider)
+		pr := pv.(api.DataProvider)
 		return ic.MergeLocations(key, pr, merge)
 	})
 }
 
-func (ic *ivContext) MergeLocations(key hieraapi.Key, dh hieraapi.DataProvider, merge hieraapi.MergeStrategy) dgo.Value {
+func (ic *ivContext) MergeLocations(key api.Key, dh api.DataProvider, merge api.MergeStrategy) dgo.Value {
 	return ic.WithDataProvider(dh, func() dgo.Value {
 		locations := dh.Hierarchy().Locations()
 		switch len(locations) {
@@ -216,13 +216,13 @@ func (ic *ivContext) MergeLocations(key hieraapi.Key, dh hieraapi.DataProvider, 
 			return ic.invokeWithLocation(dh, locations[0], key)
 		default:
 			return merge.MergeLookup(locations, ic, func(location interface{}) dgo.Value {
-				return ic.invokeWithLocation(dh, location.(hieraapi.Location), key)
+				return ic.invokeWithLocation(dh, location.(api.Location), key)
 			})
 		}
 	})
 }
 
-func (ic *ivContext) invokeWithLocation(dh hieraapi.DataProvider, location hieraapi.Location, key hieraapi.Key) dgo.Value {
+func (ic *ivContext) invokeWithLocation(dh api.DataProvider, location api.Location, key api.Key) dgo.Value {
 	if location == nil {
 		return dh.LookupKey(key, ic, nil)
 	}
@@ -235,7 +235,7 @@ func (ic *ivContext) invokeWithLocation(dh hieraapi.DataProvider, location hiera
 	})
 }
 
-func (ic *ivContext) Lookup(key hieraapi.Key, options dgo.Map) dgo.Value {
+func (ic *ivContext) Lookup(key api.Key, options dgo.Map) dgo.Value {
 	rootKey := key.Root()
 	if rootKey == `lookup_options` {
 		return ic.WithInvalidKey(key, func() dgo.Value {
@@ -253,7 +253,7 @@ func (ic *ivContext) Lookup(key hieraapi.Key, options dgo.Map) dgo.Value {
 	return v
 }
 
-func (ic *ivContext) WithKey(key hieraapi.Key, actor dgo.Producer) dgo.Value {
+func (ic *ivContext) WithKey(key api.Key, actor dgo.Producer) dgo.Value {
 	if util.ContainsString(ic.nameStack, key.Source()) {
 		panic(fmt.Errorf(`recursive lookup detected in [%s]`, strings.Join(ic.nameStack, `, `)))
 	}
@@ -288,11 +288,11 @@ func (ic *ivContext) Scope() dgo.Keyed {
 }
 
 // ServerContext creates and returns a new server context
-func (ic *ivContext) ServerContext(options dgo.Map) hieraapi.ServerContext {
+func (ic *ivContext) ServerContext(options dgo.Map) api.ServerContext {
 	return &serverCtx{ProviderContext: hiera.ProviderContextFromMap(options), invocation: ic}
 }
 
-func (ic *ivContext) WithDataProvider(p hieraapi.DataProvider, producer dgo.Producer) dgo.Value {
+func (ic *ivContext) WithDataProvider(p api.DataProvider, producer dgo.Producer) dgo.Value {
 	if ic.explainer == nil {
 		return producer()
 	}
@@ -319,7 +319,7 @@ func (ic *ivContext) WithInvalidKey(key interface{}, producer dgo.Producer) dgo.
 	return producer()
 }
 
-func (ic *ivContext) WithLocation(loc hieraapi.Location, producer dgo.Producer) dgo.Value {
+func (ic *ivContext) WithLocation(loc api.Location, producer dgo.Producer) dgo.Value {
 	if ic.explainer == nil {
 		return producer()
 	}
@@ -328,7 +328,7 @@ func (ic *ivContext) WithLocation(loc hieraapi.Location, producer dgo.Producer) 
 	return producer()
 }
 
-func (ic *ivContext) WithLookup(key hieraapi.Key, producer dgo.Producer) dgo.Value {
+func (ic *ivContext) WithLookup(key api.Key, producer dgo.Producer) dgo.Value {
 	if ic.explainer == nil {
 		return producer()
 	}
@@ -337,7 +337,7 @@ func (ic *ivContext) WithLookup(key hieraapi.Key, producer dgo.Producer) dgo.Val
 	return producer()
 }
 
-func (ic *ivContext) WithMerge(ms hieraapi.MergeStrategy, producer dgo.Producer) dgo.Value {
+func (ic *ivContext) WithMerge(ms api.MergeStrategy, producer dgo.Producer) dgo.Value {
 	if ic.explainer == nil {
 		return producer()
 	}
@@ -364,7 +364,7 @@ func (ic *ivContext) WithSegment(seg interface{}, producer dgo.Producer) dgo.Val
 	return producer()
 }
 
-func (ic *ivContext) WithSubLookup(key hieraapi.Key, producer dgo.Producer) dgo.Value {
+func (ic *ivContext) WithSubLookup(key api.Key, producer dgo.Producer) dgo.Value {
 	if ic.explainer == nil {
 		return producer()
 	}
@@ -373,7 +373,7 @@ func (ic *ivContext) WithSubLookup(key hieraapi.Key, producer dgo.Producer) dgo.
 	return producer()
 }
 
-func (ic *ivContext) ForConfig() hieraapi.Invocation {
+func (ic *ivContext) ForConfig() api.Invocation {
 	if ic.explainer == nil {
 		return ic
 	}
@@ -382,7 +382,7 @@ func (ic *ivContext) ForConfig() hieraapi.Invocation {
 	return &lic
 }
 
-func (ic *ivContext) ForData() hieraapi.Invocation {
+func (ic *ivContext) ForData() api.Invocation {
 	if ic.DataMode() {
 		return ic
 	}
@@ -398,11 +398,11 @@ func (ic *ivContext) LookupOptions() dgo.Map {
 	return ic.luOpts
 }
 
-func (ic *ivContext) MergeStrategy() hieraapi.MergeStrategy {
+func (ic *ivContext) MergeStrategy() api.MergeStrategy {
 	return ic.strategy
 }
 
-func (ic *ivContext) ForLookupOptions() hieraapi.Invocation {
+func (ic *ivContext) ForLookupOptions() api.Invocation {
 	if ic.LookupOptionsMode() {
 		return ic
 	}

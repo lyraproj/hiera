@@ -2,13 +2,13 @@ package session
 
 import (
 	"github.com/lyraproj/dgo/dgo"
-	"github.com/lyraproj/hiera/hieraapi"
+	"github.com/lyraproj/hiera/api"
 	"github.com/lyraproj/hierasdk/hiera"
 )
 
 type serverCtx struct {
 	hiera.ProviderContext
-	invocation hieraapi.Invocation
+	invocation api.Invocation
 }
 
 func (c *serverCtx) Interpolate(value dgo.Value) dgo.Value {
@@ -50,14 +50,14 @@ func (c *serverCtx) CachedEntries(consumer func(key string, value dgo.Value)) {
 	})
 }
 
-func (c *serverCtx) Invocation() hieraapi.Invocation {
+func (c *serverCtx) Invocation() api.Invocation {
 	return c.invocation
 }
 
-func (c *serverCtx) ForData() hieraapi.ServerContext {
+func (c *serverCtx) ForData() api.ServerContext {
 	return &serverCtx{ProviderContext: c.ProviderContext, invocation: c.invocation.ForData()}
 }
 
-func (c *serverCtx) ForLookupOptions() hieraapi.ServerContext {
+func (c *serverCtx) ForLookupOptions() api.ServerContext {
 	return &serverCtx{ProviderContext: c.ProviderContext, invocation: c.invocation.ForLookupOptions()}
 }

@@ -6,8 +6,8 @@ import (
 
 	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/dgo/vf"
+	"github.com/lyraproj/hiera/api"
 	"github.com/lyraproj/hiera/hiera"
-	"github.com/lyraproj/hiera/hieraapi"
 	"github.com/lyraproj/hiera/provider"
 	sdk "github.com/lyraproj/hierasdk/hiera"
 )
@@ -17,7 +17,7 @@ func customLK(hc sdk.ProviderContext, key string) dgo.Value {
 	return hc.Option(key)
 }
 
-// TestCustomLK shows how to provide an in-process lookup function to Hiera using the hieraapi.HieraFunctions
+// TestCustomLK shows how to provide an in-process lookup function to Hiera using the api.HieraFunctions
 // configuration option.
 func TestCustomLK(t *testing.T) {
 	// Provide custom functions in a dgo.Map so that they can be declared in the hiera configuration file. The function
@@ -28,11 +28,11 @@ func TestCustomLK(t *testing.T) {
 	customFunctions := vf.Map(`customLK`, customLK)
 
 	configOptions := vf.Map(
-		hieraapi.HieraRoot, `testdata`,
-		hieraapi.HieraConfigFileName, `custom.yaml`,
-		hieraapi.HieraFunctions, customFunctions)
+		api.HieraRoot, `testdata`,
+		api.HieraConfigFileName, `custom.yaml`,
+		api.HieraFunctions, customFunctions)
 
-	hiera.DoWithParent(context.Background(), provider.ConfigLookupKey, configOptions, func(hs hieraapi.Session) {
+	hiera.DoWithParent(context.Background(), provider.ConfigLookupKey, configOptions, func(hs api.Session) {
 		result := hiera.Lookup(hs.Invocation(nil, nil), `a`, nil, nil)
 		if result == nil || `option a` != result.String() {
 			t.Fatalf("unexpected result %v", result)

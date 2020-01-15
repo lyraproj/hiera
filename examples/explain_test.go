@@ -7,9 +7,9 @@ import (
 
 	"github.com/lyraproj/dgo/vf"
 
+	"github.com/lyraproj/hiera/api"
 	"github.com/lyraproj/hiera/explain"
 	"github.com/lyraproj/hiera/hiera"
-	"github.com/lyraproj/hiera/hieraapi"
 	"github.com/lyraproj/hiera/provider"
 )
 
@@ -17,10 +17,10 @@ import (
 // and to extract its result.
 func TestExplain(t *testing.T) {
 	configOptions := vf.Map(
-		hieraapi.HieraRoot, `testdata`,
+		api.HieraRoot, `testdata`,
 		provider.ModulePath, filepath.Join(`testdata`, `modules`))
 
-	hiera.DoWithParent(context.Background(), provider.ModuleLookupKey, configOptions, func(hs hieraapi.Session) {
+	hiera.DoWithParent(context.Background(), provider.ModuleLookupKey, configOptions, func(hs api.Session) {
 		// The scope type from the scope_test.go file is reused.
 		s := map[string]interface{}{`c`: map[string]int{`x`: 10, `y`: 20}}
 
@@ -57,8 +57,8 @@ func TestExplain(t *testing.T) {
 
 // TestExplain_withOptions shows how to configure the Explainer to include the lookup of the lookup_options
 func TestExplain_withOptions(t *testing.T) {
-	configOptions := map[string]string{hieraapi.HieraRoot: `testdata`}
-	hiera.DoWithParent(context.Background(), provider.ConfigLookupKey, configOptions, func(hs hieraapi.Session) {
+	configOptions := map[string]string{api.HieraRoot: `testdata`}
+	hiera.DoWithParent(context.Background(), provider.ConfigLookupKey, configOptions, func(hs api.Session) {
 		s := map[string]interface{}{
 			`a`: `the "a" string`,
 			`b`: 42,
@@ -108,8 +108,8 @@ Searching for "ipl_c"
 // TestExplain_withOnlyOptions shows how to configure the Explainer to only include the lookup of the lookup_options
 // and exclude the lookup of the actual value
 func TestExplain_withOnlyOptions(t *testing.T) {
-	configOptions := map[string]string{hieraapi.HieraRoot: `testdata`}
-	hiera.DoWithParent(context.Background(), provider.ConfigLookupKey, configOptions, func(hs hieraapi.Session) {
+	configOptions := map[string]string{api.HieraRoot: `testdata`}
+	hiera.DoWithParent(context.Background(), provider.ConfigLookupKey, configOptions, func(hs api.Session) {
 		s := map[string]interface{}{
 			`a`: `the "a" string`,
 			`b`: 42,

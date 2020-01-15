@@ -3,7 +3,7 @@ package provider
 import (
 	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/dgo/vf"
-	"github.com/lyraproj/hiera/hieraapi"
+	"github.com/lyraproj/hiera/api"
 	"github.com/lyraproj/hiera/merge"
 	"github.com/lyraproj/hierasdk/hiera"
 )
@@ -19,7 +19,7 @@ const LookupKeyFunctions = `hiera::lookup::providers`
 // The intended use for this function is when a very simplistic way of configuring Hiera is desired that
 // requires no configuration files.
 func MuxLookupKey(pc hiera.ProviderContext, key string) dgo.Value {
-	sc, ok := pc.(hieraapi.ServerContext)
+	sc, ok := pc.(api.ServerContext)
 	ic := sc.Invocation()
 	if !ok {
 		return nil
@@ -43,7 +43,7 @@ func MuxLookupKey(pc hiera.ProviderContext, key string) dgo.Value {
 	sc = sc.ForData()
 	args.Set(0, sc)
 	ic = sc.Invocation()
-	return ic.WithLookup(hieraapi.NewKey(key), func() dgo.Value {
+	return ic.WithLookup(api.NewKey(key), func() dgo.Value {
 		ic.SetMergeStrategy(sc.Option(`merge`), luOpts)
 		return ic.LookupAndConvertData(func() dgo.Value {
 			return ic.MergeStrategy().MergeLookup(spv, ic, luFunc)

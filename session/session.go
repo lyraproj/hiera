@@ -19,7 +19,7 @@ import (
 	"github.com/lyraproj/dgo/streamer"
 	"github.com/lyraproj/dgo/tf"
 	"github.com/lyraproj/dgo/vf"
-	"github.com/lyraproj/hiera/hieraapi"
+	"github.com/lyraproj/hiera/api"
 	"github.com/lyraproj/hiera/provider"
 	"github.com/lyraproj/hierasdk/hiera"
 )
@@ -47,22 +47,22 @@ const hieraPluginRegistry = `Hiera::Plugins`
 // topProvider: the topmost provider that defines the hierarchy
 //
 // options: a map[string]any of configuration options
-func New(parent context.Context, topProvider hiera.LookupKey, oif interface{}, ldr dgo.Loader) hieraapi.Session {
+func New(parent context.Context, topProvider hiera.LookupKey, oif interface{}, ldr dgo.Loader) api.Session {
 	if topProvider == nil {
 		topProvider = provider.ConfigLookupKey
 	}
 
 	options := vf.MutableMap()
 	if oif != nil {
-		options.PutAll(hieraapi.ToMap(`session options`, oif))
+		options.PutAll(api.ToMap(`session options`, oif))
 	}
 
-	if options.Get(hieraapi.HieraConfig) == nil {
+	if options.Get(api.HieraConfig) == nil {
 		addHieraConfig(options)
 	}
 
 	var dialect streamer.Dialect
-	if ds, ok := options.Get(hieraapi.HieraDialect).(dgo.String); ok {
+	if ds, ok := options.Get(api.HieraDialect).(dgo.String); ok {
 		switch ds.String() {
 		case "dgo":
 			dialect = streamer.DgoDialect()
@@ -77,7 +77,7 @@ func New(parent context.Context, topProvider hiera.LookupKey, oif interface{}, l
 	}
 
 	var scope dgo.Keyed
-	if sv, ok := options.Get(hieraapi.HieraScope).(dgo.Keyed); ok {
+	if sv, ok := options.Get(api.HieraScope).(dgo.Keyed); ok {
 		// Freeze scope if possible
 		if f, ok := sv.(dgo.Freezable); ok {
 			sv = f.FrozenCopy().(dgo.Keyed)
@@ -102,7 +102,7 @@ func New(parent context.Context, topProvider hiera.LookupKey, oif interface{}, l
 
 func addHieraConfig(options dgo.Map) {
 	var hieraRoot string
-	if r := options.Get(hieraapi.HieraRoot); r != nil {
+	if r := options.Get(api.HieraRoot); r != nil {
 		hieraRoot = r.String()
 	} else {
 		var err error
@@ -112,14 +112,14 @@ func addHieraConfig(options dgo.Map) {
 	}
 
 	var fileName string
-	if r := options.Get(hieraapi.HieraConfigFileName); r != nil {
+	if r := options.Get(api.HieraConfigFileName); r != nil {
 		fileName = r.String()
 	} else if configFile, ok := os.LookupEnv("HIERA_CONFIGFILE"); ok {
 		fileName = configFile
 	} else {
 		fileName = config.FileName
 	}
-	options.Put(hieraapi.HieraConfig, filepath.Join(hieraRoot, fileName))
+	options.Put(api.HieraConfig, filepath.Join(hieraRoot, fileName))
 }
 
 func (s *session) AliasMap() dgo.AliasMap {
@@ -130,12 +130,12 @@ func (s *session) Dialect() streamer.Dialect {
 	return s.dialect
 }
 
-func (s *session) Invocation(si interface{}, explainer hieraapi.Explainer) hieraapi.Invocation {
+func (s *session) Invocation(si interface{}, explainer api.Explainer) api.Invocation {
 	var scope dgo.Keyed
 	if si == nil {
 		scope = s.Scope()
 	} else {
-		scope = &nestedScope{s.Scope(), hieraapi.ToMap(`invocation scope`, si)}
+		scope = &nestedScope{s.Scope(), api.ToMap(`invocation scope`, si)}
 	}
 	return newInvocation(s, scope, explainer)
 }
@@ -152,7 +152,7 @@ func (s *session) Loader() dgo.Loader {
 	return s.loader
 }
 
-func (s *session) LoadFunction(he hieraapi.Entry) (fn dgo.Function, ok bool) {
+func (s *session) LoadFunction(he api.Entry) (fn dgo.Function, ok bool) {
 	n := he.Function().Name()
 	l := s.Loader()
 	fn, ok = l.Namespace(`function`).Get(n).(dgo.Function)
@@ -255,7 +255,7 @@ func (s *session) newHieraLoader(p dgo.Loader) dgo.Loader {
 }
 
 func (s *session) createFunctionLoader(l dgo.Loader) dgo.Loader {
-	m, ok := s.SessionOptions().Get(hieraapi.HieraFunctions).(dgo.Map)
+	m, ok := s.SessionOptions().Get(api.HieraFunctions).(dgo.Map)
 	if !ok {
 		m = vf.Map()
 	}

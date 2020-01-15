@@ -10,7 +10,7 @@ import (
 	"github.com/lyraproj/dgo/tf"
 	"github.com/lyraproj/dgo/util"
 	"github.com/lyraproj/dgo/vf"
-	"github.com/lyraproj/hiera/hieraapi"
+	"github.com/lyraproj/hiera/api"
 )
 
 type glob string
@@ -24,11 +24,11 @@ var globType = tf.NewNamed(
 		return vf.String(string(v.(glob)))
 	},
 	reflect.TypeOf(glob(``)),
-	reflect.TypeOf((*hieraapi.Location)(nil)).Elem(),
+	reflect.TypeOf((*api.Location)(nil)).Elem(),
 	nil)
 
 // NewGlob returns a glob Location
-func NewGlob(pattern string) hieraapi.Location {
+func NewGlob(pattern string) api.Location {
 	return glob(pattern)
 }
 
@@ -48,8 +48,8 @@ func (g glob) Exists() bool {
 	return false
 }
 
-func (g glob) Kind() hieraapi.LocationKind {
-	return hieraapi.LcGlob
+func (g glob) Kind() api.LocationKind {
+	return api.LcGlob
 }
 
 func (g glob) String() string {
@@ -60,11 +60,11 @@ func (g glob) Original() string {
 	return string(g)
 }
 
-func (g glob) Resolve(ic hieraapi.Invocation, dataDir string) []hieraapi.Location {
+func (g glob) Resolve(ic api.Invocation, dataDir string) []api.Location {
 	r, _ := ic.InterpolateString(g.Original(), false)
 	rp := filepath.Join(dataDir, r.String())
 	matches, _ := doublestar.Glob(rp)
-	ls := make([]hieraapi.Location, len(matches))
+	ls := make([]api.Location, len(matches))
 	for i, m := range matches {
 		ls[i] = &path{g.Original(), m, true}
 	}

@@ -10,7 +10,7 @@ import (
 	"github.com/lyraproj/dgo/util"
 	"github.com/lyraproj/dgo/vf"
 	"github.com/lyraproj/dgoyaml/yaml"
-	"github.com/lyraproj/hiera/hieraapi"
+	"github.com/lyraproj/hiera/api"
 )
 
 // RenderName is the name of the option value that describes how to render output
@@ -28,7 +28,7 @@ const (
 )
 
 // Render renders a value on a writer using a specified RenderName
-func Render(s hieraapi.Session, renderAs RenderName, value dgo.Value, out io.Writer) {
+func Render(s api.Session, renderAs RenderName, value dgo.Value, out io.Writer) {
 	switch renderAs {
 	case JSON:
 		if value.Equals(vf.Nil) {

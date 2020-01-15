@@ -3,7 +3,7 @@ package merge
 import (
 	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/dgo/vf"
-	"github.com/lyraproj/hiera/hieraapi"
+	"github.com/lyraproj/hiera/api"
 )
 
 // Deep will merge the values 'a' and 'b' if both values are hashes or both values are
@@ -17,7 +17,7 @@ import (
 func Deep(a, b dgo.Value, opi interface{}) (dgo.Value, bool) {
 	var options dgo.Map
 	if opi != nil {
-		options = hieraapi.ToMap(`deep merge options`, options)
+		options = api.ToMap(`deep merge options`, options)
 	}
 	return deep(a, b, options)
 }

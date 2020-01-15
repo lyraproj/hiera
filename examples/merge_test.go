@@ -5,16 +5,16 @@ import (
 	"testing"
 
 	"github.com/lyraproj/dgo/vf"
+	"github.com/lyraproj/hiera/api"
 	"github.com/lyraproj/hiera/hiera"
-	"github.com/lyraproj/hiera/hieraapi"
 	"github.com/lyraproj/hiera/merge"
 	"github.com/lyraproj/hiera/provider"
 )
 
 // TestMerge_default tests the default merge strategy which is "first found"
 func TestMerge_default(t *testing.T) {
-	configOptions := map[string]string{hieraapi.HieraConfig: `testdata/merge.yaml`}
-	hiera.DoWithParent(context.Background(), provider.ConfigLookupKey, configOptions, func(hs hieraapi.Session) {
+	configOptions := map[string]string{api.HieraConfig: `testdata/merge.yaml`}
+	hiera.DoWithParent(context.Background(), provider.ConfigLookupKey, configOptions, func(hs api.Session) {
 		// m.a only exists in the first provider
 		result := hiera.Lookup(hs.Invocation(nil, nil), `m.a`, nil, nil)
 		if result == nil || `first value of a` != result.String() {
@@ -42,8 +42,8 @@ func TestMerge_default(t *testing.T) {
 //
 // As with Puppet Hiera, merge options can also be specified as lookup_options in the data files.
 func TestMerge_deep(t *testing.T) {
-	configOptions := map[string]string{hieraapi.HieraConfig: `testdata/merge.yaml`}
-	hiera.DoWithParent(context.Background(), provider.ConfigLookupKey, configOptions, func(hs hieraapi.Session) {
+	configOptions := map[string]string{api.HieraConfig: `testdata/merge.yaml`}
+	hiera.DoWithParent(context.Background(), provider.ConfigLookupKey, configOptions, func(hs api.Session) {
 		// options containing the merge option "deep"
 		opts := map[string]string{`merge`: `deep`}
 

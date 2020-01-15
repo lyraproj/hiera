@@ -9,7 +9,7 @@ import (
 
 	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/dgo/util"
-	"github.com/lyraproj/hiera/hieraapi"
+	"github.com/lyraproj/hiera/api"
 )
 
 type (
@@ -19,24 +19,24 @@ type (
 		pluginDir  string
 		pluginFile string
 		options    dgo.Map
-		function   hieraapi.Function
+		function   api.Function
 		name       string
-		locations  []hieraapi.Location
+		locations  []api.Location
 	}
 )
 
 // FunctionKeys are the valid keys to use when defining a function in a hierarchy entry
-var FunctionKeys = []string{string(hieraapi.KindDataDig), string(hieraapi.KindDataHash), string(hieraapi.KindLookupKey)}
+var FunctionKeys = []string{string(api.KindDataDig), string(api.KindDataHash), string(api.KindLookupKey)}
 
 // LocationKeys are the valid keys to use when defining locations in a hierarchy entry
 var LocationKeys = []string{
-	string(hieraapi.LcPath), `paths`,
-	string(hieraapi.LcGlob), `globs`,
-	string(hieraapi.LcURI), `uris`,
-	string(hieraapi.LcMappedPaths)}
+	string(api.LcPath), `paths`,
+	string(api.LcGlob), `globs`,
+	string(api.LcURI), `uris`,
+	string(api.LcMappedPaths)}
 
 // ReservedOptionKeys are the option keys that are reserved by Hiera
-var ReservedOptionKeys = []string{string(hieraapi.LcPath), string(hieraapi.LcURI)}
+var ReservedOptionKeys = []string{string(api.LcPath), string(api.LcURI)}
 
 func (e *entry) Options() dgo.Map {
 	return e.options
@@ -54,7 +54,7 @@ func (e *entry) PluginFile() string {
 	return e.pluginFile
 }
 
-func (e *entry) Function() hieraapi.Function {
+func (e *entry) Function() api.Function {
 	return e.function
 }
 
@@ -74,12 +74,12 @@ func (e *entry) initialize(name string, entryHash dgo.Map) {
 			if e.function != nil {
 				panic(fmt.Errorf(`only one of %s can be defined in hierarchy '%s'`, strings.Join(FunctionKeys, `, `), name))
 			}
-			e.function = &function{hieraapi.FunctionKind(ks), v.String()}
+			e.function = &function{api.FunctionKind(ks), v.String()}
 		}
 	})
 }
 
-func (e *entry) Copy(cfg hieraapi.Config) hieraapi.Entry {
+func (e *entry) Copy(cfg api.Config) api.Entry {
 	c := *e
 	c.cfg = cfg.(*hieraCfg)
 	return &c
@@ -89,14 +89,14 @@ func (e *entry) Name() string {
 	return e.name
 }
 
-func (e *entry) Locations() []hieraapi.Location {
+func (e *entry) Locations() []api.Location {
 	return e.locations
 }
 
-func (e *entry) resolveFunction(ic hieraapi.Invocation, defaults hieraapi.Entry) {
+func (e *entry) resolveFunction(ic api.Invocation, defaults api.Entry) {
 	if e.function == nil {
 		if defaults == nil {
-			e.function = &function{kind: hieraapi.KindDataHash, name: `yaml_data`}
+			e.function = &function{kind: api.KindDataHash, name: `yaml_data`}
 		} else {
 			e.function = defaults.Function()
 		}
@@ -109,7 +109,7 @@ func (e *entry) resolveFunction(ic hieraapi.Invocation, defaults hieraapi.Entry)
 	}
 }
 
-func (e *entry) resolveDataDir(ic hieraapi.Invocation, defaults hieraapi.Entry) {
+func (e *entry) resolveDataDir(ic api.Invocation, defaults api.Entry) {
 	e.resolveFunction(ic, defaults)
 	if e.dataDir == `` {
 		if defaults == nil {
@@ -124,7 +124,7 @@ func (e *entry) resolveDataDir(ic hieraapi.Invocation, defaults hieraapi.Entry) 
 	}
 }
 
-func (e *entry) resolvePluginDir(ic hieraapi.Invocation, defaults hieraapi.Entry) {
+func (e *entry) resolvePluginDir(ic api.Invocation, defaults api.Entry) {
 	if e.pluginDir == `` {
 		if defaults == nil {
 			e.pluginDir = defaultPluginDir()
@@ -141,7 +141,7 @@ func (e *entry) resolvePluginDir(ic hieraapi.Invocation, defaults hieraapi.Entry
 	}
 }
 
-func (e *entry) resolveOptions(ic hieraapi.Invocation, defaults hieraapi.Entry) {
+func (e *entry) resolveOptions(ic api.Invocation, defaults api.Entry) {
 	if e.options == nil {
 		if defaults != nil {
 			e.options = defaults.Options()
@@ -154,7 +154,7 @@ func (e *entry) resolveOptions(ic hieraapi.Invocation, defaults hieraapi.Entry) 
 	}
 }
 
-func (e *entry) resolveLocations(ic hieraapi.Invocation) {
+func (e *entry) resolveLocations(ic api.Invocation) {
 	var dataRoot string
 	if filepath.IsAbs(e.dataDir) {
 		dataRoot = e.dataDir
@@ -162,7 +162,7 @@ func (e *entry) resolveLocations(ic hieraapi.Invocation) {
 		dataRoot = filepath.Join(e.cfg.root, e.dataDir)
 	}
 	if e.locations != nil {
-		ne := make([]hieraapi.Location, 0, len(e.locations))
+		ne := make([]api.Location, 0, len(e.locations))
 		for _, l := range e.locations {
 			ne = append(ne, l.Resolve(ic, dataRoot)...)
 		}
@@ -170,7 +170,7 @@ func (e *entry) resolveLocations(ic hieraapi.Invocation) {
 	}
 }
 
-func (e *entry) Resolve(ic hieraapi.Invocation, defaults hieraapi.Entry) hieraapi.Entry {
+func (e *entry) Resolve(ic api.Invocation, defaults api.Entry) api.Entry {
 	// Resolve interpolated strings and locations
 	ce := *e
 

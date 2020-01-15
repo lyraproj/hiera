@@ -5,15 +5,15 @@ import (
 	"testing"
 
 	"github.com/lyraproj/dgo/vf"
+	"github.com/lyraproj/hiera/api"
 	"github.com/lyraproj/hiera/hiera"
-	"github.com/lyraproj/hiera/hieraapi"
 	"github.com/lyraproj/hiera/provider"
 )
 
 // TestScope shows how to provide a "scope" to the invocation.
 func TestScope(t *testing.T) {
-	configOptions := vf.Map(hieraapi.HieraRoot, `testdata`)
-	hiera.DoWithParent(context.Background(), provider.ConfigLookupKey, configOptions, func(hs hieraapi.Session) {
+	configOptions := vf.Map(api.HieraRoot, `testdata`)
+	hiera.DoWithParent(context.Background(), provider.ConfigLookupKey, configOptions, func(hs api.Session) {
 		// Our scope is just a map[string]interface{} and can hold any arbitrary data
 		s := map[string]interface{}{
 			`a`: `the "a" string`,

@@ -5,20 +5,20 @@ import (
 
 	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/dgo/vf"
-	"github.com/lyraproj/hiera/hieraapi"
+	"github.com/lyraproj/hiera/api"
 	"github.com/lyraproj/hierasdk/hiera"
 )
 
 type dataDigProvider struct {
-	hierarchyEntry hieraapi.Entry
+	hierarchyEntry api.Entry
 	providerFunc   hiera.DataDig
 }
 
-func (dh *dataDigProvider) Hierarchy() hieraapi.Entry {
+func (dh *dataDigProvider) Hierarchy() api.Entry {
 	return dh.hierarchyEntry
 }
 
-func (dh *dataDigProvider) LookupKey(key hieraapi.Key, ic hieraapi.Invocation, location hieraapi.Location) dgo.Value {
+func (dh *dataDigProvider) LookupKey(key api.Key, ic api.Invocation, location api.Location) dgo.Value {
 	opts := dh.hierarchyEntry.Options()
 	if location != nil {
 		opts = optionsWithLocation(opts, location.Resolved())
@@ -33,14 +33,14 @@ func (dh *dataDigProvider) LookupKey(key hieraapi.Key, ic hieraapi.Invocation, l
 	return value
 }
 
-func (dh *dataDigProvider) providerFunction(ic hieraapi.Invocation) (pf hiera.DataDig) {
+func (dh *dataDigProvider) providerFunction(ic api.Invocation) (pf hiera.DataDig) {
 	if dh.providerFunc == nil {
 		dh.providerFunc = dh.loadFunction(ic)
 	}
 	return dh.providerFunc
 }
 
-func (dh *dataDigProvider) loadFunction(ic hieraapi.Invocation) (pf hiera.DataDig) {
+func (dh *dataDigProvider) loadFunction(ic api.Invocation) (pf hiera.DataDig) {
 	he := dh.hierarchyEntry
 	if f, ok := ic.LoadFunction(he); ok {
 		return func(pc hiera.ProviderContext, key dgo.Array) dgo.Value {
@@ -56,6 +56,6 @@ func (dh *dataDigProvider) FullName() string {
 }
 
 // NewDataDigProvider creates a new provider with a data_dig function configured from the given entry
-func NewDataDigProvider(he hieraapi.Entry) hieraapi.DataProvider {
+func NewDataDigProvider(he api.Entry) api.DataProvider {
 	return &dataDigProvider{hierarchyEntry: he}
 }

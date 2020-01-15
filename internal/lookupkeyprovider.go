@@ -5,21 +5,21 @@ import (
 
 	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/dgo/vf"
-	"github.com/lyraproj/hiera/hieraapi"
+	"github.com/lyraproj/hiera/api"
 	"github.com/lyraproj/hiera/provider"
 	"github.com/lyraproj/hierasdk/hiera"
 )
 
 type lookupKeyProvider struct {
-	hierarchyEntry hieraapi.Entry
+	hierarchyEntry api.Entry
 	providerFunc   hiera.LookupKey
 }
 
-func (dh *lookupKeyProvider) Hierarchy() hieraapi.Entry {
+func (dh *lookupKeyProvider) Hierarchy() api.Entry {
 	return dh.hierarchyEntry
 }
 
-func (dh *lookupKeyProvider) LookupKey(key hieraapi.Key, ic hieraapi.Invocation, location hieraapi.Location) dgo.Value {
+func (dh *lookupKeyProvider) LookupKey(key api.Key, ic api.Invocation, location api.Location) dgo.Value {
 	root := key.Root()
 	opts := dh.hierarchyEntry.Options()
 	if location != nil {
@@ -34,14 +34,14 @@ func (dh *lookupKeyProvider) LookupKey(key hieraapi.Key, ic hieraapi.Invocation,
 	return value
 }
 
-func (dh *lookupKeyProvider) providerFunction(ic hieraapi.Invocation) (pf hiera.LookupKey) {
+func (dh *lookupKeyProvider) providerFunction(ic api.Invocation) (pf hiera.LookupKey) {
 	if dh.providerFunc == nil {
 		dh.providerFunc = dh.loadFunction(ic)
 	}
 	return dh.providerFunc
 }
 
-func (dh *lookupKeyProvider) loadFunction(ic hieraapi.Invocation) (pf hiera.LookupKey) {
+func (dh *lookupKeyProvider) loadFunction(ic api.Invocation) (pf hiera.LookupKey) {
 	n := dh.hierarchyEntry.Function().Name()
 	switch n {
 	case `environment`:
@@ -63,6 +63,6 @@ func (dh *lookupKeyProvider) FullName() string {
 }
 
 // NewLookupKeyProvider creates a new provider with a lookup_key function configured from the given entry
-func NewLookupKeyProvider(he hieraapi.Entry) hieraapi.DataProvider {
+func NewLookupKeyProvider(he api.Entry) api.DataProvider {
 	return &lookupKeyProvider{hierarchyEntry: he}
 }

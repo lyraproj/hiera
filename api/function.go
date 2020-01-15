@@ -1,4 +1,4 @@
-package hieraapi
+package api
 
 // FunctionKind denotes what kind of function this is.
 type FunctionKind string

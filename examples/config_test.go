@@ -7,8 +7,8 @@ import (
 
 	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/dgo/vf"
+	"github.com/lyraproj/hiera/api"
 	"github.com/lyraproj/hiera/hiera"
-	"github.com/lyraproj/hiera/hieraapi"
 	"github.com/lyraproj/hiera/provider"
 	sdk "github.com/lyraproj/hierasdk/hiera"
 )
@@ -34,7 +34,7 @@ func TestConfig_hardwired(t *testing.T) {
 	//
 	// The DoWithParent is meant to be called once and the created context can then be used for any number of lookups that
 	// uses the same configuration. The session's life-cycle can be compared to the compiler's life-cycle in puppet.
-	hiera.DoWithParent(context.Background(), sayHello, nil, func(hs hieraapi.Session) {
+	hiera.DoWithParent(context.Background(), sayHello, nil, func(hs api.Session) {
 		result := hiera.Lookup(hs.Invocation(nil, nil), `hello`, nil, nil)
 		if result == nil || `hello world` != result.String() {
 			t.Fatalf("unexpected result %v", result)
@@ -54,7 +54,7 @@ func TestConfig_semiHardWired(t *testing.T) {
 
 	// Initialize a Hiera session with the MuxLookupKey as the top-level function and perform a lookup and
 	// the created configOptions.
-	hiera.DoWithParent(context.Background(), provider.MuxLookupKey, configOptions, func(hs hieraapi.Session) {
+	hiera.DoWithParent(context.Background(), provider.MuxLookupKey, configOptions, func(hs api.Session) {
 		result := hiera.Lookup(hs.Invocation(nil, nil), `hello`, nil, nil)
 		if result == nil || `hello world` != result.String() {
 			t.Fatalf("unexpected result %v", result)
@@ -80,10 +80,10 @@ func TestConfig_semiHardWired(t *testing.T) {
 // the most commonly used top-level function in Hiera. It finds a yaml configuration on disk and then configures
 // everything according to the hierarchy specified in that file.
 func TestHelloWorld_yamlConfig(t *testing.T) {
-	configOptions := vf.Map(hieraapi.HieraRoot, `testdata`)
+	configOptions := vf.Map(api.HieraRoot, `testdata`)
 
 	// Initialize a Hiera session with the ConfigLookupKey as the top-level function configured using the configOptions.
-	hiera.DoWithParent(context.Background(), provider.ConfigLookupKey, configOptions, func(hs hieraapi.Session) {
+	hiera.DoWithParent(context.Background(), provider.ConfigLookupKey, configOptions, func(hs api.Session) {
 		result := hiera.Lookup(hs.Invocation(nil, nil), `hello`, nil, nil)
 		if result == nil || `yaml data says hello` != result.String() {
 			t.Fatalf("unexpected result %v", result)
@@ -94,10 +94,10 @@ func TestHelloWorld_yamlConfig(t *testing.T) {
 // TestHelloWorld_explicitYamlConfig is similar to TestHelloWorld_yamlConfig but uses HieraConfig
 // option to explicitly define the file to use.
 func TestHelloWorld_explicitYamlConfig(t *testing.T) {
-	configOptions := vf.Map(hieraapi.HieraConfig, `testdata/hiera.yaml`)
+	configOptions := vf.Map(api.HieraConfig, `testdata/hiera.yaml`)
 
 	// Initialize a Hiera session with the ConfigLookupKey as the top-level function configured using the configOptions.
-	hiera.DoWithParent(context.Background(), provider.ConfigLookupKey, configOptions, func(hs hieraapi.Session) {
+	hiera.DoWithParent(context.Background(), provider.ConfigLookupKey, configOptions, func(hs api.Session) {
 		result := hiera.Lookup(hs.Invocation(nil, nil), `hello`, nil, nil)
 		if result == nil || `yaml data says hello` != result.String() {
 			t.Fatalf("unexpected result %v", result)
@@ -108,11 +108,11 @@ func TestHelloWorld_explicitYamlConfig(t *testing.T) {
 // TestHelloWorld_explicitYamlConfigEnvironment is similar to TestHelloWorld_yamlConfig but uses HIERA_CONFIGFILE
 // environment variable to explicitly define the file to use.
 func TestHelloWorld_explicitYamlConfigEnvironment(t *testing.T) {
-	configOptions := vf.Map(hieraapi.HieraRoot, `testdata`)
+	configOptions := vf.Map(api.HieraRoot, `testdata`)
 	_ = os.Setenv("HIERA_CONFIGFILE", "hiera_env.yaml")
 
 	// Initialize a Hiera session with the ConfigLookupKey as the top-level function configured using the configOptions.
-	hiera.DoWithParent(context.Background(), provider.ConfigLookupKey, configOptions, func(hs hieraapi.Session) {
+	hiera.DoWithParent(context.Background(), provider.ConfigLookupKey, configOptions, func(hs api.Session) {
 		result := hiera.Lookup(hs.Invocation(nil, nil), `hello`, nil, nil)
 		if result == nil || `yaml data says hello` != result.String() {
 			t.Fatalf("unexpected result %v", result)
@@ -124,11 +124,11 @@ func TestHelloWorld_explicitYamlConfigEnvironment(t *testing.T) {
 // HieraRoot and HieraConfigFileName option to find the yaml configuration file.
 func TestHelloWorld_explicitYamlConfigFile(t *testing.T) {
 	configOptions := vf.Map(
-		hieraapi.HieraRoot, `testdata`,
-		hieraapi.HieraConfigFileName, `special.yaml`)
+		api.HieraRoot, `testdata`,
+		api.HieraConfigFileName, `special.yaml`)
 
 	// Initialize a Hiera session with the ConfigLookupKey as the top-level function configured using the configOptions.
-	hiera.DoWithParent(context.Background(), provider.ConfigLookupKey, configOptions, func(hs hieraapi.Session) {
+	hiera.DoWithParent(context.Background(), provider.ConfigLookupKey, configOptions, func(hs api.Session) {
 		result := hiera.Lookup(hs.Invocation(nil, nil), `hello`, nil, nil)
 		if result == nil || `yaml special data says hello` != result.String() {
 			t.Fatalf("unexpected result %v", result)
@@ -141,10 +141,10 @@ func TestHelloWorld_explicitYamlConfigFile(t *testing.T) {
 func TestHelloWorld_yamlAndSemiHardWired(t *testing.T) {
 	configOptions := vf.Map(
 		provider.LookupKeyFunctions, []sdk.LookupKey{provider.ConfigLookupKey, sayHello},
-		hieraapi.HieraRoot, `testdata`)
+		api.HieraRoot, `testdata`)
 
 	// Initialize a Hiera session with the MuxLookupKey as the top-level function configured using the configOptions.
-	hiera.DoWithParent(context.Background(), provider.MuxLookupKey, configOptions, func(hs hieraapi.Session) {
+	hiera.DoWithParent(context.Background(), provider.MuxLookupKey, configOptions, func(hs api.Session) {
 		// A lookup of just "hello" should hit the first provider, the ConfigLookupKey.
 		result := hiera.Lookup(hs.Invocation(nil, nil), `hello`, nil, nil)
 		if result == nil || `yaml data says hello` != result.String() {

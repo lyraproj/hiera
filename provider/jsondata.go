@@ -7,7 +7,7 @@ import (
 	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/dgo/streamer"
 	"github.com/lyraproj/dgo/vf"
-	"github.com/lyraproj/hiera/hieraapi"
+	"github.com/lyraproj/hiera/api"
 	"github.com/lyraproj/hierasdk/hiera"
 )
 
@@ -15,7 +15,7 @@ import (
 func JSONData(ctx hiera.ProviderContext) dgo.Map {
 	pv := ctx.Option(`path`)
 	if pv == nil {
-		panic(hieraapi.MissingRequiredOption(`path`))
+		panic(api.MissingRequiredOption(`path`))
 	}
 	path := pv.String()
 	bs, err := ioutil.ReadFile(path)
@@ -29,5 +29,5 @@ func JSONData(ctx hiera.ProviderContext) dgo.Map {
 	if data, ok := v.(dgo.Map); ok {
 		return data
 	}
-	panic(hieraapi.JSONNOtHash(path))
+	panic(api.JSONNOtHash(path))
 }

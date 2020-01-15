@@ -6,14 +6,14 @@ import (
 
 	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/dgo/vf"
+	"github.com/lyraproj/hiera/api"
 	"github.com/lyraproj/hiera/hiera"
-	"github.com/lyraproj/hiera/hieraapi"
 	sdk "github.com/lyraproj/hierasdk/hiera"
 )
 
 func ExampleServerContext_CachedValue() {
 	cachingProvider := func(pc sdk.ProviderContext, key string) dgo.Value {
-		ic := pc.(hieraapi.ServerContext)
+		ic := pc.(api.ServerContext)
 		if v, ok := ic.CachedValue(key); ok {
 			fmt.Printf("Returning cached value for %s\n", key)
 			return v
@@ -24,7 +24,7 @@ func ExampleServerContext_CachedValue() {
 		return v
 	}
 
-	hiera.DoWithParent(context.Background(), cachingProvider, nil, func(hs hieraapi.Session) {
+	hiera.DoWithParent(context.Background(), cachingProvider, nil, func(hs api.Session) {
 		s := map[string]interface{}{
 			`a`: `scope 'a'`,
 			`b`: `scope 'b'`,

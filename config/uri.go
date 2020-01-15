@@ -8,7 +8,7 @@ import (
 	"github.com/lyraproj/dgo/tf"
 	"github.com/lyraproj/dgo/util"
 	"github.com/lyraproj/dgo/vf"
-	"github.com/lyraproj/hiera/hieraapi"
+	"github.com/lyraproj/hiera/api"
 )
 
 type uri struct {
@@ -31,11 +31,11 @@ var uriType = tf.NewNamed(
 			`resolved`, p.resolved)
 	},
 	reflect.TypeOf(&uri{}),
-	reflect.TypeOf((*hieraapi.Location)(nil)).Elem(),
+	reflect.TypeOf((*api.Location)(nil)).Elem(),
 	nil)
 
 // NewURI returns a URI Location
-func NewURI(original string) hieraapi.Location {
+func NewURI(original string) api.Location {
 	return &uri{original: original}
 }
 
@@ -59,8 +59,8 @@ func (u *uri) Exists() bool {
 	return true
 }
 
-func (u *uri) Kind() hieraapi.LocationKind {
-	return hieraapi.LcURI
+func (u *uri) Kind() api.LocationKind {
+	return api.LcURI
 }
 
 func (u *uri) String() string {
@@ -71,9 +71,9 @@ func (u *uri) Original() string {
 	return u.original
 }
 
-func (u *uri) Resolve(ic hieraapi.Invocation, dataDir string) []hieraapi.Location {
+func (u *uri) Resolve(ic api.Invocation, dataDir string) []api.Location {
 	r, _ := ic.InterpolateString(u.original, false)
-	return []hieraapi.Location{&uri{u.original, r.String()}}
+	return []api.Location{&uri{u.original, r.String()}}
 }
 
 func (u *uri) Resolved() string {

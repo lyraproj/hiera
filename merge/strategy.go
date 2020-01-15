@@ -6,7 +6,7 @@ import (
 
 	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/dgo/vf"
-	"github.com/lyraproj/hiera/hieraapi"
+	"github.com/lyraproj/hiera/api"
 )
 
 type (
@@ -21,7 +21,7 @@ type (
 
 // GetStrategy returns the merge.MergeStrategy that corresponds to the given name. The
 // options argument is only applicable to deep merge
-func GetStrategy(n string, opts dgo.Map) hieraapi.MergeStrategy {
+func GetStrategy(n string, opts dgo.Map) api.MergeStrategy {
 	switch n {
 	case `first`:
 		return &firstFound{}
@@ -40,7 +40,7 @@ func GetStrategy(n string, opts dgo.Map) hieraapi.MergeStrategy {
 }
 
 type merger interface {
-	hieraapi.MergeStrategy
+	api.MergeStrategy
 
 	merge(a, b dgo.Value) dgo.Value
 
@@ -49,7 +49,7 @@ type merger interface {
 	convertValue(v dgo.Value) dgo.Value
 }
 
-func doLookup(s merger, vs interface{}, ic hieraapi.Invocation, vf func(l interface{}) dgo.Value) dgo.Value {
+func doLookup(s merger, vs interface{}, ic api.Invocation, vf func(l interface{}) dgo.Value) dgo.Value {
 	vsr := reflect.ValueOf(vs)
 	if vsr.Kind() != reflect.Slice {
 		return nil
@@ -96,7 +96,7 @@ func (d *firstFound) Label() string {
 	return `first found strategy`
 }
 
-func (d *firstFound) MergeLookup(vs interface{}, ic hieraapi.Invocation, f func(location interface{}) dgo.Value) dgo.Value {
+func (d *firstFound) MergeLookup(vs interface{}, ic api.Invocation, f func(location interface{}) dgo.Value) dgo.Value {
 	vsr := reflect.ValueOf(vs)
 	if vsr.Kind() != reflect.Slice {
 		return nil
@@ -146,7 +146,7 @@ func (d *unique) Label() string {
 	return `unique merge strategy`
 }
 
-func (d *unique) MergeLookup(vs interface{}, ic hieraapi.Invocation, f func(location interface{}) dgo.Value) dgo.Value {
+func (d *unique) MergeLookup(vs interface{}, ic api.Invocation, f func(location interface{}) dgo.Value) dgo.Value {
 	return doLookup(d, vs, ic, f)
 }
 
@@ -181,7 +181,7 @@ func (d *deepMerge) Label() string {
 	return `deep merge strategy`
 }
 
-func (d *deepMerge) MergeLookup(vs interface{}, ic hieraapi.Invocation, f func(location interface{}) dgo.Value) dgo.Value {
+func (d *deepMerge) MergeLookup(vs interface{}, ic api.Invocation, f func(location interface{}) dgo.Value) dgo.Value {
 	return doLookup(d, vs, ic, f)
 }
 
@@ -210,7 +210,7 @@ func (d *hashMerge) Label() string {
 	return `hash merge strategy`
 }
 
-func (d *hashMerge) MergeLookup(vs interface{}, ic hieraapi.Invocation, f func(location interface{}) dgo.Value) dgo.Value {
+func (d *hashMerge) MergeLookup(vs interface{}, ic api.Invocation, f func(location interface{}) dgo.Value) dgo.Value {
 	return doLookup(d, vs, ic, f)
 }
 

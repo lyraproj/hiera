@@ -15,8 +15,8 @@ import (
 	"github.com/lyraproj/dgo/util"
 	"github.com/lyraproj/dgo/vf"
 	"github.com/lyraproj/dgoyaml/yaml"
+	"github.com/lyraproj/hiera/api"
 	"github.com/lyraproj/hiera/explain"
-	"github.com/lyraproj/hiera/hieraapi"
 	"github.com/lyraproj/hiera/session"
 	"github.com/lyraproj/hierasdk/hiera"
 )
@@ -58,8 +58,8 @@ type CommandOptions struct {
 // defaultValue - Optional value to use as default when no value is found
 //
 // options - Optional map with merge strategy and options
-func Lookup(ic hieraapi.Invocation, name string, defaultValue dgo.Value, options interface{}) dgo.Value {
-	return Lookup2(ic, []string{name}, typ.Any, defaultValue, nil, nil, hieraapi.ToMap(`lookup options`, options), nil)
+func Lookup(ic api.Invocation, name string, defaultValue dgo.Value, options interface{}) dgo.Value {
+	return Lookup2(ic, []string{name}, typ.Any, defaultValue, nil, nil, api.ToMap(`lookup options`, options), nil)
 }
 
 // Lookup2 performs a lookup using the given parameters.
@@ -80,7 +80,7 @@ func Lookup(ic hieraapi.Invocation, name string, defaultValue dgo.Value, options
 //
 // defaultFunc - Optional function to produce a default value
 func Lookup2(
-	ic hieraapi.Invocation,
+	ic api.Invocation,
 	names []string,
 	valueType dgo.Type,
 	defaultValue dgo.Value,
@@ -92,7 +92,7 @@ func Lookup2(
 		return ensureType(valueType, v)
 	}
 	for _, name := range names {
-		if v := ic.Lookup(hieraapi.NewKey(name), options); v != nil {
+		if v := ic.Lookup(api.NewKey(name), options); v != nil {
 			return ensureType(valueType, v)
 		}
 	}
@@ -129,7 +129,7 @@ func ensureType(t dgo.Type, v dgo.Value) dgo.Value {
 // TryWithParent initializes a lookup context with global options and a top-level lookup key function and then calls
 // the given consumer function with that context. If the given function panics, the panic will be recovered and returned
 // as an error.
-func TryWithParent(parent context.Context, tp hiera.LookupKey, options interface{}, consumer func(hieraapi.Session) error) error {
+func TryWithParent(parent context.Context, tp hiera.LookupKey, options interface{}, consumer func(api.Session) error) error {
 	return util.Catch(func() {
 		s := session.New(parent, tp, options, nil)
 		defer s.KillPlugins()
@@ -142,7 +142,7 @@ func TryWithParent(parent context.Context, tp hiera.LookupKey, options interface
 
 // DoWithParent initializes a lookup context with global options and a top-level lookup key function and then calls
 // the given consumer function with that context.
-func DoWithParent(parent context.Context, tp hiera.LookupKey, options interface{}, consumer func(hieraapi.Session)) {
+func DoWithParent(parent context.Context, tp hiera.LookupKey, options interface{}, consumer func(api.Session)) {
 	s := session.New(parent, tp, options, nil)
 	defer s.KillPlugins()
 	consumer(s)
@@ -154,7 +154,7 @@ var needParsePrefix = []string{`{`, `[`, `"`, `'`}
 
 // LookupAndRender performs a lookup using the given command options and arguments and renders the result on the given
 // io.Writer in accordance with the `RenderAs` option.
-func LookupAndRender(c hieraapi.Session, opts *CommandOptions, args []string, out io.Writer) bool {
+func LookupAndRender(c api.Session, opts *CommandOptions, args []string, out io.Writer) bool {
 	tp := typ.Any
 	dl := c.Dialect()
 	if opts.Type != `` {
@@ -176,7 +176,7 @@ func LookupAndRender(c hieraapi.Session, opts *CommandOptions, args []string, ou
 		}
 	}
 
-	var explainer hieraapi.Explainer
+	var explainer api.Explainer
 	if opts.ExplainData || opts.ExplainOptions {
 		explainer = explain.NewExplainer(opts.ExplainOptions, opts.ExplainOptions && !opts.ExplainData)
 	}
@@ -203,7 +203,7 @@ func LookupAndRender(c hieraapi.Session, opts *CommandOptions, args []string, ou
 	return true
 }
 
-func parseCommandLineValue(c hieraapi.Session, vs string) dgo.Value {
+func parseCommandLineValue(c api.Session, vs string) dgo.Value {
 	vs = strings.TrimSpace(vs)
 	for _, pfx := range needParsePrefix {
 		if strings.HasPrefix(vs, pfx) {
@@ -213,7 +213,7 @@ func parseCommandLineValue(c hieraapi.Session, vs string) dgo.Value {
 	return vf.String(vs)
 }
 
-func createScope(c hieraapi.Session, opts *CommandOptions) dgo.Map {
+func createScope(c api.Session, opts *CommandOptions) dgo.Map {
 	scope := vf.MutableMap()
 	if vl := len(opts.Variables); vl > 0 {
 		for _, e := range opts.Variables {

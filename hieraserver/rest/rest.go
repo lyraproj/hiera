@@ -15,8 +15,8 @@ import (
 
 	"github.com/lyraproj/hiera/config"
 
+	"github.com/lyraproj/hiera/api"
 	"github.com/lyraproj/hiera/hiera"
-	"github.com/lyraproj/hiera/hieraapi"
 	"github.com/lyraproj/hiera/provider"
 	sdk "github.com/lyraproj/hierasdk/hiera"
 	"github.com/spf13/cobra"
@@ -75,9 +75,9 @@ var keyPattern = regexp.MustCompile(`^/lookup/(.*)$`)
 func startServer(_ *cobra.Command, _ []string) {
 	configOptions := map[string]interface{}{
 		provider.LookupKeyFunctions: []sdk.LookupKey{provider.ConfigLookupKey, provider.Environment},
-		hieraapi.HieraConfig:        configPath}
+		api.HieraConfig:             configPath}
 
-	hiera.DoWithParent(context.Background(), provider.MuxLookupKey, configOptions, func(hs hieraapi.Session) {
+	hiera.DoWithParent(context.Background(), provider.MuxLookupKey, configOptions, func(hs api.Session) {
 		router := CreateRouter(hs)
 
 		server := &http.Server{
@@ -103,7 +103,7 @@ func startServer(_ *cobra.Command, _ []string) {
 }
 
 // CreateRouter creates the http.Handler for the Hiera RESTful service
-func CreateRouter(ctx hieraapi.Session) http.Handler {
+func CreateRouter(ctx api.Session) http.Handler {
 	doLookup := func(w http.ResponseWriter, r *http.Request) {
 		ks := keyPattern.FindStringSubmatch(r.URL.Path)
 		if ks == nil {

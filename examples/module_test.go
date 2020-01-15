@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/lyraproj/dgo/vf"
+	"github.com/lyraproj/hiera/api"
 	"github.com/lyraproj/hiera/hiera"
-	"github.com/lyraproj/hiera/hieraapi"
 	"github.com/lyraproj/hiera/provider"
 	sdk "github.com/lyraproj/hierasdk/hiera"
 )
@@ -18,11 +18,11 @@ import (
 func TestHelloWorld_globalAndModules(t *testing.T) {
 	configOptions := vf.Map(
 		provider.LookupKeyFunctions, []sdk.LookupKey{provider.ConfigLookupKey, provider.ModuleLookupKey},
-		hieraapi.HieraRoot, `testdata`,
+		api.HieraRoot, `testdata`,
 		provider.ModulePath, filepath.Join(`testdata`, `modules`))
 
 	// Initialize a Hiera session with the MuxLookupKey as the top-level function configured using the configOptions.
-	hiera.DoWithParent(context.Background(), provider.MuxLookupKey, configOptions, func(hs hieraapi.Session) {
+	hiera.DoWithParent(context.Background(), provider.MuxLookupKey, configOptions, func(hs api.Session) {
 		// A lookup of just "hello" should hit the first provider, the ConfigLookupKey.
 		result := hiera.Lookup(hs.Invocation(nil, nil), `hello`, nil, nil)
 		if result == nil || `yaml data says hello` != result.String() {
@@ -54,10 +54,10 @@ func TestHelloWorld_globalAndModules(t *testing.T) {
 func TestHelloWorld_globalAndModules_nonExistentPath(t *testing.T) {
 	configOptions := vf.Map(
 		provider.LookupKeyFunctions, []sdk.LookupKey{provider.ConfigLookupKey, provider.ModuleLookupKey},
-		hieraapi.HieraRoot, `testdata`,
+		api.HieraRoot, `testdata`,
 		provider.ModulePath, filepath.Join(`testdata`, `nomodules`))
 
-	hiera.DoWithParent(context.Background(), provider.MuxLookupKey, configOptions, func(hs hieraapi.Session) {
+	hiera.DoWithParent(context.Background(), provider.MuxLookupKey, configOptions, func(hs api.Session) {
 		result := hiera.Lookup(hs.Invocation(nil, nil), `one::a`, nil, nil)
 		if result != nil {
 			t.Fatalf("unexpected result %v", result)

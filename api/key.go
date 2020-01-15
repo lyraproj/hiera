@@ -1,4 +1,4 @@
-package hieraapi
+package api
 
 import (
 	"bytes"

@@ -12,7 +12,7 @@ import (
 	"github.com/lyraproj/dgo/tf"
 	"github.com/lyraproj/dgo/util"
 	"github.com/lyraproj/dgoyaml/yaml"
-	"github.com/lyraproj/hiera/hieraapi"
+	"github.com/lyraproj/hiera/api"
 )
 
 type (
@@ -20,8 +20,8 @@ type (
 		root             string
 		path             string
 		defaults         *entry
-		hierarchy        []hieraapi.Entry
-		defaultHierarchy []hieraapi.Entry
+		hierarchy        []api.Entry
+		defaultHierarchy []api.Entry
 	}
 )
 
@@ -67,7 +67,7 @@ const FileName = `hiera.yaml`
 
 // New creates a new unresolved Config from the given path. If the path does not exist, the
 // default config is returned.
-func New(configPath string) hieraapi.Config {
+func New(configPath string) api.Config {
 	content, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -76,7 +76,7 @@ func New(configPath string) hieraapi.Config {
 		dc := &hieraCfg{
 			root:             filepath.Dir(configPath),
 			path:             ``,
-			defaultHierarchy: []hieraapi.Entry{},
+			defaultHierarchy: []api.Entry{},
 		}
 		dc.defaults = dc.makeDefaultConfig()
 		dc.hierarchy = dc.makeDefaultHierarchy()
@@ -95,7 +95,7 @@ func New(configPath string) hieraapi.Config {
 	return createConfig(configPath, cfgMap)
 }
 
-func createConfig(path string, hash dgo.Map) hieraapi.Config {
+func createConfig(path string, hash dgo.Map) api.Config {
 	cfg := &hieraCfg{root: filepath.Dir(path), path: path}
 
 	if dv := hash.Get(`defaults`); dv != nil {
@@ -138,23 +138,23 @@ func (hc *hieraCfg) makeDefaultConfig() *entry {
 		cfg:       hc,
 		dataDir:   defaultDataDir(),
 		pluginDir: defaultPluginDir(),
-		function:  &function{kind: hieraapi.KindDataHash, name: `yaml_data`},
+		function:  &function{kind: api.KindDataHash, name: `yaml_data`},
 	}
 }
 
-func (hc *hieraCfg) makeDefaultHierarchy() []hieraapi.Entry {
-	return []hieraapi.Entry{
+func (hc *hieraCfg) makeDefaultHierarchy() []api.Entry {
+	return []api.Entry{
 		// The lyra default behavior is to look for a <Hiera root>/data.yaml. Hiera root is the current directory.
-		&entry{cfg: hc, dataDir: `.`, name: `Root`, locations: []hieraapi.Location{NewPath(`data.yaml`)}},
+		&entry{cfg: hc, dataDir: `.`, name: `Root`, locations: []api.Location{NewPath(`data.yaml`)}},
 		// Hiera proper default behavior is to look for <Hiera root>/data/common.yaml
-		&entry{cfg: hc, name: `Common`, locations: []hieraapi.Location{NewPath(`common.yaml`)}}}
+		&entry{cfg: hc, name: `Common`, locations: []api.Location{NewPath(`common.yaml`)}}}
 }
 
-func (hc *hieraCfg) Hierarchy() []hieraapi.Entry {
+func (hc *hieraCfg) Hierarchy() []api.Entry {
 	return hc.hierarchy
 }
 
-func (hc *hieraCfg) DefaultHierarchy() []hieraapi.Entry {
+func (hc *hieraCfg) DefaultHierarchy() []api.Entry {
 	return hc.defaultHierarchy
 }
 
@@ -166,12 +166,12 @@ func (hc *hieraCfg) Path() string {
 	return hc.path
 }
 
-func (hc *hieraCfg) Defaults() hieraapi.Entry {
+func (hc *hieraCfg) Defaults() api.Entry {
 	return hc.defaults
 }
 
-func (hc *hieraCfg) createHierarchy(hierarchy dgo.Array) []hieraapi.Entry {
-	entries := make([]hieraapi.Entry, 0, hierarchy.Len())
+func (hc *hieraCfg) createHierarchy(hierarchy dgo.Array) []api.Entry {
+	entries := make([]api.Entry, 0, hierarchy.Len())
 	uniqueNames := make(map[string]bool, hierarchy.Len())
 	hierarchy.Each(func(hv dgo.Value) {
 		hh := hv.(dgo.Map)
@@ -188,7 +188,7 @@ func (hc *hieraCfg) createHierarchy(hierarchy dgo.Array) []hieraapi.Entry {
 	return entries
 }
 
-func (hc *hieraCfg) createEntry(name string, entryHash dgo.Map) hieraapi.Entry {
+func (hc *hieraCfg) createEntry(name string, entryHash dgo.Map) api.Entry {
 	entry := &entry{cfg: hc, name: name}
 	entry.initialize(name, entryHash)
 	entryHash.EachEntry(func(me dgo.MapEntry) {
@@ -207,26 +207,26 @@ func (hc *hieraCfg) createEntry(name string, entryHash dgo.Map) hieraapi.Entry {
 			}
 			switch ks {
 			case `path`:
-				entry.locations = []hieraapi.Location{NewPath(v.String())}
+				entry.locations = []api.Location{NewPath(v.String())}
 			case `paths`:
 				a := v.(dgo.Array)
-				entry.locations = make([]hieraapi.Location, 0, a.Len())
+				entry.locations = make([]api.Location, 0, a.Len())
 				a.Each(func(p dgo.Value) { entry.locations = append(entry.locations, NewPath(p.String())) })
 			case `glob`:
-				entry.locations = []hieraapi.Location{NewGlob(v.String())}
+				entry.locations = []api.Location{NewGlob(v.String())}
 			case `globs`:
 				a := v.(dgo.Array)
-				entry.locations = make([]hieraapi.Location, 0, a.Len())
+				entry.locations = make([]api.Location, 0, a.Len())
 				a.Each(func(p dgo.Value) { entry.locations = append(entry.locations, NewGlob(p.String())) })
 			case `uri`:
-				entry.locations = []hieraapi.Location{NewURI(v.String())}
+				entry.locations = []api.Location{NewURI(v.String())}
 			case `uris`:
 				a := v.(dgo.Array)
-				entry.locations = make([]hieraapi.Location, 0, a.Len())
+				entry.locations = make([]api.Location, 0, a.Len())
 				a.Each(func(p dgo.Value) { entry.locations = append(entry.locations, NewURI(p.String())) })
 			default: // Mapped paths
 				a := v.(dgo.Array)
-				entry.locations = []hieraapi.Location{NewMappedPaths(a.Get(0).String(), a.Get(1).String(), a.Get(2).String())}
+				entry.locations = []api.Location{NewMappedPaths(a.Get(0).String(), a.Get(1).String(), a.Get(2).String())}
 			}
 		}
 	})

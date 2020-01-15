@@ -10,7 +10,7 @@ import (
 	"github.com/lyraproj/dgo/tf"
 	"github.com/lyraproj/dgo/util"
 	"github.com/lyraproj/dgo/vf"
-	"github.com/lyraproj/hiera/hieraapi"
+	"github.com/lyraproj/hiera/api"
 	"github.com/lyraproj/hiera/merge"
 )
 
@@ -135,7 +135,7 @@ func keyToString(k interface{}) string {
 		return k
 	case int:
 		return strconv.Itoa(k)
-	case hieraapi.Key:
+	case api.Key:
 		return k.Source()
 	case fmt.Stringer:
 		return k.String()
@@ -457,7 +457,7 @@ func (en *explainKeySegment) String() string {
 
 type explainLocation struct {
 	explainTreeNode
-	location hieraapi.Location
+	location api.Location
 }
 
 var explainLocationType = tf.NewNamed(
@@ -474,7 +474,7 @@ func (en *explainLocation) Type() dgo.Type {
 
 func (en *explainLocation) initialize(ih dgo.Map) {
 	initialize(en, ih)
-	if loc, ok := ih.Get(`location`).(hieraapi.Location); ok {
+	if loc, ok := ih.Get(`location`).(api.Location); ok {
 		en.location = loc
 	}
 }
@@ -491,7 +491,7 @@ func (en *explainLocation) Equals(value interface{}) bool {
 
 func (en *explainLocation) AppendTo(w dgo.Indenter) {
 	w.NewLine()
-	if en.location.Kind() == hieraapi.LcPath {
+	if en.location.Kind() == api.LcPath {
 		w.Append(`Path "`)
 	} else {
 		w.Append(`URI "`)
@@ -564,7 +564,7 @@ func (en *explainLookup) String() string {
 
 type explainMerge struct {
 	explainTreeNode
-	merge hieraapi.MergeStrategy
+	merge api.MergeStrategy
 }
 
 var explainMergeType = tf.NewNamed(
@@ -735,7 +735,7 @@ func (en *explainModule) String() string {
 
 type explainSubLookup struct {
 	explainTreeNode
-	subKey hieraapi.Key
+	subKey api.Key
 }
 
 var explainSubLookupType = tf.NewNamed(
@@ -753,7 +753,7 @@ func (en *explainSubLookup) Type() dgo.Type {
 func (en *explainSubLookup) initialize(ih dgo.Map) {
 	initialize(en, ih)
 	if ms, ok := ih.Get(`subKey`).(dgo.String); ok {
-		en.subKey = hieraapi.NewKey(ms.GoString())
+		en.subKey = api.NewKey(ms.GoString())
 	}
 }
 
@@ -798,7 +798,7 @@ var explainerType = tf.NewNamed(
 	func(value dgo.Value) dgo.Value { return createFunc(value, &explainer{}) },
 	extractFunc,
 	reflect.TypeOf(&explainer{}),
-	reflect.TypeOf((*hieraapi.Explainer)(nil)).Elem(),
+	reflect.TypeOf((*api.Explainer)(nil)).Elem(),
 	nil)
 
 func (ex *explainer) Type() dgo.Type {
@@ -806,7 +806,7 @@ func (ex *explainer) Type() dgo.Type {
 }
 
 // NewExplainer creates a new configured Explainer instance.
-func NewExplainer(options, onlyOptions bool) hieraapi.Explainer {
+func NewExplainer(options, onlyOptions bool) api.Explainer {
 	ex := &explainer{options: options, onlyOptions: onlyOptions}
 	ex.current = ex
 	return ex
@@ -891,7 +891,7 @@ func (ex *explainer) push(en explainNode) {
 	ex.current = en
 }
 
-func (ex *explainer) PushDataProvider(pvd hieraapi.DataProvider) {
+func (ex *explainer) PushDataProvider(pvd api.DataProvider) {
 	ex.push(&explainDataProvider{providerName: pvd.FullName()})
 }
 
@@ -903,15 +903,15 @@ func (ex *explainer) PushInvalidKey(key interface{}) {
 	ex.push(&explainInvalidKey{explainTreeNode{k: keyToString(key)}})
 }
 
-func (ex *explainer) PushLocation(loc hieraapi.Location) {
+func (ex *explainer) PushLocation(loc api.Location) {
 	ex.push(&explainLocation{location: loc})
 }
 
-func (ex *explainer) PushLookup(key hieraapi.Key) {
+func (ex *explainer) PushLookup(key api.Key) {
 	ex.push(&explainLookup{explainTreeNode{k: keyToString(key)}})
 }
 
-func (ex *explainer) PushMerge(mrg hieraapi.MergeStrategy) {
+func (ex *explainer) PushMerge(mrg api.MergeStrategy) {
 	ex.push(&explainMerge{merge: mrg})
 }
 
@@ -923,7 +923,7 @@ func (ex *explainer) PushSegment(seg interface{}) {
 	ex.push(&explainKeySegment{segment: seg})
 }
 
-func (ex *explainer) PushSubLookup(key hieraapi.Key) {
+func (ex *explainer) PushSubLookup(key api.Key) {
 	ex.push(&explainSubLookup{subKey: key})
 }
 

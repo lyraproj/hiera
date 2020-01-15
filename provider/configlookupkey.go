@@ -2,25 +2,25 @@ package provider
 
 import (
 	"github.com/lyraproj/dgo/dgo"
-	"github.com/lyraproj/hiera/hieraapi"
+	"github.com/lyraproj/hiera/api"
 	"github.com/lyraproj/hierasdk/hiera"
 )
 
 // ConfigLookupKey performs a lookup based on a hierarchy of providers that has been specified
 // in a yaml based configuration stored on disk.
 func ConfigLookupKey(pc hiera.ProviderContext, key string) dgo.Value {
-	if sc, ok := pc.(hieraapi.ServerContext); ok {
-		return ConfigLookupKeyAt(sc, sc.Invocation().SessionOptions().Get(hieraapi.HieraConfig).String(), key, ``)
+	if sc, ok := pc.(api.ServerContext); ok {
+		return ConfigLookupKeyAt(sc, sc.Invocation().SessionOptions().Get(api.HieraConfig).String(), key, ``)
 	}
 	return nil
 }
 
 // ConfigLookupKeyAt performs a lookup based on a hierarchy of providers that has been specified
 // in a yaml based configuration appointed by the given configPath.
-func ConfigLookupKeyAt(sc hieraapi.ServerContext, configPath, key, moduleName string) dgo.Value {
+func ConfigLookupKeyAt(sc api.ServerContext, configPath, key, moduleName string) dgo.Value {
 	ic := sc.Invocation()
 	cfg := ic.Config(configPath, moduleName)
-	k := hieraapi.NewKey(key)
+	k := api.NewKey(key)
 	if ic.LookupOptionsMode() {
 		return cfg.LookupOptions(k)
 	}

@@ -9,7 +9,7 @@ import (
 
 	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/dgo/vf"
-	"github.com/lyraproj/hiera/hieraapi"
+	"github.com/lyraproj/hiera/api"
 	"github.com/lyraproj/hierasdk/hiera"
 )
 
@@ -23,7 +23,7 @@ const ModulePath = `hiera::lookup::modulepath`
 // If such a path exists and is a directory that in turn contains a hiera.yaml file, then a lookup
 // will be performed in that module.
 func ModuleLookupKey(pc hiera.ProviderContext, key string) dgo.Value {
-	sc := pc.(hieraapi.ServerContext)
+	sc := pc.(api.ServerContext)
 	if ci := strings.Index(key, `::`); ci > 0 {
 		modName := strings.ToLower(key[:ci])
 		var mp dgo.Function
@@ -45,7 +45,7 @@ func ModuleLookupKey(pc hiera.ProviderContext, key string) dgo.Value {
 	return nil
 }
 
-func moduleProviders(sc hieraapi.ServerContext) dgo.Map {
+func moduleProviders(sc api.ServerContext) dgo.Map {
 	var mp dgo.Map
 	if c, ok := sc.CachedValue(`hiera::moduleproviders`); ok {
 		mp = c.(dgo.Map)
@@ -58,7 +58,7 @@ func moduleProviders(sc hieraapi.ServerContext) dgo.Map {
 
 var notFoundLookupKeyFunc = vf.Value(func(pc hiera.ProviderContext, key string) dgo.Value { return nil }).(dgo.Function)
 
-func loadModuleProvider(ic hieraapi.Invocation, mpm dgo.Map, moduleName string) dgo.Function {
+func loadModuleProvider(ic api.Invocation, mpm dgo.Map, moduleName string) dgo.Function {
 	var mp dgo.Function = notFoundLookupKeyFunc
 	if modulePath, ok := ic.SessionOptions().Get(ModulePath).(dgo.String); ok {
 		for _, path := range filepath.SplitList(modulePath.GoString()) {
@@ -114,7 +114,7 @@ func loadModule(path, moduleName string) dgo.Function {
 func loadHieraConfig(configPath, moduleName string) dgo.Function {
 	return vf.Value(
 		func(pc hiera.ProviderContext, key string) dgo.Value {
-			if sc, ok := pc.(hieraapi.ServerContext); ok {
+			if sc, ok := pc.(api.ServerContext); ok {
 				return ConfigLookupKeyAt(sc, configPath, key, moduleName)
 			}
 			return nil

@@ -1,4 +1,4 @@
-package hieraapi
+package api
 
 import (
 	"github.com/lyraproj/dgo/dgo"

@@ -1,5 +1,5 @@
-// Package hieraapi contains interfaces that are used throughout the hiera code base
-package hieraapi
+// Package api contains interfaces that are used throughout the hiera code base
+package api
 
 // HieraRoot is an option key that can be used to change the default root which is the current working directory
 const HieraRoot = `Hiera::Root`

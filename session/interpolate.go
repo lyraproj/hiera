@@ -8,7 +8,7 @@ import (
 
 	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/dgo/vf"
-	"github.com/lyraproj/hiera/hieraapi"
+	"github.com/lyraproj/hiera/api"
 )
 
 var iplPattern = regexp.MustCompile(`%{[^}]*}`)
@@ -128,7 +128,7 @@ func (ic *ivContext) InterpolateString(str string, allowMethods bool) (dgo.Value
 				}
 				return ``
 			default:
-				val := ic.Lookup(hieraapi.NewKey(expr), nil)
+				val := ic.Lookup(api.NewKey(expr), nil)
 				if methodKey == aliasMethod {
 					result = val
 					return ``
@@ -145,7 +145,7 @@ func (ic *ivContext) InterpolateString(str string, allowMethods bool) (dgo.Value
 
 // InterpolateInScope resolves a key expression in the invocation scope
 func (ic *ivContext) InterpolateInScope(expr string, allowMethods bool) dgo.Value {
-	key := hieraapi.NewKey(expr)
+	key := api.NewKey(expr)
 	if val := ic.Scope().Get(key.Root()); val != nil {
 		val, _ = ic.doInterpolate(val, allowMethods)
 		return key.Dig(ic, val)

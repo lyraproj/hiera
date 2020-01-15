@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/lyraproj/dgo/vf"
+	"github.com/lyraproj/hiera/api"
 	"github.com/lyraproj/hiera/config"
 	"github.com/lyraproj/hiera/hiera"
-	"github.com/lyraproj/hiera/hieraapi"
 	"github.com/lyraproj/hiera/provider"
 	sdk "github.com/lyraproj/hierasdk/hiera"
 	"github.com/spf13/cobra"
@@ -121,18 +121,18 @@ func cmdLookup(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 	cmdOpts.Default = dflt.StringPointer()
 	cfgOpts := vf.MutableMap()
-	cfgOpts.Put(hieraapi.HieraDialect, dialect)
+	cfgOpts.Put(api.HieraDialect, dialect)
 	cfgOpts.Put(
 		provider.LookupKeyFunctions, []sdk.LookupKey{provider.ConfigLookupKey, provider.Environment})
 
 	if configPath != `` {
-		cfgOpts.Put(hieraapi.HieraConfig, configPath)
+		cfgOpts.Put(api.HieraConfig, configPath)
 	}
 	if len(facts) > 0 {
 		cmdOpts.VarPaths = append(cmdOpts.VarPaths, facts...)
 	}
 
-	return hiera.TryWithParent(context.Background(), provider.MuxLookupKey, cfgOpts, func(c hieraapi.Session) error {
+	return hiera.TryWithParent(context.Background(), provider.MuxLookupKey, cfgOpts, func(c api.Session) error {
 		hiera.LookupAndRender(c, &cmdOpts, args, cmd.OutOrStdout())
 		return nil
 	})
