@@ -1,0 +1,2 @@
+# Should not be found, module has no hiera.yaml
+three::a: "value of three::a"

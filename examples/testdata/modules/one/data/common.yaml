@@ -1,0 +1,13 @@
+one::a: "value of one::a"
+
+one::merge:
+  b: "value of one::merge b"
+
+one::ipl_c: x = %{c.x}, y = %{c.y}
+
+# This one should not be found
+two::a: "value of two::a in module one"
+
+lookup_options:
+  one::merge:
+    merge: deep

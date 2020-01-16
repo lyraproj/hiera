@@ -1,0 +1,21 @@
+first: value of first
+
+hash:
+  one: 1
+  two: two
+  three:
+    a: A
+    c: C
+
+array:
+  - one
+  - two
+  - three
+
+sense: Don't reveal this
+
+lookup_options:
+  hash:
+    merge: deep
+  sense:
+    convert_to: sensitive
