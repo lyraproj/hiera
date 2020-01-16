@@ -165,10 +165,10 @@ func loadCertPool(pemFile string) (*x509.CertPool, error) {
 }
 
 func makeTLSconfig() (*tls.Config, error) {
-	tlsConfig := new(tls.Config)
 	if sslCert == "" || sslKey == "" {
-		return tlsConfig, nil
+		return nil, nil
 	}
+	tlsConfig := new(tls.Config)
 
 	cert, err := tls.LoadX509KeyPair(sslCert, sslKey)
 	if err != nil {
