@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"unicode"
 
 	"github.com/lyraproj/dgo/streamer/pcore"
 
@@ -265,6 +266,12 @@ func (s *session) createFunctionLoader(l dgo.Loader) dgo.Loader {
 func (s *session) createPluginLoader(p dgo.Loader) dgo.Loader {
 	var pluginFinder = func(l dgo.Loader, _ string) interface{} {
 		an := l.AbsoluteName()
+
+		// In Windows, the path might start with a slash followed by a drive letter. If it does, the slash
+		// must be removed.
+		if runtime.GOOS == "windows" && len(an) > 3 && an[0] == '/' && unicode.IsLetter(rune(an[1])) && an[2] == ':' && an[3] == '/' {
+			an = an[1:]
+		}
 
 		// Strip everything up to '/plugin/'
 		ix := strings.Index(an, `/plugin/`)
