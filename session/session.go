@@ -267,16 +267,16 @@ func (s *session) createPluginLoader(p dgo.Loader) dgo.Loader {
 	var pluginFinder = func(l dgo.Loader, _ string) interface{} {
 		an := l.AbsoluteName()
 
-		// In Windows, the path might start with a slash followed by a drive letter. If it does, the slash
-		// must be removed.
-		if runtime.GOOS == "windows" && len(an) > 3 && an[0] == '/' && unicode.IsLetter(rune(an[1])) && an[2] == ':' && an[3] == '/' {
-			an = an[1:]
-		}
-
 		// Strip everything up to '/plugin/'
 		ix := strings.Index(an, `/plugin/`)
 		if ix < 0 {
 			return nil
+		}
+		path := an[ix+7:]
+		// In Windows, the path might start with a slash followed by a drive letter. If it does, the slash
+		// must be removed.
+		if runtime.GOOS == "windows" && len(path) > 3 && path[0] == '/' && unicode.IsLetter(rune(path[1])) && path[2] == ':' && path[3] == '/' {
+			path = path[1:]
 		}
 
 		// Get the plugin registry for this session
@@ -286,7 +286,7 @@ func (s *session) createPluginLoader(p dgo.Loader) dgo.Loader {
 		} else {
 			return nil
 		}
-		return allPlugins.startPlugin(s.SessionOptions(), an[ix+7:])
+		return allPlugins.startPlugin(s.SessionOptions(), path)
 	}
 
 	var pluginNamespace func(l dgo.Loader, name string) dgo.Loader
