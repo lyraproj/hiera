@@ -120,7 +120,12 @@ func getUnixSocketDir(opts dgo.Map) string {
 	return defaultUnixSocketDir
 }
 
+// getDefaultPluginTransport returns the plugin transport method to use
+// for Windows this can be unix if the OS build is 17063 or above,
+// otherwise tcp is used
+// https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/
 func getDefaultPluginTransport() string {
+	// get the Windows build number from the registry
 	if runtime.GOOS == "windows" {
 		k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\Windows NT\CurrentVersion`, registry.READ)
 		if err != nil {
