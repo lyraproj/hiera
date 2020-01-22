@@ -2,8 +2,8 @@ name: Hiera Tests
 on: [push, pull_request]
 jobs:
 
-  build:
-    name: Build
+  test:
+    name: Test Linux
     runs-on: ubuntu-latest
     steps:
 
@@ -21,6 +21,23 @@ jobs:
 
       - name: Lint
         run: ./bin/golangci-lint run ./...
+
+      - name: Test
+        run: go test -tags test -v ./...
+
+  test-windows:
+    name: Test Windows
+    runs-on: windows-latest
+    steps:
+
+      - name: Set up Go 1.13
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.13
+        id: go
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v1
 
       - name: Test
         run: go test -tags test -v ./...
