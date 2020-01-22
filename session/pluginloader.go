@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -24,6 +25,7 @@ import (
 	"github.com/lyraproj/dgo/vf"
 	"github.com/lyraproj/hierasdk/hiera"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/sys/windows/registry"
 )
 
 // a plugin corresponds to a loaded process
@@ -112,13 +114,33 @@ func getUnixSocketDir(opts dgo.Map) string {
 	if v, ok := opts.Get("unixSocketDir").(dgo.String); ok {
 		return v.GoString()
 	}
-	if v := os.Getenv("TMPDIR"); v != "" {
+	if v := os.TempDir(); v != "" {
 		return v
 	}
 	return defaultUnixSocketDir
 }
 
-var defaultPluginTransport = "unix"
+func getDefaultPluginTransport() string {
+	if runtime.GOOS == "windows" {
+		k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\Windows NT\CurrentVersion`, registry.READ)
+		if err != nil {
+			return "tcp"
+		}
+		defer k.Close()
+		s, _, err := k.GetStringValue("CurrentBuild")
+		if err != nil {
+			return "tcp"
+		}
+		ver, err := strconv.Atoi(s)
+		if err != nil {
+			return "tcp"
+		}
+		if ver < 17063 {
+			return "tcp"
+		}
+	}
+	return "unix"
+}
 
 // getPluginTransport resolves value of pluginTransport
 func getPluginTransport(opts dgo.Map) string {
@@ -131,7 +153,7 @@ func getPluginTransport(opts dgo.Map) string {
 			return s
 		}
 	}
-	return defaultPluginTransport
+	return getDefaultPluginTransport()
 }
 
 // startPlugin will start the plugin loaded from the given path and register the functions that it makes available
