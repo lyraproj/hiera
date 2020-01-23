@@ -3,5 +3,5 @@
 package session
 
 func getDefaultPluginTransport() string {
-	return "unix"
+	return pluginTransportUnix
 }

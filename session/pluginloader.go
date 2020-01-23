@@ -105,6 +105,8 @@ func ignoreOut(cmdOut io.Reader, wGroup *sync.WaitGroup) {
 	}
 }
 
+var pluginTransportUnix = "unix"
+var pluginTransportTcp = "tcp"
 var defaultUnixSocketDir = "/tmp"
 
 // getUnixSocketDir resolves value of unixSocketDir
@@ -124,8 +126,8 @@ func getPluginTransport(opts dgo.Map) string {
 		s := v.GoString()
 		switch s {
 		case
-			"unix",
-			"tcp":
+			pluginTransportUnix,
+			pluginTransportTcp:
 			return s
 		}
 	}
@@ -315,7 +317,7 @@ func (p *plugin) callPlugin(luType, name string, params url.Values) dgo.Value {
 	var ad *url.URL
 	var err error
 
-	if p.network == "unix" {
+	if p.network == pluginTransportUnix {
 		ad, err = url.Parse(fmt.Sprintf(`http://%s/%s/%s`, p.network, luType, name))
 	} else {
 		ad, err = url.Parse(fmt.Sprintf(`http://%s/%s/%s`, p.addr, luType, name))

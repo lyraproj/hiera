@@ -13,9 +13,9 @@ import (
 // https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/
 func getDefaultPluginTransport() string {
 	if isBuild17063() {
-		return "unix"
+		return pluginTransportUnix
 	}
-	return "tcp"
+	return pluginTransportTcp
 }
 
 // isBuild17063 gets the Windows build number from the registry
