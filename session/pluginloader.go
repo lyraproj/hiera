@@ -12,7 +12,6 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -117,17 +116,6 @@ func getUnixSocketDir(opts dgo.Map) string {
 		return v
 	}
 	return defaultUnixSocketDir
-}
-
-// getDefaultPluginTransport returns the plugin transport method to use
-// for Windows this can be unix if the OS build is 17063 or above,
-// otherwise tcp is used
-// https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/
-func getDefaultPluginTransport() string {
-	if runtime.GOOS == "windows" && !isBuild17063() {
-		return "tcp"
-	}
-	return "unix"
 }
 
 // getPluginTransport resolves value of pluginTransport
