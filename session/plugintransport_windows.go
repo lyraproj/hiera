@@ -15,7 +15,7 @@ func getDefaultPluginTransport() string {
 	if isBuild17063() {
 		return pluginTransportUnix
 	}
-	return pluginTransportTcp
+	return pluginTransportTCP
 }
 
 // isBuild17063 gets the Windows build number from the registry

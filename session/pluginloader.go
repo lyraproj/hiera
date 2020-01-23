@@ -105,8 +105,9 @@ func ignoreOut(cmdOut io.Reader, wGroup *sync.WaitGroup) {
 	}
 }
 
-var pluginTransportUnix = "unix"
-var pluginTransportTcp = "tcp"
+const pluginTransportUnix = "unix"
+const pluginTransportTCP = "tcp"
+
 var defaultUnixSocketDir = "/tmp"
 
 // getUnixSocketDir resolves value of unixSocketDir
@@ -127,7 +128,7 @@ func getPluginTransport(opts dgo.Map) string {
 		switch s {
 		case
 			pluginTransportUnix,
-			pluginTransportTcp:
+			pluginTransportTCP:
 			return s
 		}
 	}
