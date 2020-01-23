@@ -25,7 +25,6 @@ import (
 	"github.com/lyraproj/dgo/vf"
 	"github.com/lyraproj/hierasdk/hiera"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/sys/windows/registry"
 )
 
 // a plugin corresponds to a loaded process
@@ -125,24 +124,8 @@ func getUnixSocketDir(opts dgo.Map) string {
 // otherwise tcp is used
 // https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/
 func getDefaultPluginTransport() string {
-	// get the Windows build number from the registry
-	if runtime.GOOS == "windows" {
-		k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\Windows NT\CurrentVersion`, registry.READ)
-		if err != nil {
-			return "tcp"
-		}
-		defer k.Close()
-		s, _, err := k.GetStringValue("CurrentBuild")
-		if err != nil {
-			return "tcp"
-		}
-		ver, err := strconv.Atoi(s)
-		if err != nil {
-			return "tcp"
-		}
-		if ver < 17063 {
-			return "tcp"
-		}
+	if runtime.GOOS == "windows" && !isBuild17063() {
+		return "tcp"
 	}
 	return "unix"
 }
