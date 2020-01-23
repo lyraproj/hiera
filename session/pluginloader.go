@@ -105,6 +105,9 @@ func ignoreOut(cmdOut io.Reader, wGroup *sync.WaitGroup) {
 	}
 }
 
+const pluginTransportUnix = "unix"
+const pluginTransportTCP = "tcp"
+
 var defaultUnixSocketDir = "/tmp"
 
 // getUnixSocketDir resolves value of unixSocketDir
@@ -112,13 +115,11 @@ func getUnixSocketDir(opts dgo.Map) string {
 	if v, ok := opts.Get("unixSocketDir").(dgo.String); ok {
 		return v.GoString()
 	}
-	if v := os.Getenv("TMPDIR"); v != "" {
+	if v := os.TempDir(); v != "" {
 		return v
 	}
 	return defaultUnixSocketDir
 }
-
-var defaultPluginTransport = "unix"
 
 // getPluginTransport resolves value of pluginTransport
 func getPluginTransport(opts dgo.Map) string {
@@ -126,12 +127,12 @@ func getPluginTransport(opts dgo.Map) string {
 		s := v.GoString()
 		switch s {
 		case
-			"unix",
-			"tcp":
+			pluginTransportUnix,
+			pluginTransportTCP:
 			return s
 		}
 	}
-	return defaultPluginTransport
+	return getDefaultPluginTransport()
 }
 
 // startPlugin will start the plugin loaded from the given path and register the functions that it makes available
@@ -317,7 +318,7 @@ func (p *plugin) callPlugin(luType, name string, params url.Values) dgo.Value {
 	var ad *url.URL
 	var err error
 
-	if p.network == "unix" {
+	if p.network == pluginTransportUnix {
 		ad, err = url.Parse(fmt.Sprintf(`http://%s/%s/%s`, p.network, luType, name))
 	} else {
 		ad, err = url.Parse(fmt.Sprintf(`http://%s/%s/%s`, p.addr, luType, name))
