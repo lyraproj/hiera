@@ -17,6 +17,10 @@ sense: Don't reveal this
 nullentry:
   nv: null
 
+lookup_array: '%{lookup("array")}'
+
+lookup_nothing: '%{lookup("nothing")}'
+
 lookup_options:
   hash:
     merge: deep

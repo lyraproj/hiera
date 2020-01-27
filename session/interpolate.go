@@ -133,6 +133,9 @@ func (ic *ivContext) InterpolateString(str string, allowMethods bool) (dgo.Value
 					result = val
 					return ``
 				}
+				if val == nil {
+					return ``
+				}
 				return val.String()
 			}
 		})
