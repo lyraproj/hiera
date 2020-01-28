@@ -19,7 +19,11 @@ nullentry:
 
 lookup_array: '%{lookup("array")}'
 
+alias_array: '%{alias("array")}'
+
 lookup_nothing: '%{lookup("nothing")}'
+
+alias_nothing: '%{alias("nothing")}'
 
 lookup_options:
   hash:

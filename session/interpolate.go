@@ -108,12 +108,12 @@ func (ic *ivContext) InterpolateString(str string, allowMethods bool) (dgo.Value
 
 	return ic.WithInterpolation(str, func() dgo.Value {
 		var result dgo.Value
+		var methodKey int
 		str = iplPattern.ReplaceAllStringFunc(str, func(match string) string {
 			expr := strings.TrimSpace(match[2 : len(match)-1])
 			if emptyInterpolations[expr] {
 				return ``
 			}
-			var methodKey int
 			methodKey, expr = getMethodAndData(expr, allowMethods)
 			if methodKey == aliasMethod && match != str {
 				panic(errors.New(`'alias' interpolation is only permitted if the expression is equal to the entire string`))
@@ -139,7 +139,7 @@ func (ic *ivContext) InterpolateString(str string, allowMethods bool) (dgo.Value
 				return val.String()
 			}
 		})
-		if result == nil {
+		if result == nil && methodKey != aliasMethod {
 			result = vf.String(str)
 		}
 		return result
