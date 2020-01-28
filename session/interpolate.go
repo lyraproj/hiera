@@ -68,14 +68,23 @@ func (ic *ivContext) doInterpolate(value dgo.Value, allowMethods bool) (dgo.Valu
 	return value, false
 }
 
-const scopeMethod = 1
-const aliasMethod = 2
-const lookupMethod = 3
-const literalMethod = 4
+type iplMethod int
+
+const (
+	scopeMethod = iplMethod(iota)
+	aliasMethod
+	strictAliasMethod
+	lookupMethod
+	literalMethod
+)
+
+func (m iplMethod) isAlias() bool {
+	return m == aliasMethod || m == strictAliasMethod
+}
 
 var methodMatch = regexp.MustCompile(`^(\w+)\((?:["]([^"]+)["]|[']([^']+)['])\)$`)
 
-func getMethodAndData(expr string, allowMethods bool) (int, string) {
+func getMethodAndData(expr string, allowMethods bool) (iplMethod, string) {
 	if groups := methodMatch.FindStringSubmatch(expr); groups != nil {
 		if !allowMethods {
 			panic(errors.New(`interpolation using method syntax is not allowed in this context`))
@@ -87,6 +96,8 @@ func getMethodAndData(expr string, allowMethods bool) (int, string) {
 		switch groups[1] {
 		case `alias`:
 			return aliasMethod, data
+		case `strict_alias`:
+			return strictAliasMethod, data
 		case `hiera`, `lookup`:
 			return lookupMethod, data
 		case `literal`:
@@ -108,15 +119,15 @@ func (ic *ivContext) InterpolateString(str string, allowMethods bool) (dgo.Value
 
 	return ic.WithInterpolation(str, func() dgo.Value {
 		var result dgo.Value
+		var methodKey iplMethod
 		str = iplPattern.ReplaceAllStringFunc(str, func(match string) string {
 			expr := strings.TrimSpace(match[2 : len(match)-1])
 			if emptyInterpolations[expr] {
 				return ``
 			}
-			var methodKey int
 			methodKey, expr = getMethodAndData(expr, allowMethods)
-			if methodKey == aliasMethod && match != str {
-				panic(errors.New(`'alias' interpolation is only permitted if the expression is equal to the entire string`))
+			if methodKey.isAlias() && match != str {
+				panic(errors.New(`'alias'/'strict_alias' interpolation is only permitted if the expression is equal to the entire string`))
 			}
 
 			switch methodKey {
@@ -129,14 +140,17 @@ func (ic *ivContext) InterpolateString(str string, allowMethods bool) (dgo.Value
 				return ``
 			default:
 				val := ic.Lookup(api.NewKey(expr), nil)
-				if methodKey == aliasMethod {
+				if methodKey.isAlias() {
 					result = val
+					return ``
+				}
+				if val == nil {
 					return ``
 				}
 				return val.String()
 			}
 		})
-		if result == nil {
+		if result == nil && methodKey != strictAliasMethod {
 			result = vf.String(str)
 		}
 		return result

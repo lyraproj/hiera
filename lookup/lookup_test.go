@@ -25,6 +25,12 @@ func TestLookup_defaultString(t *testing.T) {
 	require.Equal(t, "\"23\"\n", string(result))
 }
 
+func TestLookup_notFound(t *testing.T) {
+	result, err := cli.ExecuteLookup(`foo`)
+	require.NoError(t, err)
+	require.Equal(t, "", string(result))
+}
+
 func TestLookup_defaultEmptyString(t *testing.T) {
 	result, err := cli.ExecuteLookup(`--default`, ``, `foo`)
 	require.NoError(t, err)
@@ -143,6 +149,54 @@ func TestLookup_sensitive(t *testing.T) {
 		result, err = cli.ExecuteLookup(`sense`)
 		require.NoError(t, err)
 		require.Equal(t, "__type: sensitive\n__value: Don't reveal this\n", string(result))
+	})
+}
+
+func TestLookup_lookup(t *testing.T) {
+	inTestdata(func() {
+		result, err := cli.ExecuteLookup(`lookup_array`)
+		require.NoError(t, err)
+		require.Equal(t, "'{\"one\",\"two\",\"three\"}'\n", string(result))
+	})
+}
+
+func TestLookup_alias(t *testing.T) {
+	inTestdata(func() {
+		result, err := cli.ExecuteLookup(`alias_array`)
+		require.NoError(t, err)
+		require.Equal(t, "- one\n- two\n- three\n", string(result))
+	})
+}
+
+func TestLookup_strictAlias(t *testing.T) {
+	inTestdata(func() {
+		result, err := cli.ExecuteLookup(`strict_alias_array`)
+		require.NoError(t, err)
+		require.Equal(t, "- one\n- two\n- three\n", string(result))
+	})
+}
+
+func TestLookup_lookupNothing(t *testing.T) {
+	inTestdata(func() {
+		result, err := cli.ExecuteLookup(`lookup_nothing`)
+		require.NoError(t, err)
+		require.Equal(t, "\"\"\n", string(result))
+	})
+}
+
+func TestLookup_aliasNothing(t *testing.T) {
+	inTestdata(func() {
+		result, err := cli.ExecuteLookup(`alias_nothing`)
+		require.NoError(t, err)
+		require.Equal(t, "\"\"\n", string(result))
+	})
+}
+
+func TestLookup_strictAliasNothing(t *testing.T) {
+	inTestdata(func() {
+		result, err := cli.ExecuteLookup(`strict_alias_nothing`)
+		require.NoError(t, err)
+		require.Equal(t, ``, string(result))
 	})
 }
 
