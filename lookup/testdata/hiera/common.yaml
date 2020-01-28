@@ -21,9 +21,13 @@ lookup_array: '%{lookup("array")}'
 
 alias_array: '%{alias("array")}'
 
+strict_alias_array: '%{strict_alias("array")}'
+
 lookup_nothing: '%{lookup("nothing")}'
 
 alias_nothing: '%{alias("nothing")}'
+
+strict_alias_nothing: '%{strict_alias("nothing")}'
 
 lookup_options:
   hash:

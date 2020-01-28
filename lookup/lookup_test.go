@@ -168,6 +168,14 @@ func TestLookup_alias(t *testing.T) {
 	})
 }
 
+func TestLookup_strictAlias(t *testing.T) {
+	inTestdata(func() {
+		result, err := cli.ExecuteLookup(`strict_alias_array`)
+		require.NoError(t, err)
+		require.Equal(t, "- one\n- two\n- three\n", string(result))
+	})
+}
+
 func TestLookup_lookupNothing(t *testing.T) {
 	inTestdata(func() {
 		result, err := cli.ExecuteLookup(`lookup_nothing`)
@@ -179,6 +187,14 @@ func TestLookup_lookupNothing(t *testing.T) {
 func TestLookup_aliasNothing(t *testing.T) {
 	inTestdata(func() {
 		result, err := cli.ExecuteLookup(`alias_nothing`)
+		require.NoError(t, err)
+		require.Equal(t, "\"\"\n", string(result))
+	})
+}
+
+func TestLookup_strictAliasNothing(t *testing.T) {
+	inTestdata(func() {
+		result, err := cli.ExecuteLookup(`strict_alias_nothing`)
 		require.NoError(t, err)
 		require.Equal(t, ``, string(result))
 	})

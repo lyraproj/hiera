@@ -77,7 +77,7 @@ func TestLookup_interpolateAlias(t *testing.T) {
 }
 
 func TestLookup_interpolateBadAlias(t *testing.T) {
-	require.NotOk(t, `'alias' interpolation is only permitted if the expression is equal to the entire string`,
+	require.NotOk(t, `'alias'/'strict_alias' interpolation is only permitted if the expression is equal to the entire string`,
 		hiera.TryWithParent(context.Background(), provider.YamlLookupKey, options, func(hs api.Session) error {
 			hiera.Lookup(hs.Invocation(nil, nil), `ipBadAlias`, nil, options)
 			return nil
