@@ -145,13 +145,7 @@ func (r *pluginRegistry) startPlugin(opts dgo.Map, path string) dgo.Value {
 			return p.functionMap()
 		}
 	}
-
-	cmd := exec.Command(path)
-	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, `HIERA_MAGIC_COOKIE=`+strconv.Itoa(hiera.MagicCookie))
-	cmd.Env = append(cmd.Env, `HIERA_PLUGIN_SOCKET_DIR=`+getUnixSocketDir(opts))
-	cmd.Env = append(cmd.Env, `HIERA_PLUGIN_TRANSPORT=`+getPluginTransport(opts))
-	cmd.SysProcAttr = procAttrs
+	cmd := initCmd(opts, path)
 	cmdErr := createPipe(path, `stderr`, cmd.StderrPipe)
 	cmdOut := createPipe(path, `stdout`, cmd.StdoutPipe)
 	if err := cmd.Start(); err != nil {
@@ -198,6 +192,16 @@ func (r *pluginRegistry) startPlugin(opts dgo.Map, path string) dgo.Value {
 	r.plugins[path] = p
 
 	return p.functionMap()
+}
+
+func initCmd(opts dgo.Map, path string) *exec.Cmd {
+	cmd := exec.Command(path)
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, `HIERA_MAGIC_COOKIE=`+strconv.Itoa(hiera.MagicCookie))
+	cmd.Env = append(cmd.Env, `HIERA_PLUGIN_SOCKET_DIR=`+getUnixSocketDir(opts))
+	cmd.Env = append(cmd.Env, `HIERA_PLUGIN_TRANSPORT=`+getPluginTransport(opts))
+	cmd.SysProcAttr = procAttrs
+	return cmd
 }
 
 func (p *plugin) kill() {
