@@ -4,11 +4,11 @@ package session
 
 import (
 	"os"
-	"os/signal"
+	"syscall"
 )
 
-var procAttrs = nil
+var procAttrs = &syscall.SysProcAttr{}
 
 func terminateProc(process *os.Process) error {
-	process.Signal(syscall.SIGINT)
+	return process.Signal(syscall.SIGINT)
 }
