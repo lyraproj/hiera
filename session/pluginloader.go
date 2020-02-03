@@ -15,7 +15,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/lyraproj/dgo/dgo"
@@ -146,12 +145,7 @@ func (r *pluginRegistry) startPlugin(opts dgo.Map, path string) dgo.Value {
 			return p.functionMap()
 		}
 	}
-
-	cmd := exec.Command(path)
-	cmd.Env = []string{`HIERA_MAGIC_COOKIE=` + strconv.Itoa(hiera.MagicCookie)}
-	cmd.Env = append(cmd.Env, `HIERA_PLUGIN_SOCKET_DIR=`+getUnixSocketDir(opts))
-	cmd.Env = append(cmd.Env, `HIERA_PLUGIN_TRANSPORT=`+getPluginTransport(opts))
-
+	cmd := initCmd(opts, path)
 	cmdErr := createPipe(path, `stderr`, cmd.StderrPipe)
 	cmdOut := createPipe(path, `stdout`, cmd.StdoutPipe)
 	if err := cmd.Start(); err != nil {
@@ -200,6 +194,16 @@ func (r *pluginRegistry) startPlugin(opts dgo.Map, path string) dgo.Value {
 	return p.functionMap()
 }
 
+func initCmd(opts dgo.Map, path string) *exec.Cmd {
+	cmd := exec.Command(path)
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, `HIERA_MAGIC_COOKIE=`+strconv.Itoa(hiera.MagicCookie))
+	cmd.Env = append(cmd.Env, `HIERA_PLUGIN_SOCKET_DIR=`+getUnixSocketDir(opts))
+	cmd.Env = append(cmd.Env, `HIERA_PLUGIN_TRANSPORT=`+getPluginTransport(opts))
+	cmd.SysProcAttr = procAttrs
+	return cmd
+}
+
 func (p *plugin) kill() {
 	p.lock.Lock()
 	process := p.process
@@ -213,9 +217,8 @@ func (p *plugin) kill() {
 		p.lock.Unlock()
 	}()
 
-	// SIGINT on windows will fail
 	graceful := true
-	if err := process.Signal(syscall.SIGINT); err != nil {
+	if err := terminateProc(process); err != nil {
 		graceful = false
 	}
 
@@ -231,7 +234,7 @@ func (p *plugin) kill() {
 			_ = process.Kill()
 		}
 	} else {
-		// Windows. Just kill it!
+		// Graceful terminate failed. Just kill it!
 		_ = process.Kill()
 	}
 }
