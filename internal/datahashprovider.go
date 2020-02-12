@@ -107,7 +107,7 @@ func (dh *dataHashProvider) FullName() string {
 // NewDataHashProvider creates a new provider with a data_hash function configured from the given entry
 func NewDataHashProvider(he api.Entry) api.DataProvider {
 	ls := he.Locations()
-	return &dataHashProvider{hierarchyEntry: he, hashes: vf.MapWithCapacity(len(ls), nil)}
+	return &dataHashProvider{hierarchyEntry: he, hashes: vf.MapWithCapacity(len(ls))}
 }
 
 func optionsWithLocation(options dgo.Map, loc string) dgo.Map {

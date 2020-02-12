@@ -49,7 +49,7 @@ func (ic *ivContext) doInterpolate(value dgo.Value, allowMethods bool) (dgo.Valu
 		return a, changed
 	}
 	if h, ok := value.(dgo.Map); ok {
-		cp := vf.MapWithCapacity((h.Len()*4)/3, nil)
+		cp := vf.MapWithCapacity(h.Len())
 		changed := false
 		h.EachEntry(func(e dgo.MapEntry) {
 			k, kc := ic.doInterpolate(e.Key(), allowMethods)

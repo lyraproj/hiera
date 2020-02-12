@@ -16,7 +16,7 @@ import (
 func Environment(_ hiera.ProviderContext, key string) dgo.Value {
 	if key == `env` {
 		env := os.Environ()
-		em := vf.MapWithCapacity(len(env), nil)
+		em := vf.MapWithCapacity(len(env))
 		for _, ev := range env {
 			if ei := strings.IndexRune(ev, '='); ei > 0 {
 				em.Put(ev[:ei], ev[ei+1:])
