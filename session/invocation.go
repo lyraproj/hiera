@@ -147,7 +147,9 @@ func (ic *ivContext) extractConversion() (convertToType dgo.Type, convertToArgs 
 		ts = ct
 	}
 	if ts != nil {
-		convertToType = ic.Dialect().ParseType(ic.AliasMap(), ts.(dgo.String))
+		ic.AliasMap().Collect(func(aa dgo.AliasAdder) {
+			convertToType = ic.Dialect().ParseType(aa, ts.(dgo.String))
+		})
 	}
 	return
 }

@@ -65,6 +65,13 @@ const hieraTypeString = `{
 // FileName is the default file name for the Hiera configuration file.
 const FileName = `hiera.yaml`
 
+var cfgType dgo.Type
+
+func init() {
+	tf.ParseType(definitions)
+	cfgType = tf.ParseType(hieraTypeString)
+}
+
 // New creates a new unresolved Config from the given path. If the path does not exist, the
 // default config is returned.
 func New(configPath string) api.Config {
@@ -83,15 +90,15 @@ func New(configPath string) api.Config {
 		return dc
 	}
 
-	aliasMap := tf.NewAliasMap()
-	tf.ParseFile(aliasMap, `internal definitions`, definitions)
-	cfgType := tf.ParseFile(aliasMap, `internal config`, hieraTypeString)
 	yv, err := yaml.Unmarshal(content)
 	if err != nil {
 		panic(err)
 	}
 	cfgMap := yv.(dgo.Map)
-	cfgMap.SetType(cfgType)
+	if !cfgType.Instance(cfgMap) {
+		panic(tf.IllegalAssignment(cfgType, cfgMap))
+	}
+
 	return createConfig(configPath, cfgMap)
 }
 

@@ -207,7 +207,11 @@ func parseCommandLineValue(c api.Session, vs string) dgo.Value {
 	vs = strings.TrimSpace(vs)
 	for _, pfx := range needParsePrefix {
 		if strings.HasPrefix(vs, pfx) {
-			return typ.ExactValue(c.Dialect().ParseType(c.AliasMap(), vf.String(vs)))
+			var v dgo.Value
+			c.AliasMap().Collect(func(aa dgo.AliasAdder) {
+				v = typ.ExactValue(c.Dialect().ParseType(aa, vf.String(vs)))
+			})
+			return v
 		}
 	}
 	return vf.String(vs)

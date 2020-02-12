@@ -23,12 +23,12 @@ github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORN
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0 h1:45sCR5RtlFHMR4UwH9sdQ5TC8v0qDQCHnXt+kaKSTVE=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
-github.com/lyraproj/dgo v0.3.2 h1:q9WS1cRdTKLw96RxgQ2anlWNqFK2A7OjMzTaAQb9Tfw=
-github.com/lyraproj/dgo v0.3.2/go.mod h1:O9r/qo0ktKMaYLVBAKModbBKAMCVZFhrkMClfmxdqB0=
-github.com/lyraproj/dgoyaml v0.3.1 h1:UL/54swmeNRhbNL3tqEYuoW987ky1ln7KypRQvB50iY=
-github.com/lyraproj/dgoyaml v0.3.1/go.mod h1:q/LG5RSDegYLko1PcAwl9H7gVUr3gKyijd7dW3QcVZ4=
-github.com/lyraproj/hierasdk v0.3.0 h1:FNkK79DvFreYHHpXNXTmBEuhyoBqmfSF1OsOVRsZdQo=
-github.com/lyraproj/hierasdk v0.3.0/go.mod h1:Kv/Y2kvdtBPy3NPOBI3FD2lGbgtLqQFAWL32uz2Tipk=
+github.com/lyraproj/dgo v0.4.0-alpha h1:KBNb7XeoOQ0S2CRbx43Xd2fGS9ziyRcmnHusP3tcffs=
+github.com/lyraproj/dgo v0.4.0-alpha/go.mod h1:O9r/qo0ktKMaYLVBAKModbBKAMCVZFhrkMClfmxdqB0=
+github.com/lyraproj/dgoyaml v0.4.0-alpha h1:uVeTXCrssGk1YWFWesYn1YOlJUhPO/eS6GTPQ2GIBxc=
+github.com/lyraproj/dgoyaml v0.4.0-alpha/go.mod h1:m0NCSryzpUNvslqLEDXjWFpkPTyUDrxumw/aEm2uY0w=
+github.com/lyraproj/hierasdk v0.4.0-alpha h1:ZsQCUHB5hjfkZaDyAyrzWX8NNZfZnM4XuVPdP3pOssc=
+github.com/lyraproj/hierasdk v0.4.0-alpha/go.mod h1:4zalyXyiIS8GzO2YIsM8k+70STTQhY2oUttL7DRAn+s=
 github.com/magiconair/properties v1.8.0/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=
 github.com/mitchellh/go-homedir v1.1.0 h1:lukF9ziXFxDFPkA1vsr5zpc1XuPDn/wFntq5mG+4E0Y=
 github.com/mitchellh/go-homedir v1.1.0/go.mod h1:SfyaCUpYCn1Vlf4IUYiD9fPX4A5wJrkLzIz1N1q0pr0=
@@ -69,5 +69,5 @@ gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 h1:YR8cESwS4TdDjEe65xsg0ogR
 gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/yaml.v2 v2.2.2 h1:ZCJp+EgiOT7lHqUV2J862kp8Qj64Jo6az82+3Td9dZw=
 gopkg.in/yaml.v2 v2.2.2/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
-gopkg.in/yaml.v3 v3.0.0-20191120175047-4206685974f2 h1:XZx7nhd5GMaZpmDaEHFVafUZC7ya0fuo7cSJ3UCKYmM=
-gopkg.in/yaml.v3 v3.0.0-20191120175047-4206685974f2/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
+gopkg.in/yaml.v3 v3.0.0-20200121175148-a6ecf24a6d71 h1:Xe2gvTZUJpsvOWUnvmL/tmhVBZUmHSvLbMjRj6NUUKo=
+gopkg.in/yaml.v3 v3.0.0-20200121175148-a6ecf24a6d71/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
