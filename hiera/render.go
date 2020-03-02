@@ -29,33 +29,35 @@ const (
 
 // Render renders a value on a writer using a specified RenderName
 func Render(s api.Session, renderAs RenderName, value dgo.Value, out io.Writer) {
+	// Convert value to rich data format without references
+	dedupStream := func(value dgo.Value, consumer streamer.Consumer) {
+		opts := streamer.DefaultOptions()
+		opts.DedupLevel = streamer.NoDedup
+		ser := streamer.New(s.AliasMap(), opts)
+		ser.Stream(value, consumer)
+	}
+
 	switch renderAs {
 	case JSON:
 		if value.Equals(vf.Nil) {
 			util.WriteString(out, "null\n")
 		} else {
-			// Convert value to rich data format
-			opts := streamer.DefaultOptions()
-			opts.DedupLevel = streamer.NoDedup
-			ser := streamer.New(s.AliasMap(), opts)
-			ser.Stream(value, streamer.JSON(out))
+			dedupStream(value, streamer.JSON(out))
 			util.WriteByte(out, '\n')
 		}
 
 	case YAML:
 		if value.Equals(vf.Nil) {
 			util.WriteString(out, "\n")
+		} else {
+			dc := streamer.DataCollector()
+			dedupStream(value, dc)
+			bs, err := yaml.Marshal(dc.Value())
+			if err != nil {
+				panic(err)
+			}
+			util.WriteString(out, string(bs))
 		}
-		// Convert value to rich data format
-		ser := streamer.New(s.AliasMap(), streamer.DefaultOptions())
-		dc := streamer.DataCollector()
-		ser.Stream(value, dc)
-
-		bs, err := yaml.Marshal(dc.Value())
-		if err != nil {
-			panic(err)
-		}
-		util.WriteString(out, string(bs))
 	case Binary:
 		bi := vf.New(typ.Binary, value).(dgo.Binary)
 		_, err := out.Write(bi.GoBytes())

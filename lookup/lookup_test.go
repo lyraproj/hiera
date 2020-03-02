@@ -152,6 +152,34 @@ func TestLookup_sensitive(t *testing.T) {
 	})
 }
 
+func TestLookup_renderJSON_NoDedup(t *testing.T) {
+	inTestdata(func() {
+		result, err := cli.ExecuteLookup(`non-existent`, `--dialect`, `dgo`, `--default`,
+			`{ x: "a string longer than 20 characters in length", y: "a string longer than 20 characters in length" }`,
+			`--render-as`, `json`)
+
+		require.NoError(t, err)
+		require.Equal(t,
+			`{"x":"a string longer than 20 characters in length","y":"a string longer than 20 characters in length"}
+`,
+			string(result))
+	})
+}
+
+func TestLookup_renderYAML_NoDedup(t *testing.T) {
+	inTestdata(func() {
+		result, err := cli.ExecuteLookup(`non-existent`, `--dialect`, `dgo`, `--default`,
+			`{ x: "a string longer than 20 characters in length", y: "a string longer than 20 characters in length" }`,
+			`--render-as`, `yaml`)
+
+		require.NoError(t, err)
+		require.Equal(t, `x: a string longer than 20 characters in length
+y: a string longer than 20 characters in length
+`,
+			string(result))
+	})
+}
+
 func TestLookup_lookup(t *testing.T) {
 	inTestdata(func() {
 		result, err := cli.ExecuteLookup(`lookup_array`)
