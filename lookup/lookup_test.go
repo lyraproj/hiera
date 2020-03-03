@@ -101,7 +101,7 @@ func TestLookup_var_interpolated_config(t *testing.T) {
 
 func TestLookup_fact_directly(t *testing.T) {
 	inTestdata(func() {
-		result, err := cli.ExecuteLookup(`--facts`, `facts.yaml`, `--config`, `fact_directly.yaml`, `the_fact`)
+		result, err := cli.ExecuteLookup(`--facts`, `facts.yaml`, `--config`, `fact_directly_hiera.yaml`, `the_fact`)
 		require.NoError(t, err)
 		require.Equal(t, "value of the_fact\n", string(result))
 	})
@@ -117,7 +117,7 @@ func TestLookup_nullentry(t *testing.T) {
 
 func TestLookup_emptyMap(t *testing.T) {
 	inTestdata(func() {
-		result, err := cli.ExecuteLookup(`--config`, `empty_map.yaml`, `--render-as`, `json`, `empty_map`)
+		result, err := cli.ExecuteLookup(`--config`, `empty_map_hiera.yaml`, `--render-as`, `json`, `empty_map`)
 		require.NoError(t, err)
 		require.Equal(t, "{}\n", string(result))
 	})
@@ -125,7 +125,7 @@ func TestLookup_emptyMap(t *testing.T) {
 
 func TestLookup_emptySubMap(t *testing.T) {
 	inTestdata(func() {
-		result, err := cli.ExecuteLookup(`--config`, `empty_map.yaml`, `--render-as`, `json`, `empty_sub_map`)
+		result, err := cli.ExecuteLookup(`--config`, `empty_map_hiera.yaml`, `--render-as`, `json`, `empty_sub_map`)
 		require.NoError(t, err)
 		require.Equal(t, "{\"x\":\"the x\",\"empty\":{}}\n", string(result))
 	})
@@ -133,7 +133,7 @@ func TestLookup_emptySubMap(t *testing.T) {
 
 func TestLookup_emptySubMapInArray(t *testing.T) {
 	inTestdata(func() {
-		result, err := cli.ExecuteLookup(`--config`, `empty_map.yaml`, `--render-as`, `json`, `empty_sub_map_in_array`)
+		result, err := cli.ExecuteLookup(`--config`, `empty_map_hiera.yaml`, `--render-as`, `json`, `empty_sub_map_in_array`)
 		require.NoError(t, err)
 		require.Equal(t, "[{}]\n", string(result))
 	})
@@ -405,7 +405,7 @@ Searching for "hash"
 func TestLookupKey_plugin(t *testing.T) {
 	ensureTestPlugin(t)
 	inTestdata(func() {
-		result, err := cli.ExecuteLookup(`--config`, `lookup_key_plugin.yaml`, `a`)
+		result, err := cli.ExecuteLookup(`--config`, `lookup_key_plugin_hiera.yaml`, `a`)
 		require.NoError(t, err)
 		require.Equal(t, "option a\n", string(result))
 	})
@@ -414,16 +414,31 @@ func TestLookupKey_plugin(t *testing.T) {
 func TestDataHash_plugin(t *testing.T) {
 	ensureTestPlugin(t)
 	inTestdata(func() {
-		result, err := cli.ExecuteLookup(`--config`, `data_hash_plugin.yaml`, `d`)
+		result, err := cli.ExecuteLookup(`--config`, `data_hash_plugin_hiera.yaml`, `d`)
 		require.NoError(t, err)
 		require.Equal(t, "interpolate c is value c\n", string(result))
 	})
 }
 
+func TestLookup_issue75(t *testing.T) {
+	ensureTestPlugin(t)
+	for i := 0; i < 100; i++ {
+		inTestdata(func() {
+			result, err := cli.ExecuteLookup(`dns_resource_group_name`, `--config`, `dedup_hiera.yaml`, `--dialect`, `dgo`,
+				`--render-as`, `yaml`)
+
+			require.NoError(t, err)
+			require.Equal(t, `cbuk-shared-sharedproduction-dns-uksouth
+`,
+				string(result))
+		})
+	}
+}
+
 func TestDataHash_refuseToDie(t *testing.T) {
 	ensureTestPlugin(t)
 	inTestdata(func() {
-		_, err := cli.ExecuteLookup(`--config`, `refuse_to_die_plugin.yaml`, `a`)
+		_, err := cli.ExecuteLookup(`--config`, `refuse_to_die_plugin_hiera.yaml`, `a`)
 		if assert.Error(t, err) {
 			require.Regexp(t, `net/http: request canceled`, err.Error())
 		}
@@ -433,7 +448,7 @@ func TestDataHash_refuseToDie(t *testing.T) {
 func TestDataHash_panic(t *testing.T) {
 	ensureTestPlugin(t)
 	inTestdata(func() {
-		_, err := cli.ExecuteLookup(`--config`, `panic_plugin.yaml`, `a`)
+		_, err := cli.ExecuteLookup(`--config`, `panic_plugin_hiera.yaml`, `a`)
 		if assert.Error(t, err) {
 			require.Regexp(t, `500 Internal Server Error: dit dit dit daah daah daah dit dit dit`, err.Error())
 		}

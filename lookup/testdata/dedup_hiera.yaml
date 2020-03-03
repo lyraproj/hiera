@@ -1,0 +1,9 @@
+version: 5
+defaults:
+  datadir: dedup
+hierarchy:
+  - name: first
+    data_hash: test_tf_simulation
+    pluginfile: hieratestplugin
+  - name: second
+    path: second.yaml
