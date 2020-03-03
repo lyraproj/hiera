@@ -96,7 +96,7 @@ func New(parent context.Context, topProvider hiera.LookupKey, oif interface{}, l
 		hieraSessionOptionsKey:   options,
 		hieraPluginRegistry:      &pluginRegistry{}}
 
-	s := &session{Context: parent, aliasMap: tf.NewAliasMap(), vars: vars, dialect: dialect, scope: scope}
+	s := &session{Context: parent, aliasMap: tf.DefaultAliases(), vars: vars, dialect: dialect, scope: scope}
 	s.loader = s.newHieraLoader(ldr)
 	return s
 }

@@ -110,7 +110,7 @@ func initialize(en explainNode, ih dgo.Map) {
 }
 
 func initMap(en explainNode) dgo.Map {
-	m := vf.MapWithCapacity(7, nil)
+	m := vf.MapWithCapacity(7)
 	if bs := en.branches(); len(bs) > 0 {
 		m.Put(`branches`, vf.Array(bs))
 	}

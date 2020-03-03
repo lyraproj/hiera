@@ -26,7 +26,7 @@ func deep(a, b dgo.Value, options dgo.Map) (dgo.Value, bool) {
 	switch a := a.(type) {
 	case dgo.Map:
 		if hb, ok := b.(dgo.Map); ok {
-			es := vf.MapWithCapacity(a.Len()+hb.Len(), nil)
+			es := vf.MapWithCapacity(a.Len() + hb.Len())
 			a.EachEntry(func(e dgo.MapEntry) {
 				if bv := hb.Get(e.Key()); bv != nil {
 					if m, mh := deep(e.Value(), bv, options); mh {

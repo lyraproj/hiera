@@ -1,0 +1,1 @@
+dns_resource_group_name: "%{strict_alias('root.dns_resource_group_name')}"
