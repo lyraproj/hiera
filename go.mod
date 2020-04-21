@@ -2,9 +2,9 @@ module github.com/lyraproj/hiera
 
 require (
 	github.com/bmatcuk/doublestar v1.2.2
-	github.com/lyraproj/dgo v0.4.3
-	github.com/lyraproj/dgoyaml v0.4.3
-	github.com/lyraproj/hierasdk v0.4.3
+	github.com/lyraproj/dgo v0.4.4
+	github.com/lyraproj/dgoyaml v0.4.4
+	github.com/lyraproj/hierasdk v0.4.4
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/cobra v0.0.6
