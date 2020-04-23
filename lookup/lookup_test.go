@@ -455,6 +455,26 @@ func TestDataHash_panic(t *testing.T) {
 	})
 }
 
+// Mimics:
+// docker run --rm --hostname puppet -v $(pwd)/testdata/:/etc/puppetlabs/puppet/ -v $(pwd)/testdata/glob_hiera.yaml:/etc/puppetlabs/puppet/hiera.yaml --entrypoint puppet puppet/puppetserver lookup --facts /etc/puppetlabs/puppet/glob_facts.yaml a --explain
+func TestLookupKey_globExpansionExistant(t *testing.T) {
+	inTestdata(func() {
+		result, err := cli.ExecuteLookup(`--config`, `glob_hiera.yaml`, `--facts`, `glob_facts.yaml`, `a`)
+		require.NoError(t, err)
+		require.Equal(t, "fragment a\n", string(result))
+	})
+}
+
+// Mimics:
+// docker run --rm --hostname puppet -v $(pwd)/testdata/:/etc/puppetlabs/puppet/ -v $(pwd)/testdata/glob_hiera.yaml:/etc/puppetlabs/puppet/hiera.yaml --entrypoint puppet puppet/puppetserver lookup a --explain
+func TestLookupKey_globExpansionNonExistant(t *testing.T) {
+	inTestdata(func() {
+		result, err := cli.ExecuteLookup(`--config`, `glob_hiera.yaml`, `a`)
+		require.NoError(t, err)
+		require.Equal(t, "common a\n", string(result))
+	})
+}
+
 var once = sync.Once{}
 
 func ensureTestPlugin(t *testing.T) {
