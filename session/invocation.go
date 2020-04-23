@@ -213,7 +213,10 @@ func (ic *ivContext) MergeLocations(key api.Key, dh api.DataProvider, merge api.
 		locations := dh.Hierarchy().Locations()
 		switch len(locations) {
 		case 0:
-			return ic.invokeWithLocation(dh, nil, key)
+			if locations == nil {
+				return ic.invokeWithLocation(dh, nil, key)
+			}
+			return nil // glob or mapped_paths resulted in zero entries
 		case 1:
 			return ic.invokeWithLocation(dh, locations[0], key)
 		default:
