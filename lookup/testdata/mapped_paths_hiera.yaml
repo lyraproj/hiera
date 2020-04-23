@@ -1,0 +1,13 @@
+version: 5
+
+defaults:
+  datadir: mapped_paths
+  data_hash: yaml_data
+
+hierarchy:
+  - name: Mapped
+    mapped_paths: [facts.elements, element, "mapped/%{element}.yaml"]
+  - name: Common fragments
+    path: common/*.yaml
+  - name: Common
+    path: common.yaml

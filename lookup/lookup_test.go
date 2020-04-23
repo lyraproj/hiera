@@ -455,6 +455,26 @@ func TestDataHash_panic(t *testing.T) {
 	})
 }
 
+// Mimics:
+// docker run --rm --hostname puppet -v $(pwd)/testdata/:/etc/puppetlabs/puppet/ -v $(pwd)/testdata/mapped_paths_hiera.yaml:/etc/puppetlabs/puppet/hiera.yaml --entrypoint puppet puppet/puppetserver lookup --facts /etc/puppetlabs/puppet/mapped_paths_facts.yaml a --explain
+func TestLookupKey_mappedPathsExistant(t *testing.T) {
+	inTestdata(func() {
+		result, err := cli.ExecuteLookup(`--config`, `mapped_paths_hiera.yaml`, `--facts`, `mapped_paths_facts.yaml`, `a`)
+		require.NoError(t, err)
+		require.Equal(t, "fragment a\n", string(result))
+	})
+}
+
+// Mimics:
+// docker run --rm --hostname puppet -v $(pwd)/testdata/:/etc/puppetlabs/puppet/ -v $(pwd)/testdata/mapped_paths_hiera.yaml:/etc/puppetlabs/puppet/hiera.yaml --entrypoint puppet puppet/puppetserver lookup a --explain
+func TestLookupKey_mappedPathsNonExistant(t *testing.T) {
+	inTestdata(func() {
+		result, err := cli.ExecuteLookup(`--config`, `mapped_paths_hiera.yaml`, `a`)
+		require.NoError(t, err)
+		require.Equal(t, "common a\n", string(result))
+	})
+}
+
 var once = sync.Once{}
 
 func ensureTestPlugin(t *testing.T) {
