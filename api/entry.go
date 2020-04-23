@@ -30,6 +30,6 @@ type Entry interface {
 	// Resolve resolves this configuration on behalf of the given invocation and defaults entry
 	Resolve(ic Invocation, defaults Entry) Entry
 
-	// Locations returns the paths, globs, or uris
+	// Locations returns the paths, globs, or uris. The method returns nil if no locations are defined
 	Locations() []Location
 }

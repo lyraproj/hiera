@@ -1,0 +1,11 @@
+version: 5
+
+defaults:
+  datadir: glob
+  data_hash: yaml_data
+
+hierarchy:
+  - name: Glob string
+    glob: "expansion/{%{glob_string}}/*.yaml"
+  - name: Common
+    path: common.yaml
