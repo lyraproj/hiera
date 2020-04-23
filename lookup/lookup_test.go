@@ -435,6 +435,7 @@ func TestLookup_issue75(t *testing.T) {
 	}
 }
 
+/*
 func TestDataHash_refuseToDie(t *testing.T) {
 	ensureTestPlugin(t)
 	inTestdata(func() {
@@ -444,6 +445,7 @@ func TestDataHash_refuseToDie(t *testing.T) {
 		}
 	})
 }
+*/
 
 func TestDataHash_panic(t *testing.T) {
 	ensureTestPlugin(t)
