@@ -33,6 +33,10 @@ type CommandOptions struct {
 	// Default is a pointer to the string representation of a default value or nil if no default value exists
 	Default *string
 
+	// FactPaths are an optional paths to a files containing extra variables to add to the lookup scope
+	// and as a copy under the lookup scope "facts" key.
+	FactPaths []string
+
 	// VarPaths are an optional paths to a files containing extra variables to add to the lookup scope
 	VarPaths []string
 
@@ -230,7 +234,18 @@ func createScope(c api.Session, opts *CommandOptions) dgo.Map {
 		}
 	}
 
-	for _, vars := range opts.VarPaths {
+	addVarPaths(opts.VarPaths, scope)
+	if len(opts.FactPaths) > 0 {
+		facts := vf.MutableMap()
+		addVarPaths(opts.FactPaths, facts)
+		scope.PutAll(facts)
+		scope.Put(`facts`, facts)
+	}
+	return scope
+}
+
+func addVarPaths(varPaths []string, m dgo.Map) {
+	for _, vars := range varPaths {
 		var bs []byte
 		var err error
 		if vars == `-` {
@@ -242,7 +257,7 @@ func createScope(c api.Session, opts *CommandOptions) dgo.Map {
 			var yv dgo.Value
 			if yv, err = yaml.Unmarshal(bs); err == nil {
 				if data, ok := yv.(dgo.Map); ok {
-					scope.PutAll(data)
+					m.PutAll(data)
 				} else {
 					err = fmt.Errorf(`file '%s' does not contain a YAML hash`, vars)
 				}
@@ -252,5 +267,4 @@ func createScope(c api.Session, opts *CommandOptions) dgo.Map {
 			panic(err)
 		}
 	}
-	return scope
 }

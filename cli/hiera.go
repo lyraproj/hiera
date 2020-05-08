@@ -73,7 +73,6 @@ var (
 	logLevel   string
 	configPath string
 	dialect    string
-	facts      []string
 )
 
 // NewCommand creates the hiera Command
@@ -110,8 +109,8 @@ func NewCommand() *cobra.Command {
 		`path to a JSON or YAML file that contains key-value mappings to become variables for this lookup`)
 	flags.StringArrayVar(&cmdOpts.Variables, `var`, nil,
 		`a key:value or key=value where value is literal expressed using Puppet DSL`)
-	flags.StringArrayVar(&facts, `facts`, nil,
-		`alias for --vars for compatibility with Puppet's ruby version of Hiera`)
+	flags.StringArrayVar(&cmdOpts.FactPaths, `facts`, nil,
+		`like --vars but will also make variables available under the "facts" (for compatibility with Puppet's ruby version of Hiera)`)
 
 	cmd.SetHelpTemplate(helpTemplate)
 	return cmd
@@ -127,9 +126,6 @@ func cmdLookup(cmd *cobra.Command, args []string) error {
 
 	if configPath != `` {
 		cfgOpts.Put(api.HieraConfig, configPath)
-	}
-	if len(facts) > 0 {
-		cmdOpts.VarPaths = append(cmdOpts.VarPaths, facts...)
 	}
 
 	return hiera.TryWithParent(context.Background(), provider.MuxLookupKey, cfgOpts, func(c api.Session) error {
