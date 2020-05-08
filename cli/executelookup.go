@@ -12,11 +12,10 @@ func ExecuteLookup(args ...string) (output []byte, err error) {
 	dflt = OptString{}
 	logLevel = ``
 	configPath = ``
-	facts = nil
 
 	cmd := NewCommand()
 	buf := new(bytes.Buffer)
-	cmd.SetOutput(buf)
+	cmd.SetOut(buf)
 	cmd.SetArgs(args)
 
 	err = cmd.Execute()

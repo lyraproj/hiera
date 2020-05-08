@@ -6,6 +6,6 @@ defaults:
 
 hierarchy:
   - name: Glob string
-    glob: "expansion/{%{glob_string}}/*.yaml"
+    glob: "expansion/{%{facts.glob_string}}/*.yaml"
   - name: Common
     path: common.yaml
