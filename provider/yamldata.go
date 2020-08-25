@@ -4,6 +4,8 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/tada/catch"
+
 	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/dgo/vf"
 	"github.com/lyraproj/dgoyaml/yaml"
@@ -17,17 +19,17 @@ func YamlData(ctx hiera.ProviderContext) dgo.Map {
 	if pv == nil {
 		panic(api.MissingRequiredOption(`path`))
 	}
-	path := pv.String()
+	path := pv.(dgo.String).GoString()
 	bs, err := ioutil.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return vf.Map()
 		}
-		panic(err)
+		panic(catch.Error(err))
 	}
 	v, err := yaml.Unmarshal(bs)
 	if err != nil {
-		panic(err)
+		panic(catch.Error(err))
 	}
 	if data, ok := v.(dgo.Map); ok {
 		return data

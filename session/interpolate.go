@@ -1,10 +1,10 @@
 package session
 
 import (
-	"errors"
-	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/tada/catch"
 
 	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/dgo/vf"
@@ -60,8 +60,7 @@ func (ic *ivContext) doInterpolate(value dgo.Value, allowMethods bool) (dgo.Valu
 			}
 		})
 		if changed {
-			cp.Freeze()
-			h = cp
+			h = cp.Copy(true)
 		}
 		return h, changed
 	}
@@ -87,7 +86,7 @@ var methodMatch = regexp.MustCompile(`^(\w+)\((?:["]([^"]+)["]|[']([^']+)['])\)$
 func getMethodAndData(expr string, allowMethods bool) (iplMethod, string) {
 	if groups := methodMatch.FindStringSubmatch(expr); groups != nil {
 		if !allowMethods {
-			panic(errors.New(`interpolation using method syntax is not allowed in this context`))
+			panic(catch.Error(`interpolation using method syntax is not allowed in this context`))
 		}
 		data := groups[2]
 		if data == `` {
@@ -105,7 +104,7 @@ func getMethodAndData(expr string, allowMethods bool) (iplMethod, string) {
 		case `scope`:
 			return scopeMethod, data
 		default:
-			panic(fmt.Errorf(`unknown interpolation method '%s'`, groups[1]))
+			panic(catch.Error(`unknown interpolation method '%s'`, groups[1]))
 		}
 	}
 	return scopeMethod, expr
@@ -127,7 +126,7 @@ func (ic *ivContext) InterpolateString(str string, allowMethods bool) (dgo.Value
 			}
 			methodKey, expr = getMethodAndData(expr, allowMethods)
 			if methodKey.isAlias() && match != str {
-				panic(errors.New(`'alias'/'strict_alias' interpolation is only permitted if the expression is equal to the entire string`))
+				panic(catch.Error(`'alias'/'strict_alias' interpolation is only permitted if the expression is equal to the entire string`))
 			}
 
 			switch methodKey {

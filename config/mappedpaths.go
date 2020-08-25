@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"reflect"
 
+	"github.com/tada/catch"
+
 	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/dgo/tf"
 	"github.com/lyraproj/dgo/util"
@@ -67,7 +69,7 @@ func (m *mappedPaths) Exists() bool {
 	return false
 }
 
-func (m *mappedPaths) HashCode() int {
+func (m *mappedPaths) HashCode() int32 {
 	return util.StringHash(m.sourceVar)*31 + util.StringHash(m.key)*31 + util.StringHash(m.template)
 }
 
@@ -113,7 +115,7 @@ func (m *mappedPaths) Resolve(ic api.Invocation, dataDir string) []api.Location 
 
 func (m *mappedPaths) Resolved() string {
 	// This should never happen.
-	panic(fmt.Errorf(`resolved requested on mapped paths`))
+	panic(catch.Error(`resolved requested on mapped paths`))
 }
 
 type scopeWithVar struct {

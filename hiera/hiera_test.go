@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/lyraproj/dgo/dgo"
-	require "github.com/lyraproj/dgo/dgo_test"
+	"github.com/lyraproj/dgo/test/require"
 	"github.com/lyraproj/dgo/typ"
 	"github.com/lyraproj/dgo/vf"
 	"github.com/lyraproj/hiera/api"
@@ -77,7 +77,7 @@ func TestLookup_interpolateAlias(t *testing.T) {
 }
 
 func TestLookup_interpolateBadAlias(t *testing.T) {
-	require.NotOk(t, `'alias'/'strict_alias' interpolation is only permitted if the expression is equal to the entire string`,
+	require.Error(t, `'alias'/'strict_alias' interpolation is only permitted if the expression is equal to the entire string`,
 		hiera.TryWithParent(context.Background(), provider.YamlLookupKey, options, func(hs api.Session) error {
 			hiera.Lookup(hs.Invocation(nil, nil), `ipBadAlias`, nil, options)
 			return nil
@@ -85,7 +85,7 @@ func TestLookup_interpolateBadAlias(t *testing.T) {
 }
 
 func TestLookup_interpolateBadFunction(t *testing.T) {
-	require.NotOk(t, `unknown interpolation method 'bad'`,
+	require.Error(t, `unknown interpolation method 'bad'`,
 		hiera.TryWithParent(context.Background(), provider.YamlLookupKey, options, func(hs api.Session) error {
 			hiera.Lookup(hs.Invocation(nil, nil), `ipBad`, nil, options)
 			return nil

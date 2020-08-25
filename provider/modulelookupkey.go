@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/tada/catch"
+
 	"github.com/lyraproj/hiera/config"
 
 	"github.com/lyraproj/dgo/dgo"
@@ -78,14 +80,14 @@ func loadModule(path, moduleName string) dgo.Function {
 		if os.IsNotExist(err) {
 			return nil
 		}
-		panic(err)
+		panic(catch.Error(err))
 	}
 
 	// Lookup module by finding a directory that matches the moduleName using case insensitive string comparison
 	fileInfos, err := f.Readdir(-1)
 	_ = f.Close()
 	if err != nil {
-		panic(err)
+		panic(catch.Error(err))
 	}
 
 	for _, fi := range fileInfos {
@@ -101,7 +103,7 @@ func loadModule(path, moduleName string) dgo.Function {
 			if os.IsNotExist(err) {
 				break
 			}
-			panic(err)
+			panic(catch.Error(err))
 		}
 		if cf.IsDir() {
 			break

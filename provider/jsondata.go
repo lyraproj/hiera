@@ -4,6 +4,8 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/tada/catch"
+
 	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/dgo/streamer"
 	"github.com/lyraproj/dgo/vf"
@@ -23,7 +25,7 @@ func JSONData(ctx hiera.ProviderContext) dgo.Map {
 		if os.IsNotExist(err) {
 			return vf.Map()
 		}
-		panic(err)
+		panic(catch.Error(err))
 	}
 	v := streamer.UnmarshalJSON(bs, nil)
 	if data, ok := v.(dgo.Map); ok {

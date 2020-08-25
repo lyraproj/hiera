@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	require "github.com/lyraproj/dgo/dgo_test"
+	"github.com/lyraproj/dgo/test/require"
 	"github.com/lyraproj/dgo/vf"
 	"github.com/lyraproj/hiera/api"
 )

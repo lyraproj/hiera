@@ -1,10 +1,9 @@
 package api
 
 import (
-	"fmt"
-
 	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/dgo/vf"
+	"github.com/tada/catch"
 )
 
 // ToMap coerces the given interface{} argument to a dgo.Map and returns it. A panic
@@ -15,7 +14,7 @@ func ToMap(argName string, vi interface{}) dgo.Map {
 		if m, ok := value.(dgo.Map); ok {
 			return m
 		}
-		panic(fmt.Errorf(`%s does not represent a map`, argName))
+		panic(catch.Error(`%s does not represent a map`, argName))
 	}
 	return vf.Map()
 }

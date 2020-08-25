@@ -17,6 +17,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/tada/catch"
+
 	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/dgo/loader"
 	"github.com/lyraproj/dgo/streamer"
@@ -56,7 +58,7 @@ func (r *pluginRegistry) stopAll() {
 func createPipe(path, name string, fn func() (io.ReadCloser, error)) io.ReadCloser {
 	pipe, err := fn()
 	if err != nil {
-		panic(fmt.Errorf(`unable to create %s pipe to plugin %s: %s`, name, path, err.Error()))
+		panic(catch.Error(`unable to create %s pipe to plugin %s: %s`, name, path, err.Error()))
 	}
 	return pipe
 }
@@ -149,7 +151,7 @@ func (r *pluginRegistry) startPlugin(opts dgo.Map, path string) dgo.Value {
 	cmdErr := createPipe(path, `stderr`, cmd.StderrPipe)
 	cmdOut := createPipe(path, `stdout`, cmd.StdoutPipe)
 	if err := cmd.Start(); err != nil {
-		panic(fmt.Errorf(`unable to start plugin %s: %s`, path, err.Error()))
+		panic(catch.Error(`unable to start plugin %s: %s`, path, err.Error()))
 	}
 
 	// Make sure the plugin process is killed if there is an error
@@ -173,10 +175,10 @@ func (r *pluginRegistry) startPlugin(opts dgo.Map, path string) dgo.Value {
 	var meta map[string]interface{}
 	select {
 	case <-timeout:
-		panic(fmt.Errorf(`timeout while waiting for plugin %s to start`, path))
+		panic(catch.Error(`timeout while waiting for plugin %s to start`, path))
 	case mv := <-metaCh:
 		if err, ok := mv.(error); ok {
-			panic(fmt.Errorf(`error reading meta data of plugin %s: %s`, path, err.Error()))
+			panic(catch.Error(`error reading meta data of plugin %s: %s`, path, err.Error()))
 		}
 		meta = mv.(map[string]interface{})
 	}
@@ -243,11 +245,11 @@ func (p *plugin) kill() {
 func (p *plugin) initialize(meta map[string]interface{}) {
 	v, ok := meta[`version`].(float64)
 	if !(ok && int(v) == hiera.ProtoVersion) {
-		panic(fmt.Errorf(`plugin %s uses unsupported protocol %v`, p.path, v))
+		panic(catch.Error(`plugin %s uses unsupported protocol %v`, p.path, v))
 	}
 	p.addr, ok = meta[`address`].(string)
 	if !ok {
-		panic(fmt.Errorf(`plugin %s did not provide a valid address`, p.path))
+		panic(catch.Error(`plugin %s did not provide a valid address`, p.path))
 	}
 	p.network, ok = meta[`network`].(string)
 	if !ok {
@@ -256,7 +258,7 @@ func (p *plugin) initialize(meta map[string]interface{}) {
 	}
 	p.functions, ok = meta[`functions`].(map[string]interface{})
 	if !ok {
-		panic(fmt.Errorf(`plugin %s did not provide a valid functions map`, p.path))
+		panic(catch.Error(`plugin %s did not provide a valid functions map`, p.path))
 	}
 }
 
@@ -327,7 +329,7 @@ func (p *plugin) callPlugin(luType, name string, params url.Values) dgo.Value {
 		ad, err = url.Parse(fmt.Sprintf(`http://%s/%s/%s`, p.addr, luType, name))
 	}
 	if err != nil {
-		panic(err)
+		panic(catch.Error("unable to parse plugin URL: %s", err))
 	}
 	if len(params) > 0 {
 		ad.RawQuery = params.Encode()
@@ -343,7 +345,7 @@ func (p *plugin) callPlugin(luType, name string, params url.Values) dgo.Value {
 	}
 	resp, err := client.Get(us)
 	if err != nil {
-		panic(err.Error())
+		panic(catch.Error(err))
 	}
 
 	defer func() {
@@ -355,14 +357,15 @@ func (p *plugin) callPlugin(luType, name string, params url.Values) dgo.Value {
 		if bts, err = ioutil.ReadAll(resp.Body); err == nil {
 			return streamer.UnmarshalJSON(bts, nil)
 		}
+		err = catch.Error(err)
 	case http.StatusNotFound:
 		return nil
 	default:
 		var bts []byte
 		if bts, err = ioutil.ReadAll(resp.Body); err == nil {
-			err = fmt.Errorf(`%s %s: %s`, us, resp.Status, string(bts))
+			err = catch.Error(`%s %s: %s`, us, resp.Status, string(bts))
 		} else {
-			err = fmt.Errorf(`%s %s`, us, resp.Status)
+			err = catch.Error(`%s %s`, us, resp.Status)
 		}
 	}
 	panic(err)

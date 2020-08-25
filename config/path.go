@@ -48,7 +48,7 @@ func (p *path) Type() dgo.Type {
 	return pathType
 }
 
-func (p *path) HashCode() int {
+func (p *path) HashCode() int32 {
 	return util.StringHash(p.original)
 }
 

@@ -2,14 +2,14 @@ package session
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
 	"unicode"
+
+	"github.com/tada/catch"
 
 	"github.com/lyraproj/dgo/streamer/pcore"
 
@@ -64,13 +64,13 @@ func New(parent context.Context, topProvider hiera.LookupKey, oif interface{}, l
 
 	var dialect streamer.Dialect
 	if ds, ok := options.Get(api.HieraDialect).(dgo.String); ok {
-		switch ds.String() {
+		switch ds.GoString() {
 		case "dgo":
 			dialect = streamer.DgoDialect()
 		case "pcore":
 			dialect = pcore.Dialect()
 		default:
-			panic(fmt.Errorf(`unknown dialect '%s'`, ds))
+			panic(catch.Error(`unknown dialect '%s'`, ds))
 		}
 	}
 	if dialect == nil {
@@ -80,14 +80,14 @@ func New(parent context.Context, topProvider hiera.LookupKey, oif interface{}, l
 	var scope dgo.Keyed
 	if sv, ok := options.Get(api.HieraScope).(dgo.Keyed); ok {
 		// Freeze scope if possible
-		if f, ok := sv.(dgo.Freezable); ok {
+		if f, ok := sv.(dgo.Mutability); ok {
 			sv = f.FrozenCopy().(dgo.Keyed)
 		}
 		scope = sv
 	} else {
 		scope = vf.Map()
 	}
-	options.Freeze()
+	options = options.Copy(true)
 
 	vars := map[string]interface{}{
 		hieraCacheKey:            &sync.Map{},
@@ -108,7 +108,7 @@ func addHieraConfig(options dgo.Map) {
 	} else {
 		var err error
 		if hieraRoot, err = os.Getwd(); err != nil {
-			panic(err)
+			panic(catch.Error(err))
 		}
 	}
 
@@ -176,7 +176,7 @@ func (s *session) LoadFunction(he api.Entry) (fn dgo.Function, ok bool) {
 		path = filepath.Clean(filepath.Join(he.PluginDir(), file))
 		abs, err := filepath.Abs(path)
 		if err != nil {
-			panic(err)
+			panic(catch.Error(err))
 		}
 		path = abs
 	}
@@ -225,7 +225,7 @@ func (s *session) SessionOptions() dgo.Map {
 }
 
 func notInitialized() error {
-	return errors.New(`session is not initialized`)
+	return catch.Error(`session is not initialized`)
 }
 
 func (s *session) SharedCache() *sync.Map {

@@ -1,9 +1,10 @@
 package session
 
 import (
-	"fmt"
 	"strings"
 	"sync"
+
+	"github.com/tada/catch"
 
 	"github.com/lyraproj/hiera/merge"
 
@@ -260,7 +261,7 @@ func (ic *ivContext) Lookup(key api.Key, options dgo.Map) dgo.Value {
 
 func (ic *ivContext) WithKey(key api.Key, actor dgo.Producer) dgo.Value {
 	if util.ContainsString(ic.nameStack, key.Source()) {
-		panic(fmt.Errorf(`recursive lookup detected in [%s]`, strings.Join(ic.nameStack, `, `)))
+		panic(catch.Error(`recursive lookup detected in [%s]`, strings.Join(ic.nameStack, `, `)))
 	}
 	ic.nameStack = append(ic.nameStack, key.Source())
 	defer func() {

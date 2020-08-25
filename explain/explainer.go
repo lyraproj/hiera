@@ -79,8 +79,9 @@ func (en *explainTreeNode) Equals(other interface{}) bool {
 	return en == other
 }
 
-func (en *explainTreeNode) HashCode() int {
-	return int(reflect.ValueOf(en).Pointer())
+func (en *explainTreeNode) HashCode() int32 {
+	v := int64(reflect.ValueOf(en).Pointer())
+	return int32((v >> 32) ^ (v & 0xffffffff))
 }
 
 func initialize(en explainNode, ih dgo.Map) {

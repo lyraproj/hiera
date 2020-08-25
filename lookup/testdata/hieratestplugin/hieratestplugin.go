@@ -2,7 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
+
+	"github.com/tada/catch"
 
 	"github.com/lyraproj/dgo/vf"
 
@@ -43,7 +44,7 @@ func refuseToDie(c hiera.ProviderContext) dgo.Map {
 
 // panicAttack panics with an error
 func panicAttack(c hiera.ProviderContext) dgo.Map {
-	panic(errors.New(`dit dit dit daah daah daah dit dit dit`))
+	panic(catch.Error(`dit dit dit daah daah daah dit dit dit`))
 }
 
 func tfSimulation(c hiera.ProviderContext) dgo.Map {
@@ -76,7 +77,7 @@ func tfSimulation(c hiera.ProviderContext) dgo.Map {
     }
   }`), &state)
 	if err != nil {
-		panic(err)
+		panic(catch.Error(err))
 	}
 	v := vf.MutableMap()
 	for k, os := range state {

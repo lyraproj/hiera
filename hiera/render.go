@@ -1,8 +1,11 @@
 package hiera
 
 import (
-	"fmt"
 	"io"
+
+	"github.com/tada/catch"
+
+	"github.com/tada/catch/pio"
 
 	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/dgo/streamer"
@@ -40,15 +43,15 @@ func Render(s api.Session, renderAs RenderName, value dgo.Value, out io.Writer) 
 	switch renderAs {
 	case JSON:
 		if value.Equals(vf.Nil) {
-			util.WriteString(out, "null\n")
+			pio.WriteString(out, "null\n")
 		} else {
 			dedupStream(value, streamer.JSON(out))
-			util.WriteByte(out, '\n')
+			pio.WriteByte(out, '\n')
 		}
 
 	case YAML:
 		if value.Equals(vf.Nil) {
-			util.WriteString(out, "\n")
+			pio.WriteString(out, "\n")
 		} else {
 			dc := streamer.DataCollector()
 			dedupStream(value, dc)
@@ -56,7 +59,7 @@ func Render(s api.Session, renderAs RenderName, value dgo.Value, out io.Writer) 
 			if err != nil {
 				panic(err)
 			}
-			util.WriteString(out, string(bs))
+			pio.WriteString(out, string(bs))
 		}
 	case Binary:
 		bi := vf.New(typ.Binary, value).(dgo.Binary)
@@ -67,6 +70,6 @@ func Render(s api.Session, renderAs RenderName, value dgo.Value, out io.Writer) 
 	case Text:
 		util.Fprintln(out, value)
 	default:
-		panic(fmt.Errorf(`unknown rendering '%s'`, renderAs))
+		panic(catch.Error(`unknown rendering '%s'`, renderAs))
 	}
 }

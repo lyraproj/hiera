@@ -10,9 +10,10 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/tada/catch"
+
 	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/dgo/typ"
-	"github.com/lyraproj/dgo/util"
 	"github.com/lyraproj/dgo/vf"
 	"github.com/lyraproj/dgoyaml/yaml"
 	"github.com/lyraproj/hiera/api"
@@ -134,7 +135,7 @@ func ensureType(t dgo.Type, v dgo.Value) dgo.Value {
 // the given consumer function with that context. If the given function panics, the panic will be recovered and returned
 // as an error.
 func TryWithParent(parent context.Context, tp hiera.LookupKey, options interface{}, consumer func(api.Session) error) error {
-	return util.Catch(func() {
+	return catch.Do(func() {
 		s := session.New(parent, tp, options, nil)
 		defer s.KillPlugins()
 		err := consumer(s)
@@ -213,7 +214,7 @@ func parseCommandLineValue(c api.Session, vs string) dgo.Value {
 		if strings.HasPrefix(vs, pfx) {
 			var v dgo.Value
 			c.AliasMap().Collect(func(aa dgo.AliasAdder) {
-				v = typ.ExactValue(c.Dialect().ParseType(aa, vf.String(vs)))
+				v = c.Dialect().ParseType(aa, vf.String(vs))
 			})
 			return v
 		}
@@ -229,7 +230,7 @@ func createScope(c api.Session, opts *CommandOptions) dgo.Map {
 				key := strings.TrimSpace(m[1])
 				scope.Put(key, parseCommandLineValue(c, m[2]))
 			} else {
-				panic(fmt.Errorf("unable to parse variable '%s'", e))
+				panic(catch.Error("unable to parse variable '%s'", e))
 			}
 		}
 	}

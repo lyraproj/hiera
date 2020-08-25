@@ -1,9 +1,10 @@
 package config
 
 import (
-	"fmt"
 	"path/filepath"
 	"strings"
+
+	"github.com/tada/catch"
 
 	"github.com/lyraproj/dgo/vf"
 
@@ -67,12 +68,12 @@ func (e *entry) initialize(name string, entryHash dgo.Map) {
 			e.options.EachKey(func(optKey dgo.Value) {
 				if util.ContainsString(ReservedOptionKeys, optKey.String()) {
 					panic(
-						fmt.Errorf(`option key '%s' used in hierarchy '%s' is reserved by Hiera`, optKey.String(), name))
+						catch.Error(`option key '%s' used in hierarchy '%s' is reserved by Hiera`, optKey.String(), name))
 				}
 			})
 		} else if util.ContainsString(FunctionKeys, ks) {
 			if e.function != nil {
-				panic(fmt.Errorf(`only one of %s can be defined in hierarchy '%s'`, strings.Join(FunctionKeys, `, `), name))
+				panic(catch.Error(`only one of %s can be defined in hierarchy '%s'`, strings.Join(FunctionKeys, `, `), name))
 			}
 			e.function = &function{api.FunctionKind(ks), v.String()}
 		}
@@ -105,7 +106,7 @@ func (e *entry) resolveFunction(ic api.Invocation, defaults api.Entry) {
 	}
 
 	if e.function == nil {
-		panic(fmt.Errorf(`one of %s must be defined in hierarchy '%s'`, strings.Join(FunctionKeys, `, `), e.name))
+		panic(catch.Error(`one of %s must be defined in hierarchy '%s'`, strings.Join(FunctionKeys, `, `), e.name))
 	}
 }
 

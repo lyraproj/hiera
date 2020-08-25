@@ -1,8 +1,9 @@
 package merge
 
 import (
-	"fmt"
 	"reflect"
+
+	"github.com/tada/catch"
 
 	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/dgo/vf"
@@ -35,7 +36,7 @@ func GetStrategy(n string, opts dgo.Map) api.MergeStrategy {
 		}
 		return &deepMerge{opts}
 	default:
-		panic(fmt.Errorf(`unknown merge strategy '%s'`, n))
+		panic(catch.Error(`unknown merge strategy '%s'`, n))
 	}
 }
 

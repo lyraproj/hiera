@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"reflect"
 
+	"github.com/tada/catch"
+
 	"github.com/bmatcuk/doublestar"
 	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/dgo/tf"
@@ -40,7 +42,7 @@ func (g glob) Equals(other interface{}) bool {
 	return g == other
 }
 
-func (g glob) HashCode() int {
+func (g glob) HashCode() int32 {
 	return util.StringHash(string(g))
 }
 
@@ -73,5 +75,5 @@ func (g glob) Resolve(ic api.Invocation, dataDir string) []api.Location {
 
 func (g glob) Resolved() string {
 	// This should never happen.
-	panic(fmt.Errorf(`resolved requested on a glob`))
+	panic(catch.Error(`resolved requested on a glob`))
 }

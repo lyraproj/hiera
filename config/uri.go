@@ -43,7 +43,7 @@ func (u *uri) Type() dgo.Type {
 	return uriType
 }
 
-func (u *uri) HashCode() int {
+func (u *uri) HashCode() int32 {
 	return util.StringHash(u.original)
 }
 

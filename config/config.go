@@ -2,11 +2,12 @@
 package config
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/tada/catch"
 
 	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/dgo/tf"
@@ -78,7 +79,7 @@ func New(configPath string) api.Config {
 	content, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		if !os.IsNotExist(err) {
-			panic(err)
+			panic(catch.Error(err))
 		}
 		dc := &hieraCfg{
 			root:             filepath.Dir(configPath),
@@ -92,7 +93,7 @@ func New(configPath string) api.Config {
 
 	yv, err := yaml.Unmarshal(content)
 	if err != nil {
-		panic(err)
+		panic(catch.Error(err))
 	}
 	cfgMap := yv.(dgo.Map)
 	if !cfgType.Instance(cfgMap) {
@@ -187,7 +188,7 @@ func (hc *hieraCfg) createHierarchy(hierarchy dgo.Array) []api.Entry {
 			name = nv.String()
 		}
 		if uniqueNames[name] {
-			panic(fmt.Errorf(`hierarchy name '%s' defined more than once`, name))
+			panic(catch.Error(`hierarchy name '%s' defined more than once`, name))
 		}
 		uniqueNames[name] = true
 		entries = append(entries, hc.createEntry(name, hh))
@@ -210,7 +211,7 @@ func (hc *hieraCfg) createEntry(name string, entryHash dgo.Map) api.Entry {
 			entry.pluginFile = v.String()
 		case util.ContainsString(LocationKeys, ks):
 			if entry.locations != nil {
-				panic(fmt.Errorf(`only one of %s can be defined in hierarchy '%s'`, strings.Join(LocationKeys, `, `), name))
+				panic(catch.Error(`only one of %s can be defined in hierarchy '%s'`, strings.Join(LocationKeys, `, `), name))
 			}
 			switch ks {
 			case `path`:

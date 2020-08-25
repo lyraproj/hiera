@@ -2,9 +2,12 @@ package api
 
 import (
 	"bytes"
-	"fmt"
 	"reflect"
 	"strconv"
+
+	"github.com/tada/catch"
+
+	"github.com/lyraproj/dgo/util"
 
 	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/dgo/tf"
@@ -63,7 +66,7 @@ func (k *key) Bury(value dgo.Value) dgo.Value {
 		p := k.parts[i]
 		var kx dgo.Value
 		if ix, ok := p.(int); ok {
-			kx = vf.Integer(int64(ix))
+			kx = vf.Int64(int64(ix))
 		} else {
 			kx = vf.String(p.(string))
 		}
@@ -94,7 +97,7 @@ func (k *key) Dig(ic Invocation, v dgo.Value) dgo.Value {
 				case dgo.Map:
 					var kx dgo.Value
 					if ix, ok := p.(int); ok {
-						kx = vf.Integer(int64(ix))
+						kx = vf.Int64(int64(ix))
 					} else {
 						kx = vf.String(p.(string))
 					}
@@ -121,8 +124,8 @@ func (k *key) Equals(value interface{}) bool {
 	return false
 }
 
-func (k *key) HashCode() int {
-	panic("implement me")
+func (k *key) HashCode() int32 {
+	return util.StringHash(k.source)
 }
 
 func (k *key) Parts() []interface{} {
@@ -149,12 +152,12 @@ func parseUnquoted(b *bytes.Buffer, key, part string, parts []interface{}) []int
 	mungedPart := func(ix int, part string) interface{} {
 		if i, err := strconv.ParseInt(part, 10, 32); err == nil {
 			if ix == 0 {
-				panic(fmt.Errorf(`key '%s' first segment cannot be an index`, key))
+				panic(catch.Error(`key '%s' first segment cannot be an index`, key))
 			}
 			return int(i)
 		}
 		if part == `` {
-			panic(fmt.Errorf(`key '%s' contains an empty segment`, key))
+			panic(catch.Error(`key '%s' contains an empty segment`, key))
 		}
 		return part
 	}
@@ -183,5 +186,5 @@ func parseQuoted(b *bytes.Buffer, q rune, key, part string, parts []interface{})
 		}
 		_, _ = b.WriteRune(c)
 	}
-	panic(fmt.Errorf(`unterminated quote in key '%s'`, key))
+	panic(catch.Error(`unterminated quote in key '%s'`, key))
 }
