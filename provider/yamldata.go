@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -23,11 +24,11 @@ func YamlData(ctx hiera.ProviderContext) dgo.Map {
 		if os.IsNotExist(err) {
 			return vf.Map()
 		}
-		panic(err)
+		panic(fmt.Errorf("could not read %s: %s", path, err.Error()))
 	}
 	v, err := yaml.Unmarshal(bs)
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("could not unmarshal %s: %s", path, err.Error()))
 	}
 	if data, ok := v.(dgo.Map); ok {
 		return data
