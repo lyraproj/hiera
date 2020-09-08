@@ -48,7 +48,7 @@ type Invocation interface {
 	MergeHierarchy(key Key, providers []DataProvider, merge MergeStrategy) dgo.Value
 
 	// MergeLocations merges the result of lookups on all locations (or without location) for the
-	//given provider and merge options
+	// given provider and merge options
 	MergeLocations(key Key, provider DataProvider, merge MergeStrategy) dgo.Value
 
 	// ReportText will add the message returned by the given function to the
