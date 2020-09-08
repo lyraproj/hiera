@@ -4,13 +4,12 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/tada/catch"
-
 	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/dgo/vf"
 	"github.com/lyraproj/dgoyaml/yaml"
 	"github.com/lyraproj/hiera/api"
 	"github.com/lyraproj/hierasdk/hiera"
+	"github.com/tada/catch"
 )
 
 // YamlData is a data_hash provider that reads a YAML hash from a file and returns it as a Map
@@ -25,11 +24,11 @@ func YamlData(ctx hiera.ProviderContext) dgo.Map {
 		if os.IsNotExist(err) {
 			return vf.Map()
 		}
-		panic(catch.Error(err))
+		panic(catch.Error("could not read %s: %s", path, err.Error()))
 	}
 	v, err := yaml.Unmarshal(bs)
 	if err != nil {
-		panic(catch.Error(err))
+		panic(catch.Error("could not unmarshal %s: %s", path, err.Error()))
 	}
 	if data, ok := v.(dgo.Map); ok {
 		return data
