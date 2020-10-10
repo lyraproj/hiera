@@ -4,19 +4,15 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/tada/catch"
-
-	"github.com/lyraproj/hiera/merge"
-
-	"github.com/lyraproj/dgo/vf"
-
-	"github.com/lyraproj/dgo/typ"
-
 	"github.com/lyraproj/dgo/dgo"
+	"github.com/lyraproj/dgo/typ"
 	"github.com/lyraproj/dgo/util"
+	"github.com/lyraproj/dgo/vf"
 	"github.com/lyraproj/hiera/api"
 	"github.com/lyraproj/hiera/config"
+	"github.com/lyraproj/hiera/merge"
 	"github.com/lyraproj/hierasdk/hiera"
+	"github.com/tada/catch"
 )
 
 const hieraConfigsPrefix = `HieraConfig:`
@@ -397,6 +393,13 @@ func (ic *ivContext) ForData() api.Invocation {
 		lic.explainer = nil
 	}
 	lic.mode = dataMode
+	return &lic
+}
+
+func (ic *ivContext) ForSubLookup() api.Invocation {
+	lic := *ic
+	lic.strategy = nil
+	lic.mode = topLevelMode
 	return &lic
 }
 
