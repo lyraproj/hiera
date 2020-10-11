@@ -1,0 +1,12 @@
+empty_array: []
+
+empty_hash: {}
+
+hash_with_alias:
+  y: Y
+  eh: '%{alias("empty_hash")}'
+  ea: '%{alias("empty_array")}'
+
+lookup_options:
+  hash_with_alias:
+    merge: deep

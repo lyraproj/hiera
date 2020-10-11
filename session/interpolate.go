@@ -4,11 +4,10 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/tada/catch"
-
 	"github.com/lyraproj/dgo/dgo"
 	"github.com/lyraproj/dgo/vf"
 	"github.com/lyraproj/hiera/api"
+	"github.com/tada/catch"
 )
 
 var iplPattern = regexp.MustCompile(`%{[^}]*}`)
@@ -138,7 +137,7 @@ func (ic *ivContext) InterpolateString(str string, allowMethods bool) (dgo.Value
 				}
 				return ``
 			default:
-				val := ic.Lookup(api.NewKey(expr), nil)
+				val := ic.ForSubLookup().Lookup(api.NewKey(expr), nil)
 				if methodKey.isAlias() {
 					result = val
 					return ``

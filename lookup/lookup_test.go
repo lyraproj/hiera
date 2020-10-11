@@ -1,14 +1,22 @@
 package main_test
 
 import (
+	"context"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"testing"
 
+	"github.com/lyraproj/dgo/dgo"
+	"github.com/lyraproj/dgo/vf"
+	"github.com/lyraproj/hiera/api"
 	"github.com/lyraproj/hiera/cli"
+	"github.com/lyraproj/hiera/hiera"
+	"github.com/lyraproj/hiera/provider"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -217,6 +225,27 @@ func TestLookup_aliasNothing(t *testing.T) {
 		result, err := cli.ExecuteLookup(`alias_nothing`)
 		require.NoError(t, err)
 		require.Equal(t, "\"\"\n", string(result))
+	})
+}
+
+func cmdLookup(cmdOpts *hiera.CommandOptions, opts dgo.Keyed, args []string, out io.Writer) error {
+	return hiera.TryWithParent(context.Background(), provider.ConfigLookupKey, opts, func(c api.Session) error {
+		hiera.LookupAndRender(c, cmdOpts, args, out)
+		return nil
+	})
+}
+
+// TestLookup_aliasNewInvocation tests that an alias uses a new invocation where the
+// lookup_options map is not inherited
+func TestLookup_aliasNewInvocation(t *testing.T) {
+	cmdOpts := &hiera.CommandOptions{}
+	cfgOpts := vf.MutableMap()
+	cfgOpts.Put(api.HieraConfig, "interpolate_fresh.yaml")
+	inTestdata(func() {
+		bs := &strings.Builder{}
+		err := cmdLookup(cmdOpts, cfgOpts, []string{"hash_with_alias"}, bs)
+		require.NoError(t, err)
+		require.Equal(t, "y: Y\neh: {}\nea: []\nx: X\n", bs.String())
 	})
 }
 
