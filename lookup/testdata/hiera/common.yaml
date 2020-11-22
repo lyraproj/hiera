@@ -27,6 +27,12 @@ lookup_nothing: '%{lookup("nothing")}'
 
 alias_nothing: '%{alias("nothing")}'
 
+myList:
+  - typeA: a
+  - typeB: b
+  - typeC: c
+  - tupeD: d
+
 strict_alias_nothing: '%{strict_alias("nothing")}'
 
 lookup_options:

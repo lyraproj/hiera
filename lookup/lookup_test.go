@@ -506,6 +506,14 @@ func TestLookupKey_globExpansionNonExistant(t *testing.T) {
 	})
 }
 
+func TestLookup_fourElementSlice(t *testing.T) {
+	inTestdata(func() {
+		result, err := cli.ExecuteLookup(`--config`, `hiera.yaml`, `--render-as`, `json`, `myList`)
+		require.NoError(t, err)
+		require.Equal(t, `[{"typeA":"a"},{"typeB":"b"},{"typeC":"c"},{"tupeD":"d"}]`, strings.TrimSpace(string(result)))
+	})
+}
+
 var once = sync.Once{}
 
 func ensureTestPlugin(t *testing.T) {
