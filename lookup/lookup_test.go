@@ -460,7 +460,7 @@ func TestLookup_multi_not_there(t *testing.T) {
 	inTestdata(func() {
 		result, err := cli.ExecuteLookup(`simple`, `not_there`, `--render-as`, `s`, `--multi-lookup`)
 		require.NoError(t, err)
-		require.Equal(t, `{"simple":"value"
+		require.Equal(t, `{"simple":"value"}
 `, string(result))
 	})
 }
