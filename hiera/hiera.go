@@ -51,6 +51,8 @@ type CommandOptions struct {
 
 	// ExplainOptions should be set to true to explain how lookup options were found for the lookup
 	ExplainOptions bool
+
+	MultiValue bool
 }
 
 // Lookup performs a lookup using the given parameters.
@@ -110,6 +112,41 @@ func Lookup2(
 		return ensureType(valueType, defaultFunc())
 	}
 	return nil
+}
+
+func Lookup3(
+	ic api.Invocation,
+	names []string,
+	valueType dgo.Type,
+	defaultValue dgo.Value,
+	override dgo.Map,
+	defaultValuesHash dgo.Map,
+	options dgo.Map,
+	defaultFunc dgo.Producer) dgo.Value {
+	response := vf.MutableMap()
+	for _, name := range names {
+		if v := lookupInMap([]string{name}, override); v != nil {
+			response.Put(name, ensureType(valueType, v))
+			continue
+		}
+		if v := ic.Lookup(api.NewKey(name), options); v != nil {
+			response.Put(name, ensureType(valueType, v))
+			continue
+		}
+		if v := lookupInMap(names, defaultValuesHash); v != nil {
+			response.Put(name, ensureType(valueType, v))
+			continue
+		}
+		if defaultValue != nil {
+			response.Put(name, ensureType(valueType, defaultValue))
+			continue
+		}
+		if defaultFunc != nil {
+			response.Put(name, ensureType(valueType, defaultFunc()))
+			continue
+		}
+	}
+	return response
 }
 
 func lookupInMap(names []string, m dgo.Map) dgo.Value {
@@ -185,7 +222,12 @@ func LookupAndRender(c api.Session, opts *CommandOptions, args []string, out io.
 		explainer = explain.NewExplainer(opts.ExplainOptions, opts.ExplainOptions && !opts.ExplainData)
 	}
 
-	found := Lookup2(c.Invocation(createScope(c, opts), explainer), args, tp, dv, nil, nil, options, nil)
+	var found dgo.Value
+	if opts.MultiValue {
+		found = Lookup3(c.Invocation(createScope(c, opts), explainer), args, tp, dv, nil, nil, options, nil)
+	} else {
+		found = Lookup2(c.Invocation(createScope(c, opts), explainer), args, tp, dv, nil, nil, options, nil)
+	}
 	if explainer != nil {
 		renderAs := Text
 		if opts.RenderAs != `` {

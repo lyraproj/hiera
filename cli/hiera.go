@@ -111,6 +111,7 @@ func NewCommand() *cobra.Command {
 		`a key:value or key=value where value is literal expressed using Puppet DSL`)
 	flags.StringArrayVar(&cmdOpts.FactPaths, `facts`, nil,
 		`like --vars but will also make variables available under the "facts" (for compatibility with Puppet's ruby version of Hiera)`)
+	flags.BoolVar(&cmdOpts.MultiValue, `multi-value`, false, ``)
 
 	cmd.SetHelpTemplate(helpTemplate)
 	return cmd
