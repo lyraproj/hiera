@@ -52,7 +52,7 @@ type CommandOptions struct {
 	// ExplainOptions should be set to true to explain how lookup options were found for the lookup
 	ExplainOptions bool
 
-	MultiValue bool
+	MultiLookup bool
 }
 
 // Lookup performs a lookup using the given parameters.
@@ -114,7 +114,24 @@ func Lookup2(
 	return nil
 }
 
-func Lookup3(
+// MultiLookup performs a lookup using the given parameters for all of the names passed in.
+//
+// ic - The lookup invocation
+//
+// names[] - The name or names to lookup
+//
+// valueType - Optional expected type of the found value
+//
+// defaultValue - Optional value to use as default when no value is found
+//
+// override - Optional map to use as override. Values found here are returned immediately (no merge)
+//
+// defaultValuesHash - Optional map to use as the last resort (but before defaultValue)
+//
+// options - Optional map with merge strategy and options
+//
+// defaultFunc - Optional function to produce a default value
+func MultiLookup(
 	ic api.Invocation,
 	names []string,
 	valueType dgo.Type,
@@ -223,8 +240,8 @@ func LookupAndRender(c api.Session, opts *CommandOptions, args []string, out io.
 	}
 
 	var found dgo.Value
-	if opts.MultiValue {
-		found = Lookup3(c.Invocation(createScope(c, opts), explainer), args, tp, dv, nil, nil, options, nil)
+	if opts.MultiLookup {
+		found = MultiLookup(c.Invocation(createScope(c, opts), explainer), args, tp, dv, nil, nil, options, nil)
 	} else {
 		found = Lookup2(c.Invocation(createScope(c, opts), explainer), args, tp, dv, nil, nil, options, nil)
 	}
