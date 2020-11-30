@@ -475,11 +475,19 @@ func TestLookup_all_type(t *testing.T) {
 	})
 }
 
-func TestLookup_all_invalidtype(t *testing.T) {
+func TestLookup_all_invalid_type(t *testing.T) {
 	ensureTestPlugin(t)
 	inTestdata(func() {
 		_, err := cli.ExecuteLookup(`stringkey`, `intkey`, `--all`, `--dialect`, `dgo`, `--render-as`, `s`, `--type`, `{"stringkey":int,"intkey":int}`)
 		require.Error(t, err, `the value 'stringvalue' cannot be converted to an int`)
+	})
+}
+
+func TestLookup_all_invalid_type_map(t *testing.T) {
+	ensureTestPlugin(t)
+	inTestdata(func() {
+		_, err := cli.ExecuteLookup(`stringkey`, `intkey`, `--all`, `--dialect`, `dgo`, `--render-as`, `s`, `--type`, `string`)
+		require.Error(t, err, `type must be a map`)
 	})
 }
 
