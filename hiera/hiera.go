@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/lyraproj/dgo/dgo"
+	"github.com/lyraproj/dgo/streamer"
 	"github.com/lyraproj/dgo/typ"
 	"github.com/lyraproj/dgo/util"
 	"github.com/lyraproj/dgo/vf"
@@ -210,11 +211,7 @@ var needParsePrefix = []string{`{`, `[`, `"`, `'`}
 // LookupAndRender performs a lookup using the given command options and arguments and renders the result on the given
 // io.Writer in accordance with the `RenderAs` option.
 func LookupAndRender(c api.Session, opts *CommandOptions, args []string, out io.Writer) bool {
-	tp := typ.Any
-	dl := c.Dialect()
-	if opts.Type != `` {
-		tp = dl.ParseType(nil, vf.String(opts.Type))
-	}
+	tp := parseType(opts.Type, c.Dialect())
 
 	var options dgo.Map
 	if !(opts.Merge == `` || opts.Merge == `first`) {
@@ -245,7 +242,6 @@ func LookupAndRender(c api.Session, opts *CommandOptions, args []string, out io.
 		}
 		found = LookupAll(invocation, args, stp, nil, nil, options)
 	} else {
-
 		found = Lookup2(invocation, args, tp, dv, nil, nil, options, nil)
 	}
 	if explainer != nil {
@@ -267,6 +263,14 @@ func LookupAndRender(c api.Session, opts *CommandOptions, args []string, out io.
 	}
 	Render(c, renderAs, found, out)
 	return true
+}
+
+func parseType(t string, dl streamer.Dialect) dgo.Type {
+	tp := typ.Any
+	if t != `` {
+		tp = dl.ParseType(nil, vf.String(t))
+	}
+	return tp
 }
 
 func parseCommandLineValue(c api.Session, vs string) dgo.Value {
