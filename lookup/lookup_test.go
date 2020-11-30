@@ -435,43 +435,51 @@ func TestLookup_issue75(t *testing.T) {
 	}
 }
 
-func TestLookup_multi_json(t *testing.T) {
+func TestLookup_all_json(t *testing.T) {
 	ensureTestPlugin(t)
 	inTestdata(func() {
-		result, err := cli.ExecuteLookup(`hash`, `array`, `--render-as`, `json`, `--multi-lookup`)
+		result, err := cli.ExecuteLookup(`hash`, `array`, `--render-as`, `json`, `--all`)
 		require.NoError(t, err)
 		require.Equal(t, `{"hash":{"one":1,"two":"two","three":{"a":"A","c":"C"}},"array":["one","two","three"]}
 `, string(result))
 	})
 }
 
-func TestLookup_multi_simple(t *testing.T) {
+func TestLookup_all_simple(t *testing.T) {
 	ensureTestPlugin(t)
 	inTestdata(func() {
-		result, err := cli.ExecuteLookup(`simple`, `--render-as`, `s`, `--multi-lookup`)
+		result, err := cli.ExecuteLookup(`simple`, `--render-as`, `s`, `--all`)
 		require.NoError(t, err)
 		require.Equal(t, `{"simple":"value"}
 `, string(result))
 	})
 }
 
-func TestLookup_multi_not_there(t *testing.T) {
+func TestLookup_all_not_there(t *testing.T) {
 	ensureTestPlugin(t)
 	inTestdata(func() {
-		result, err := cli.ExecuteLookup(`simple`, `not_there`, `--render-as`, `s`, `--multi-lookup`)
+		result, err := cli.ExecuteLookup(`simple`, `not_there`, `--render-as`, `s`, `--all`)
 		require.NoError(t, err)
 		require.Equal(t, `{"simple":"value"}
 `, string(result))
 	})
 }
 
-func TestLookup_multi_default(t *testing.T) {
+func TestLookup_all_type(t *testing.T) {
 	ensureTestPlugin(t)
 	inTestdata(func() {
-		result, err := cli.ExecuteLookup(`simple`, `not_there`, `--default`, `something`, `--render-as`, `s`, `--multi-lookup`)
+		result, err := cli.ExecuteLookup(`stringkey`, `intkey`, `--all`, `--dialect`, `dgo`, `--render-as`, `s`, `--type`, `{"stringkey":string,"intkey":int}`)
 		require.NoError(t, err)
-		require.Equal(t, `{"simple":"value","not_there":"something"}
+		require.Equal(t, `{"stringkey":"stringvalue","intkey":1}
 `, string(result))
+	})
+}
+
+func TestLookup_all_invalidtype(t *testing.T) {
+	ensureTestPlugin(t)
+	inTestdata(func() {
+		_, err := cli.ExecuteLookup(`stringkey`, `intkey`, `--all`, `--dialect`, `dgo`, `--render-as`, `s`, `--type`, `{"stringkey":int,"intkey":int}`)
+		require.Error(t, err, `the value 'stringvalue' cannot be converted to an int`)
 	})
 }
 

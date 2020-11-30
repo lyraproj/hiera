@@ -36,3 +36,7 @@ lookup_options:
     convert_to: Sensitive
 
 simple: value
+
+stringkey: stringvalue
+
+intkey: 1

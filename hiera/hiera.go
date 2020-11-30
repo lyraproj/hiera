@@ -52,7 +52,7 @@ type CommandOptions struct {
 	// ExplainOptions should be set to true to explain how lookup options were found for the lookup
 	ExplainOptions bool
 
-	MultiLookup bool
+	LookupAll bool
 }
 
 // Lookup performs a lookup using the given parameters.
@@ -114,7 +114,7 @@ func Lookup2(
 	return nil
 }
 
-// MultiLookup performs a lookup using the given parameters for all of the names passed in.
+// LookupAll performs a lookup using the given parameters for all of the names passed in.
 //
 // ic - The lookup invocation
 //
@@ -122,44 +122,31 @@ func Lookup2(
 //
 // valueType - Optional expected type of the found value
 //
-// defaultValue - Optional value to use as default when no value is found
-//
 // override - Optional map to use as override. Values found here are returned immediately (no merge)
 //
-// defaultValuesHash - Optional map to use as the last resort (but before defaultValue)
+// defaultValuesHash - Optional map to use as the last resort
 //
 // options - Optional map with merge strategy and options
-//
-// defaultFunc - Optional function to produce a default value
-func MultiLookup(
+func LookupAll(
 	ic api.Invocation,
 	names []string,
-	valueType dgo.Type,
-	defaultValue dgo.Value,
+	valueType dgo.StructMapType,
 	override dgo.Map,
 	defaultValuesHash dgo.Map,
-	options dgo.Map,
-	defaultFunc dgo.Producer) dgo.Value {
+	options dgo.Map) dgo.Value {
 	response := vf.MutableMap()
 	for _, name := range names {
-		if v := lookupInMap([]string{name}, override); v != nil {
-			response.Put(name, ensureType(valueType, v))
+		a := []string{name}
+		if v := lookupInMap(a, override); v != nil {
+			response.Put(name, ensureTypeFromMap(valueType, name, v))
 			continue
 		}
 		if v := ic.Lookup(api.NewKey(name), options); v != nil {
-			response.Put(name, ensureType(valueType, v))
+			response.Put(name, ensureTypeFromMap(valueType, name, v))
 			continue
 		}
-		if v := lookupInMap(names, defaultValuesHash); v != nil {
-			response.Put(name, ensureType(valueType, v))
-			continue
-		}
-		if defaultValue != nil {
-			response.Put(name, ensureType(valueType, defaultValue))
-			continue
-		}
-		if defaultFunc != nil {
-			response.Put(name, ensureType(valueType, defaultFunc()))
+		if v := lookupInMap(a, defaultValuesHash); v != nil {
+			response.Put(name, ensureTypeFromMap(valueType, name, v))
 			continue
 		}
 	}
@@ -175,6 +162,16 @@ func lookupInMap(names []string, m dgo.Map) dgo.Value {
 		}
 	}
 	return nil
+}
+
+func ensureTypeFromMap(t dgo.StructMapType, k string, v dgo.Value) dgo.Value {
+	if t == nil {
+		return v
+	}
+	if e := t.Get(k); e != nil {
+		return ensureType(e.Value().(dgo.Type), v)
+	}
+	panic(fmt.Errorf("key '%s' was not found in the type map", k))
 }
 
 func ensureType(t dgo.Type, v dgo.Value) dgo.Value {
@@ -240,10 +237,16 @@ func LookupAndRender(c api.Session, opts *CommandOptions, args []string, out io.
 	}
 
 	var found dgo.Value
-	if opts.MultiLookup {
-		found = MultiLookup(c.Invocation(createScope(c, opts), explainer), args, tp, dv, nil, nil, options, nil)
+	invocation := c.Invocation(createScope(c, opts), explainer)
+	if opts.LookupAll {
+		stp, ok := tp.(dgo.StructMapType)
+		if !ok && opts.Type != `` {
+			panic(fmt.Errorf("type must be a map"))
+		}
+		found = LookupAll(invocation, args, stp, nil, nil, options)
 	} else {
-		found = Lookup2(c.Invocation(createScope(c, opts), explainer), args, tp, dv, nil, nil, options, nil)
+
+		found = Lookup2(invocation, args, tp, dv, nil, nil, options, nil)
 	}
 	if explainer != nil {
 		renderAs := Text
