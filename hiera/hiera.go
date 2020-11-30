@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/lyraproj/dgo/dgo"
+	"github.com/lyraproj/dgo/streamer"
 	"github.com/lyraproj/dgo/typ"
 	"github.com/lyraproj/dgo/util"
 	"github.com/lyraproj/dgo/vf"
@@ -51,6 +52,8 @@ type CommandOptions struct {
 
 	// ExplainOptions should be set to true to explain how lookup options were found for the lookup
 	ExplainOptions bool
+
+	LookupAll bool
 }
 
 // Lookup performs a lookup using the given parameters.
@@ -112,6 +115,45 @@ func Lookup2(
 	return nil
 }
 
+// LookupAll performs a lookup using the given parameters for all of the names passed in.
+//
+// ic - The lookup invocation
+//
+// names[] - The name or names to lookup
+//
+// valueType - Optional expected type of the found value
+//
+// override - Optional map to use as override. Values found here are returned immediately (no merge)
+//
+// defaultValuesHash - Optional map to use as the last resort
+//
+// options - Optional map with merge strategy and options
+func LookupAll(
+	ic api.Invocation,
+	names []string,
+	valueType dgo.StructMapType,
+	override dgo.Map,
+	defaultValuesHash dgo.Map,
+	options dgo.Map) dgo.Value {
+	response := vf.MutableMap()
+	for _, name := range names {
+		a := []string{name}
+		if v := lookupInMap(a, override); v != nil {
+			response.Put(name, ensureTypeFromMap(valueType, name, v))
+			continue
+		}
+		if v := ic.Lookup(api.NewKey(name), options); v != nil {
+			response.Put(name, ensureTypeFromMap(valueType, name, v))
+			continue
+		}
+		if v := lookupInMap(a, defaultValuesHash); v != nil {
+			response.Put(name, ensureTypeFromMap(valueType, name, v))
+			continue
+		}
+	}
+	return response
+}
+
 func lookupInMap(names []string, m dgo.Map) dgo.Value {
 	if m != nil && m.Len() > 0 {
 		for _, name := range names {
@@ -121,6 +163,16 @@ func lookupInMap(names []string, m dgo.Map) dgo.Value {
 		}
 	}
 	return nil
+}
+
+func ensureTypeFromMap(t dgo.StructMapType, k string, v dgo.Value) dgo.Value {
+	if t == nil {
+		return v
+	}
+	if e := t.Get(k); e != nil {
+		return ensureType(e.Value().(dgo.Type), v)
+	}
+	panic(fmt.Errorf("key '%s' was not found in the type map", k))
 }
 
 func ensureType(t dgo.Type, v dgo.Value) dgo.Value {
@@ -159,11 +211,7 @@ var needParsePrefix = []string{`{`, `[`, `"`, `'`}
 // LookupAndRender performs a lookup using the given command options and arguments and renders the result on the given
 // io.Writer in accordance with the `RenderAs` option.
 func LookupAndRender(c api.Session, opts *CommandOptions, args []string, out io.Writer) bool {
-	tp := typ.Any
-	dl := c.Dialect()
-	if opts.Type != `` {
-		tp = dl.ParseType(nil, vf.String(opts.Type))
-	}
+	tp := parseType(opts.Type, c.Dialect())
 
 	var options dgo.Map
 	if !(opts.Merge == `` || opts.Merge == `first`) {
@@ -185,7 +233,17 @@ func LookupAndRender(c api.Session, opts *CommandOptions, args []string, out io.
 		explainer = explain.NewExplainer(opts.ExplainOptions, opts.ExplainOptions && !opts.ExplainData)
 	}
 
-	found := Lookup2(c.Invocation(createScope(c, opts), explainer), args, tp, dv, nil, nil, options, nil)
+	var found dgo.Value
+	invocation := c.Invocation(createScope(c, opts), explainer)
+	if opts.LookupAll {
+		stp, ok := tp.(dgo.StructMapType)
+		if !ok && opts.Type != `` {
+			panic(fmt.Errorf("type must be a map"))
+		}
+		found = LookupAll(invocation, args, stp, nil, nil, options)
+	} else {
+		found = Lookup2(invocation, args, tp, dv, nil, nil, options, nil)
+	}
 	if explainer != nil {
 		renderAs := Text
 		if opts.RenderAs != `` {
@@ -205,6 +263,14 @@ func LookupAndRender(c api.Session, opts *CommandOptions, args []string, out io.
 	}
 	Render(c, renderAs, found, out)
 	return true
+}
+
+func parseType(t string, dl streamer.Dialect) dgo.Type {
+	tp := typ.Any
+	if t != `` {
+		tp = dl.ParseType(nil, vf.String(t))
+	}
+	return tp
 }
 
 func parseCommandLineValue(c api.Session, vs string) dgo.Value {

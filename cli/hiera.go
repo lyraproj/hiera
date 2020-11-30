@@ -96,7 +96,7 @@ func NewCommand() *cobra.Command {
 	flags.Var(&dflt, `default`,
 		`a value to return if Hiera can't find a value in data`)
 	flags.StringVar(&cmdOpts.Type, `type`, ``,
-		`assert that the value has the specified type`)
+		`assert that the value has the specified type (if using --all this must be a map)`)
 	flags.StringVar(&dialect, `dialect`, `pcore`,
 		`dialect to use for rich data serialization and parsing of types pcore|dgo'`)
 	flags.StringVar(&cmdOpts.RenderAs, `render-as`, ``,
@@ -111,6 +111,8 @@ func NewCommand() *cobra.Command {
 		`a key:value or key=value where value is literal expressed using Puppet DSL`)
 	flags.StringArrayVar(&cmdOpts.FactPaths, `facts`, nil,
 		`like --vars but will also make variables available under the "facts" (for compatibility with Puppet's ruby version of Hiera)`)
+	flags.BoolVar(&cmdOpts.LookupAll, `all`, false,
+		`lookup all of the keys and output the results as a map`)
 
 	cmd.SetHelpTemplate(helpTemplate)
 	return cmd

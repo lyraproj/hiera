@@ -34,3 +34,9 @@ lookup_options:
     merge: deep
   sense:
     convert_to: Sensitive
+
+simple: value
+
+stringkey: stringvalue
+
+intkey: 1

@@ -435,6 +435,62 @@ func TestLookup_issue75(t *testing.T) {
 	}
 }
 
+func TestLookup_all_json(t *testing.T) {
+	ensureTestPlugin(t)
+	inTestdata(func() {
+		result, err := cli.ExecuteLookup(`hash`, `array`, `--render-as`, `json`, `--all`)
+		require.NoError(t, err)
+		require.Equal(t, `{"hash":{"one":1,"two":"two","three":{"a":"A","c":"C"}},"array":["one","two","three"]}
+`, string(result))
+	})
+}
+
+func TestLookup_all_simple(t *testing.T) {
+	ensureTestPlugin(t)
+	inTestdata(func() {
+		result, err := cli.ExecuteLookup(`simple`, `--render-as`, `s`, `--all`)
+		require.NoError(t, err)
+		require.Equal(t, `{"simple":"value"}
+`, string(result))
+	})
+}
+
+func TestLookup_all_not_there(t *testing.T) {
+	ensureTestPlugin(t)
+	inTestdata(func() {
+		result, err := cli.ExecuteLookup(`simple`, `not_there`, `--render-as`, `s`, `--all`)
+		require.NoError(t, err)
+		require.Equal(t, `{"simple":"value"}
+`, string(result))
+	})
+}
+
+func TestLookup_all_type(t *testing.T) {
+	ensureTestPlugin(t)
+	inTestdata(func() {
+		result, err := cli.ExecuteLookup(`stringkey`, `intkey`, `--all`, `--dialect`, `dgo`, `--render-as`, `s`, `--type`, `{"stringkey":string,"intkey":int}`)
+		require.NoError(t, err)
+		require.Equal(t, `{"stringkey":"stringvalue","intkey":1}
+`, string(result))
+	})
+}
+
+func TestLookup_all_invalid_type(t *testing.T) {
+	ensureTestPlugin(t)
+	inTestdata(func() {
+		_, err := cli.ExecuteLookup(`stringkey`, `intkey`, `--all`, `--dialect`, `dgo`, `--render-as`, `s`, `--type`, `{"stringkey":int,"intkey":int}`)
+		require.Error(t, err, `the value 'stringvalue' cannot be converted to an int`)
+	})
+}
+
+func TestLookup_all_invalid_type_map(t *testing.T) {
+	ensureTestPlugin(t)
+	inTestdata(func() {
+		_, err := cli.ExecuteLookup(`stringkey`, `intkey`, `--all`, `--dialect`, `dgo`, `--render-as`, `s`, `--type`, `string`)
+		require.Error(t, err, `type must be a map`)
+	})
+}
+
 /*
 func TestDataHash_refuseToDie(t *testing.T) {
 	ensureTestPlugin(t)
