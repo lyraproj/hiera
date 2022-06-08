@@ -92,16 +92,16 @@ Much of hiera's power lies in its ability to interpolate variables in the hierar
     ---
     version: 5
     defaults:
-    datadir: hiera
-    data_hash: yaml_data
+      datadir: hiera
+      data_hash: yaml_data
 
     hierarchy:
     - name: "Host-specific overrides"
-        path: "hosts/%{hostname}.yaml"
+      path: "hosts/%{hostname}.yaml"
     - name: "Environmental overrides"
-        path: "environments/%{environment}.yaml"
+      path: "environments/%{environment}.yaml"
     - name: "Fall through defaults"
-        path: "defaults.yaml"
+      path: "defaults.yaml"
 
 This maps to a directory structure based in the `hiera` subdirectory (due to the `datadir` top level key) containing yaml files like:
 
@@ -158,7 +158,7 @@ In order to include an extension in a Hiera Docker image you need to:
 
 * [Azure Key Vault lookup_key](https://github.com/lyraproj/hiera_azure). Allows you to lookup single values stored as
  secrets from the Azure Key Vault.
-* [Terraform Backend data_hash](https://github.com/lyraproj/hiera_terrform). Allows hiera to query data from a Terraform
+* [Terraform Backend data_hash](https://github.com/lyraproj/hiera_terraform). Allows hiera to query data from a Terraform
  backend. 
 
 ## Implementation status
