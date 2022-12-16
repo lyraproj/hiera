@@ -468,9 +468,9 @@ func TestLookup_all_not_there(t *testing.T) {
 func TestLookup_all_type(t *testing.T) {
 	ensureTestPlugin(t)
 	inTestdata(func() {
-		result, err := cli.ExecuteLookup(`stringkey`, `intkey`, `--all`, `--dialect`, `dgo`, `--render-as`, `s`, `--type`, `{"stringkey":string,"intkey":int}`)
+		result, err := cli.ExecuteLookup(`stringkey`, `intkey`, `literalkey`,  `--all`, `--dialect`, `dgo`, `--render-as`, `s`, `--type`, `{"stringkey":string,"literalkey":string,"intkey":int}`)
 		require.NoError(t, err)
-		require.Equal(t, `{"stringkey":"stringvalue","intkey":1}
+		require.Equal(t, `{"stringkey":"stringvalue","intkey":1,"literalkey":"%{literalvalue}"}
 `, string(result))
 	})
 }

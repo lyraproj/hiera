@@ -39,4 +39,6 @@ simple: value
 
 stringkey: stringvalue
 
+literalkey: "%{literal('%')}{literalvalue}"
+
 intkey: 1
