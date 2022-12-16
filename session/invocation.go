@@ -252,7 +252,6 @@ func (ic *ivContext) Lookup(key api.Key, options dgo.Map) dgo.Value {
 	v := ic.TopProvider()(ic.ServerContext(options), rootKey)
 	if v != nil {
 		dc := ic.ForData()
-		v = dc.Interpolate(v, true)
 		v = key.Dig(dc, v)
 	}
 	return v
